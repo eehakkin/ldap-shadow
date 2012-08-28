@@ -1,0 +1,410 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-useradd 1.0
+#
+# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+case ${1-} in
+--mode=askpass ) {
+	shift
+	###################################################################
+	#
+	# Prompt for a password.
+	#
+	###################################################################
+	error=0
+	if [ -t 0 ]
+	then
+		printf '%s' "${*}" >&2
+		stty -echo
+	fi
+	sed -e 'q' | grep -F -e '' || error=${?}
+	if [ -t 0 ]
+	then
+		stty echo
+		echo >&2
+	fi
+	exit "${error}"
+	} && : ;;
+--mode=frontend )
+	shift
+	case ${2-} in --version )
+		me=$( which -- "${1}" || ls -d -- "${1}" )
+		exec sed -n -e '/^[^#]/q' -e 's/^#\( \(.*\)\)*$/\2/p' -- "${me}"
+	esac
+	###################################################################
+	#
+	# Modify LDAP entries.
+	#
+	###################################################################
+	export LDAPSEARCH_OPTS
+	# Defaults.
+	unset GROUP_DN USER_DN
+	# Search options.
+	case ${LDAPSEARCH_OPTS++} in
+	'' )
+		for LDAPSEARCH_OPTS in '-x' '-W -x' ''
+		do
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -s base -- \
+				1.1 > /dev/null 2>&1 && break
+		done
+		;;
+	esac
+	# LDIF.
+	LDIF=$( LDAP_HAS_FRONTEND=+ "${@}" ) 3>&1
+	error=0
+	case ${LDIF:++} in
+	+ )
+		# Extract connection parameters.
+		while :
+		do
+			head=${LDIF%%'
+'*}
+			case ${head} in
+			'# LDAP'*=* )
+				export "${head#??}"
+				LDIF=${LDIF#"${head}"}
+				LDIF=${LDIF#'
+'}
+				;;
+			* ) break ;;
+			esac
+		done
+		;;
+	esac
+	case ${LDIF:++} in
+	+ )
+		# Modify options.
+		case ${LDAPMODIFY_OPTS++},${LDAPSEARCH_OPTS:++} in
+		+,* ) ;;
+		,   ) LDAPMODIFY_OPTS= ;;
+		,+  ) LDAPMODIFY_OPTS="${LDAPSEARCH_OPTS} -W" ;;
+		esac
+		# Prompt for the LDAP password.
+		LDAPBINDPW=${LDAPBINDPW-$(
+			exec "${0}" --mode=askpass 'Enter LDAP Password: '
+			)}
+		# Determine the URI of the master LDAP server.
+		LDAPURI=${LDAPURI-$(
+			exec "${0}" --mode=uri << __PASS__
+${LDAPBINDPW}
+__PASS__
+			)}
+		export LDAPURI
+		# Modify LDAP entries.
+		error_msg=$(
+			exec ${LDAPBINDPW:+setsid} ldapmodify -M ${LDAPMODIFY_OPTS} 2>&1 << __LDIF__
+${LDAPBINDPW:+${LDAPBINDPW}
+}${LDIF}
+__LDIF__
+			) || error=${?}
+		# Report errors.
+		error_msg=${error_msg#'Enter LDAP Password: '}
+		case ${error_msg:++} in
+		+ ) printf '%s\n' "${error_msg}" >&2 ;;
+		esac
+		# Invalidate name service caches.
+		if nscd=$( which -- 'nscd' )
+		then
+			"${nscd}" -i 'group'  &&
+			"${nscd}" -i 'passwd' || :
+		fi
+		;;
+	esac
+	exit "${error}"
+	;;
+--mode=uri )
+	###################################################################
+	#
+	# Determine the URI of the master LDAP server.
+	#
+	###################################################################
+	# Prompt for the LDAP password.
+	LDAPBINDPW=${LDAPBINDPW-$(
+		"${0}" --mode=askpass 'Enter LDAP Password: '
+		)}
+	# Loop over LDAP servers in order to handle partial replication
+	# (userPassword attributes are not always replicated).
+	error=1 error_msg=
+	for uri in ${LDAPURI-$(
+		set -- \
+			/etc/ldap/ldap.conf		\
+			~/ldaprc ~/.ldaprc ldaprc	\
+			${LDAPCONF+ "${LDAPCONF}" }	\
+			${LDAPRC+ ~/"${LDAPRC}" ~/".${LDAPRC}" "${LDAPRC}" }
+		for rc
+		do
+			[ ! -s "${rc}" ] || set -- "${@}" "${rc}"
+			shift
+		done
+		sed -e '/^URI[[:space:]]/{s///;h;};$!d;g' -- "${@}"
+		)}
+	do
+		# Passwords must never be passed as command-line arguments
+		# (using the -w option or such) due to security and privacy
+		# reasons thus use a here-document.
+		error_msg=$(
+			setsid ldapwhoami ${LDAPSEARCH_OPTS} -H "${uri}" -W << __PASS__ 2>&1
+${LDAPBINDPW}
+__PASS__
+			) && exec printf '%s\n' "${uri}" || error=${?}
+	done
+	# Report errors.
+	error_msg=${error_msg#'Enter LDAP Password: '}
+	printf '%s\n' "${error_msg:?}" >&2
+	exit "${error}"
+	;;
+esac
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+
+###########################################################################
+#
+# Defaults.
+#
+###########################################################################
+GID_MIN=10000 GID_MAX=19999
+UID_MIN=10000 UID_MAX=19999
+NORMAL=+ SYSTEM= USER_GROUP=+
+unset GROUP_BASE_DN GROUP_OU
+unset USER_BASE_DN  USER_OU
+unset USER_COMMENT USER_GID USER_GROUPS USER_HOME_DIR USER_UID
+unset USER_EXPIRE USER_INACTIVE
+BASE_DIR=/home/users USER_SHELL=/bin/bash
+
+###########################################################################
+#
+# Options.
+#
+###########################################################################
+while getopts b:c:d:e:f:g:G:hK:MNors:u:U-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--base-dir   | \
+	--comment    | \
+	--home       | \
+	--home-dir   | \
+	--expiredate | \
+	--inactive   | \
+	--gid        | \
+	--groups     | \
+	--key        | \
+	--shell      | \
+	--uid        )
+		OPT=${OPT}${OPTARG}
+		eval 'OPTARG=${'"${OPTIND}"'?}'
+		OPTIND=$(( ${OPTIND} + 1 ))
+		;;
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	esac
+	case -${OPT} in
+	--base-dir       | -b ) BASE_DIR=${OPTARG} ;;
+	--comment        | -c ) USER_COMMENT=${OPTARG} ;;
+	--home           |    \
+	--home-dir       | -d ) USER_HOME_DIR=${OPTARG} ;;
+	--expiredate     | -e )
+		USER_EXPIRE=${OPTARG}
+		case ${USER_EXPIRE} in *[![:digit:]]* )
+			USER_EXPIRE=$( date -d "${USER_EXPIRE} UTC" +'%s' )
+			USER_EXPIRE=$(( ${USER_EXPIRE} / ( 24 * 60 * 60 ) ))
+		esac
+		;;
+	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
+	--gid            | -g ) USER_GID=${OPTARG} ;;
+	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
+	--help           | -h ) exec cat << __USAGE__ >&3 ;;
+Usage: ${0##*[\\/]} [OPTION]... USER
+
+Options:
+ -b, --base-dir BASE_DIR       Use the base directory for home directories.
+ -c, --comment COMMENT         Use the full name for the new account.
+ -d, --home-dir HOME_DIR       Use the home directory for the new account.
+ -e, --expiredate EXPIRE_DATE  Use the expiration date for the new account.
+ -f, --inactive INACTIVE       Use the password inactivity period.
+ -g, --gid GID                 Use the primary group ID for the new account.
+ -G, --groups GROUPS           Use the secondary groups for the new account.
+ -h, --help                    Display this help message and exit.
+ -K, --key KEY=VALUE           Override a default configuration.
+ -M, --no-create-home          (ignored)
+ -N, --no-user-group           Do not create a group with the same name.
+ -o, --non-unique              (ignored)
+ -r, --system                  Create a system user.
+ -s, --shell SHELL             Use the login shell for the new account.
+ -u, --uid UID                 Use the user ID for the new account.
+ -U, --user-group              Create a group with the same name.
+     --dump-ldif               Dump LDIF and exit.
+
+__USAGE__
+	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--no-log-init    | -l ) ;;
+	--no-create-home | -M ) ;;
+	--no-user-group  | -N ) USER_GROUP= ;;
+	--non-unique     | -o ) ;;
+	--system         | -r ) NORMAL= SYSTEM=+ ;;
+	--shell          | -s ) USER_SHELL=${OPTARG} ;;
+	--uid            | -u ) USER_UID=${OPTARG} ;;
+	--user-group     | -U ) USER_GROUP=+ ;;
+	--dump-ldif      ) exec >&3 ;;
+	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*                ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+USER=${1-}
+: "${USER:?}"
+
+###########################################################################
+#
+# Values.
+#
+###########################################################################
+# USER_BASE_DN.
+USER_BASE_DN=${USER_BASE_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		${base_dn:+ -b "${base_dn}" } -z 1 -- \
+		"(objectClass=posixAccount)" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
+	)}
+: "${USER_BASE_DN:?}"
+
+# USER_COMMENT.
+USER_COMMENT=${USER_COMMENT:-${USER}}
+: "${USER_COMMENT:?}"
+
+# USER_GID.
+case ${USER_GID-},${USER_GROUP:++} in
+,  ) USER_GID=100 ;;
+,+ )
+	USER_GID=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+			"(&(objectClass=posixGroup)(cn=${USER}))"	\
+			gidNumber					\
+			2> /dev/null					\
+		| unfold \
+		| sed -e '/^gidNumber: /!d' -e 's///' -e 'q'
+		)
+	case ${USER_GID} in
+	'' )
+		set -- \
+			${GID_MIN:+       -K "GID_MIN=${GID_MIN}"             }	\
+			${GID_MAX:+       -K "GID_MAX=${GID_MAX}"             }	\
+			${GROUP_BASE_DN:+ -K "GROUP_BASE_DN=${GROUP_BASE_DN}" }	\
+			${GROUP_OU:+      -K "GROUP_OU=${GROUP_OU}"           }	\
+			--							\
+			"${USER}"
+		. "${0%ldap-*}ldap-groupadd"
+		USER_GID=${GROUP_GID:?}
+		;;
+	esac
+	;;
+*[![:digit:]]*,* )
+	USER_GID=$( getent -- group "${USER_GID}" | cut -d : -f 3 )
+	;;
+esac
+: "${USER_GID:?}"
+
+# USER_HOME_DIR.
+USER_HOME_DIR=${USER_HOME_DIR:-${BASE_DIR:?}/${USER}}
+: "${USER_HOME_DIR:?}"
+
+# USER_OU.
+while :
+do
+	###################################################################
+	#
+	# LDIF.
+	#
+	###################################################################
+	# USER_OU.
+	case ${USER_OU++}${USER_OU:++} in
+	'' ) RDN=ou=${USER%-*} ;;
+	+  ) break ;;
+	++ ) RDN=${USER_OU##*,} ;;
+	esac
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${RDN},${USER_BASE_DN}" -s base -- \
+		'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
+	case ${?},${USER},${USER_OU:++} in
+	0,*,*  ) ;;
+	*,*,+  | \
+	*,*-*, ) cat << __LDIF__ ;;
+dn: ${RDN},${USER_BASE_DN}
+changetype: add
+objectClass: organizationalUnit
+${RDN%%=*}: ${RDN#*=}
+
+__LDIF__
+	*,*,*  ) break ;;
+	esac
+	###################################################################
+	#
+	# Values.
+	#
+	###################################################################
+	# USER_BASE_DN.
+	USER_BASE_DN=${RDN},${USER_BASE_DN}
+	case ${USER_OU-} in
+	*,* ) USER_OU=${USER_OU%,*} ;;
+	*   ) break ;;
+	esac
+done
+
+# USER_UID.
+USER_UID=${USER_UID:-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		"(objectClass=posixAccount)" uidNumber \
+	| unfold \
+	| awk -F ': ' -v min="${UID_MIN:?}" -v max="${UID_MAX:?}" '
+$1 != "uidNumber" { next }
+$2 == min { ++min; while ( used[min] ) delete used[min++] }
+min < $2 && $2 <= max { used[$2] = 1 }
+END { if ( min <= max ) print min }
+'
+	)}
+: "${USER_UID:?}"
+
+# USER_DN.
+USER_DN=uid=${USER},${USER_BASE_DN}
+
+###########################################################################
+#
+# LDIF.
+#
+###########################################################################
+# USER.
+cat << __LDIF__
+dn: ${USER_DN}
+changetype: add
+objectClass: posixAccount
+objectClass: shadowAccount${NORMAL:+
+objectClass: inetOrgPerson}${SYSTEM:+
+objectClass: organizationalRole}
+cn: ${USER_COMMENT}
+gidNumber: ${USER_GID}${NORMAL:+
+givenName: ${USER_COMMENT%%[[:space:]]*}}
+homeDirectory: ${USER_HOME_DIR}
+loginShell: ${USER_SHELL}${USER_EXPIRE+
+shadowExpire: ${USER_EXPIRE}}${USER_INACTIVE+
+shadowInactive: ${USER_INACTIVE}}${NORMAL:+
+sn: ${USER_COMMENT#*[[:space:]]}}
+uidNumber: ${USER_UID}
+
+__LDIF__
+
+# USER_GROUPS.
+case ${USER_GROUPS:++} in
++ ) set -- -a -G "${USER_GROUPS}" -- "${USER}"; . "${0%ldap-*}ldap-usermod" ;;
+esac

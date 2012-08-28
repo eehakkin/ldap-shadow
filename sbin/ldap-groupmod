@@ -1,0 +1,112 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-groupmod 1.0
+#
+# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+
+###########################################################################
+#
+# Defaults.
+#
+###########################################################################
+unset GROUP_GID NEW_GROUP NEW_SUPERIOR_DN
+
+###########################################################################
+#
+# Options.
+#
+###########################################################################
+while getopts g:hK:n:o-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--gid | --key | --new-name )
+		OPT=${OPT}${OPTARG}
+		eval 'OPTARG=${'"${OPTIND}"'?}'
+		OPTIND=$(( ${OPTIND} + 1 ))
+		;;
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	esac
+	case -${OPT} in
+	--gid        | -g ) GROUP_GID=${OPTARG} ;;
+	--help       | -h ) exec cat << __USAGE__ >&3 ;;
+Usage: ${0##*[\\/]} [OPTION]... GROUP
+
+Options:
+     --dump-ldif           Dump LDIF and exit.
+ -g, --gid GID             Change the group ID.
+ -h, --help                Display this help message and exit.
+ -K, --key KEY=VALUE       Override a default configuration.
+ -n, --new-name NEW_GROUP  Change the group name.
+ -o, --non-unique          (ignored)
+
+__USAGE__
+	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--new-name   | -n ) NEW_GROUP=${OPTARG} ;;
+	--non-unique | -o ) ;;
+	--dump-ldif  ) exec >&3 ;;
+	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*            ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+GROUP=${1-}
+: "${GROUP:?}"
+
+###########################################################################
+#
+# Values.
+#
+###########################################################################
+# GROUP_DN.
+GROUP_DN=${GROUP_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q'
+	)}
+: "${GROUP_DN:?}"
+
+###########################################################################
+#
+# LDIF.
+#
+###########################################################################
+# GROUP_GID.
+case ${GROUP_GID++} in
++ ) cat << __LDIF__ ;;
+dn: ${GROUP_DN}
+changetype: modify
+replace: gidNumber
+gidNumber: ${GROUP_GID}
+-
+
+__LDIF__
+esac
+
+# NEW_GROUP.
+case ${NEW_GROUP++}${NEW_SUPERIOR_DN++} in
++* ) cat << __LDIF__ ;;
+dn: ${GROUP_DN}
+changetype: modrdn
+newrdn: cn=${NEW_GROUP-${GROUP}}
+deleteoldrdn: 1${NEW_SUPERIOR_DN+"
+newsuperior: ${NEW_SUPERIOR_DN}"}
+
+__LDIF__
+esac

@@ -1,0 +1,160 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-chfn 1.0
+#
+# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+case ${1-} in
+--mode=* )
+	me=$( which -- "${0}" || ls -d -- "${0}" )
+	dir=$( dirname -- "${me}" )
+	base=$( basename -- "${me}" )
+	exec "${dir}/../sbin/${base%ldap-*}ldap-useradd" "${@}"
+	;;
+esac
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-chfn" --mode=frontend "${0}" "${@}"
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+
+###########################################################################
+#
+# Defaults.
+#
+###########################################################################
+LOGNAME=${LOGNAME-${USER-$( id -un )}}
+unset USER_COMMENT
+unset USER_HOME_PHONE USER_MOBILE_PHONE USER_OFFICE USER_OFFICE_PHONE
+
+###########################################################################
+#
+# Options.
+#
+###########################################################################
+while getopts f:h:m:o:p:-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	-f* ) USER_COMMENT=${OPTARG} ;;
+	-h* ) USER_HOME_PHONE=${OPTARG} ;;
+	-m* ) USER_MOBILE_PHONE=${OPTARG} ;;
+	-o* ) USER_OFFICE=${OPTARG} ;;
+	-p* ) USER_OFFICE_PHONE=${OPTARG} ;;
+	--help      ) exec cat << __USAGE__ >&3 ;;
+Usage: ${0##*[\\/]} [OPTIONS] USER
+
+Options:
+ -f COMMENT       Change the full name of the account to COMMENT.
+ -h HOME_PHONE    Change the home phone number of the account to HOME_PHONE.
+ -m MOBILE_PHONE  Change the mobile phone number of the account to MOBILE_PHONE.
+ -o OFFICE        Change the office room number of the account to OFFICE.
+ -p OFFICE_PHONE  Change the office phone number of the account to OFFICE_PHONE.
+ --dump-ldif      Dump LDIF and exit.
+
+__USAGE__
+	--dump-ldif ) exec >&3 ;;
+	--*         ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit ;;
+	*           ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+USER=${1-${LOGNAME}}
+: "${USER:?}"
+
+###########################################################################
+#
+# Values.
+#
+###########################################################################
+# USER_DN.
+USER_DN=${USER_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q'
+	)}
+: "${USER_DN:?}"
+
+# LDAPBINDDN.
+case ${USER} in
+"${LOGNAME}" ) printf '# LDAPBINDDN=%s\n' "${USER_DN}" ;;
+esac
+
+# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_OFFICE, USER_OFFICE_PHONE.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_OFFICE++}${USER_OFFICE_PHONE++} in
+'' )
+	printf "$( gettext -d shadow -- 'Changing the user information for %s
+' )\\n" "${USER}" >&2
+	gettext -d shadow -s -- 'Enter the new value, or press ENTER for the default' >&2
+	while read variable attribute label <&4
+	do
+		value=$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -z 1 -- \
+				'(objectClass=*)' "${attribute}" 2> /dev/null \
+			| unfold \
+			| sed -e '/^dn:/d' -e '/./!d' \
+			| while IFS=':' read attribute value
+			do
+				case ${value} in
+				( ': '* ) value=$(
+					printf '%s\n' "${value#": "}" \
+					| base64 -d
+					) ;;
+				( ' '* ) value=${value#" "} ;;
+				esac
+				printf '%s\n' "${value}"
+			done
+			)
+		printf '\t%s [%s]: ' "$( gettext -d shadow -- "${label}" )" "${value}" >&2
+		IFS= read -r REPLY
+		case ${REPLY} in
+		' ' ) eval "USER_${variable}"= ;;
+		?*  ) eval "USER_${variable}"='${REPLY}' ;;
+		esac
+	done 4<< __INFO__
+		COMMENT		cn		Full Name
+		HOME_PHONE	homePhone	Home Phone
+		OFFICE		roomNumber	Room Number
+		OFFICE_PHONE	telephoneNumber	Work Phone
+		MOBILE_PHONE	mobile		Mobile Phone
+__INFO__
+	;;
+esac
+
+###########################################################################
+#
+# LDIF.
+#
+###########################################################################
+# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_OFFICE, USER_OFFICE_PHONE.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_OFFICE++}${USER_OFFICE_PHONE++} in
++* ) cat <<__LDIF__ ;;
+dn: ${USER_DN}
+changetype: modify${USER_COMMENT+
+replace: cn
+cn: ${USER_COMMENT:-${USER}}
+-}${USER_HOME_PHONE+
+replace: homePhone${USER_HOME_PHONE:+
+homePhone: ${USER_HOME_PHONE}}
+-}${USER_MOBILE_PHONE+
+replace: mobile${USER_MOBILE_PHONE:+
+mobile: ${USER_MOBILE_PHONE}}
+-}${USER_OFFICE+
+replace: roomNumber${USER_OFFICE:+
+roomNumber: ${USER_OFFICE}}
+-}${USER_OFFICE_PHONE+
+replace: telephoneNumber${USER_OFFICE_PHONE:+
+telephoneNumber: ${USER_OFFICE_PHONE}}
+-}
+
+__LDIF__
+esac

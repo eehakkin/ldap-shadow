@@ -1,0 +1,275 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-usermod 1.0
+#
+# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+
+###########################################################################
+#
+# Defaults.
+#
+###########################################################################
+APPEND=
+unset NEW_SUPERIOR_DN NEW_USER
+unset USER_COMMENT USER_GID USER_GROUPS USER_HOME_DIR USER_SHELL USER_UID
+unset USER_EXPIRE USER_INACTIVE
+
+###########################################################################
+#
+# Options.
+#
+###########################################################################
+while getopts ac:d:e:f:g:G:hK:l:os:u:-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--comment    | \
+	--home       | \
+	--home-dir   | \
+	--expiredate | \
+	--inactive   | \
+	--gid        | \
+	--groups     | \
+	--key        | \
+	--shell      | \
+	--uid        )
+		OPT=${OPT}${OPTARG}
+		eval 'OPTARG=${'"${OPTIND}"'?}'
+		OPTIND=$(( ${OPTIND} + 1 ))
+		;;
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	esac
+	case -${OPT} in
+	--append         | -a ) APPEND=+ ;;
+	--comment        | -c ) USER_COMMENT=${OPTARG} ;;
+	--home           |    \
+	--home-dir       | -d ) USER_HOME_DIR=${OPTARG} ;;
+	--expiredate     | -e )
+		USER_EXPIRE=${OPTARG}
+		case ${USER_EXPIRE} in *[![:digit:]]* )
+			USER_EXPIRE=$( date -d "${USER_EXPIRE} UTC" +'%s' )
+			USER_EXPIRE=$(( ${USER_EXPIRE} / ( 24 * 60 * 60 ) ))
+		esac
+		;;
+	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
+	--gid            | -g ) USER_GID=${OPTARG} ;;
+	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
+	--help           | -h ) exec cat << __USAGE__ >&3 ;;
+Usage: ${0##*[\\/]} [OPTION]... USER
+
+Options:
+ -a, --append             Append the account to the secondary groups specified
+                          using -G  without removing the account from other
+                          groups.
+ -c, --comment COMMENT    Change the full name of the account.
+ -d, --home HOME_DIR      Change the home directory of the account.
+ -f, --inactive INACTIVE  Change the password inactivity period.
+ -g, --gid GID            Change the primary group ID of the account.
+ -G, --groups GROUPS      Change the secondary groups of the account.
+ -h, --help               Display this help message and exit.
+ -K, --key KEY=VALUE      Override a default configuration.
+ -l, --login LOGIN_NAME   Change the login name of the account.
+ -o, --non-unique         (ignored)
+ -s, --shell SHELL        Change the login shell of the account.
+ -u, --uid UID            Change the user ID of the account.
+     --dump-ldif          Dump LDIF and exit.
+
+__USAGE__
+	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--login          | -l ) NEW_USER=${OPTARG} ;;
+	--non-unique     | -o ) ;;
+	--shell          | -s ) USER_SHELL=${OPTARG} ;;
+	--uid            | -u ) USER_UID=${OPTARG} ;;
+	--dump-ldif      ) exec >&3 ;;
+	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*                ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+USER=${1-}
+: "${USER:?}"
+
+###########################################################################
+#
+# Values.
+#
+###########################################################################
+# USER_DN.
+USER_DN=${USER_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q'
+	)}
+
+# USER_COMMENT.
+case ${USER_COMMENT++} in
++ ) : "${USER_DN:?}"; NORMAL=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
+		'(objectClass=inetOrgPerson)' 1.1
+	) ;;
+esac
+
+# USER_GID.
+case ${USER_GID-} in
+*[![:digit:]]* ) USER_GID=$( getent -- group "${USER_GID}" | cut -d : -f 3 ) ;;
+esac
+
+###########################################################################
+#
+# LDIF.
+#
+###########################################################################
+# USER_COMMENT, USER_GID, USER_HOME_DIR, USER_SHELL, USER_EXPIRE, USER_INACTIVE, USER_UID.
+case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_UID++} in
++* ) : "${USER_DN:?}"; cat <<__LDIF__ ;;
+dn: ${USER_DN}
+changetype: modify${USER_COMMENT+
+replace: cn
+cn: ${USER_COMMENT}${NORMAL:+
+-
+replace: givenName
+givenName: ${USER_COMMENT%%[[:space:]]*}
+-
+replace: sn
+sn: ${USER_COMMENT#*[[:space:]]}}
+-}${USER_GID+
+replace: gidNumber
+gidNumber: ${USER_GID}
+-}${USER_HOME_DIR+
+replace: homeDirectory
+homeDirectory: ${USER_HOME_DIR}
+-}${USER_SHELL+
+replace: loginShell
+loginShell: ${USER_SHELL}
+-}${USER_EXPIRE+
+replace: shadowExpire
+shadowExpire: ${USER_EXPIRE}
+-}${USER_INACTIVE+
+replace: shadowInactive
+shadowInactive: ${USER_INACTIVE}
+-}${USER_UID+
+replace: uidNumber
+uidNumber: ${USER_UID}
+-}
+
+__LDIF__
+esac
+
+# USER_GROUPS.
+case ${NEW_USER++}${USER_GROUPS++} in
++* )
+	FILTERS= IFS=,
+	for GROUP in ${USER_GROUPS-}
+	do
+		case ${GROUP:++} in
+		+ ) FILTERS="${FILTERS}(cn=${GROUP})" ;;
+		esac
+	done
+	unset IFS
+	case ${NEW_USER++},${USER_GROUPS++},${APPEND:++} in
+	+,*,* | *,+, )
+		# * -G <GROUPS>:
+		#   Remove <USER> from other groups having <USER> as a member.
+		# * -G <GROUPS> -l <NEW-USER>:
+		#   Remove <NEW-USER> and <USER> from other groups
+		#   having either <NEW-USER> or <USER> as a member.
+		# * -a -G <GROUPS> -l <NEW-USER>:
+		#   Add <NEW-USER> to and remove <USER> from other groups
+		#   having either <NEW-USER> or <USER> as a member.
+		# * [-a] -l <NEW-USER>:
+		#   Add <NEW-USER> to and remove <USER> from all the groups
+		#   having either <NEW-USER> or <USER> as a member.
+		case ${USER_GROUPS++} in
+		'' ) APPEND=+ ;;
+		esac
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)${FILTERS:+"(!(|${FILTERS}))"}(|${NEW_USER+"(memberUid=${NEW_USER})"}(memberUid=${USER})))" \
+			memberUid \
+		| unfold \
+		| sed \
+			-e '/^dn:/a\
+changetype: modify\
+replace: memberUid'"${APPEND:+"\\
+memberUid: ${NEW_USER}"}" ${NEW_USER+\
+			-e '/^memberUid: '"${NEW_USER}"'$/d' } \
+			-e '/^memberUid: '"${USER}"'$/d' \
+			-e '/^$/i\
+-'
+		;;
+	esac
+	case ${FILTERS:++} in
+	+ )
+		# * [-a] -G <GROUPS>:
+		#   Add <USER> to the listed groups
+		#   not having <USER> as a member.
+		# * [-a] -G <GROUPS> -l <NEW-USER>:
+		#   Add <NEW-USER> to matching groups
+		#   having neither <NEW-USER> nor <USER> as a member.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)(|${FILTERS})${NEW_USER+"(!(memberUid=${NEW_USER}))"}(!(memberUid=${USER})))" \
+			1.1 \
+		| unfold \
+		| sed \
+			-e '/^dn:/a\
+changetype: modify\
+add: memberUid\
+memberUid: '"${NEW_USER-${USER}}" \
+			-e '/^$/i\
+-'
+		;;
+	esac
+	;;
+esac
+
+# NEW_USER.
+case ${NEW_SUPERIOR_DN++}${NEW_USER++} in
++* )
+	: "${USER_DN:?}"
+	for DN_ATTRIBUTE in \
+		aliasedObjectName	\
+		associatedName		\
+		documentAuthor		\
+		manager			\
+		member			\
+		owner			\
+		roleOccupant		\
+		secretary		\
+		seeAlso
+	do
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(${DN_ATTRIBUTE}=${USER_DN})" "${DN_ATTRIBUTE}" \
+		| unfold \
+		| sed \
+			-e '/^dn:/a\
+changetype: modify\
+replace: '"${DN_ATTRIBUTE}" \
+			-e 's/^\([^:]*\): '"${USER_DN}"'$/\1: '"uid=${NEW_USER-${USER}},${NEW_SUPERIOR_DN-${USER_DN#*,}}"'/' \
+			-e '/^$/i\
+-'
+	done
+	cat <<__LDIF__
+dn: ${USER_DN}
+changetype: modrdn
+newrdn: uid=${NEW_USER-${USER}}
+deleteoldrdn: 1${NEW_SUPERIOR_DN+"
+newsuperior: ${NEW_SUPERIOR_DN}"}
+
+__LDIF__
+	;;
+esac

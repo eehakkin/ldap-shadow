@@ -1,0 +1,71 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-groupdel 1.0
+#
+# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+
+###########################################################################
+#
+# Options.
+#
+###########################################################################
+while getopts h-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--help | -h ) exec cat << __USAGE__ >&3 ;;
+Usage: ${0##*[\\/]} [OPTION]... GROUP
+
+Options:
+ -h, --help       Display this help message and exit.
+     --dump-ldif  Dump LDIF and exit.
+
+__USAGE__
+	--dump-ldif ) exec >&3 ;;
+	--*         ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;
+	*           ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+GROUP=${1-}
+: "${GROUP:?}"
+
+###########################################################################
+#
+# Values.
+#
+###########################################################################
+# GROUP_DN.
+GROUP_DN=${GROUP_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q'
+	)}
+: "${GROUP_DN:?}"
+
+###########################################################################
+#
+# LDIF.
+#
+###########################################################################
+# GROUP.
+cat <<__LDIF__
+dn: ${GROUP_DN}
+changetype: delete
+
+__LDIF__

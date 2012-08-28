@@ -1,0 +1,350 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-passwd 1.0
+#
+# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-chfn" --mode=frontend "${0}" "${@}"
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+
+###########################################################################
+#
+# Defaults.
+#
+###########################################################################
+LOGNAME=${LOGNAME-${USER-$( id -un )}}
+DELETE= EXPIRE= QUIET=
+unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
+
+###########################################################################
+#
+# Options.
+#
+###########################################################################
+while getopts dehi:n:qr:w:x:-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--inactive   | \
+	--mindays    | \
+	--passwdqc   | \
+	--repository | \
+	--warndays   | \
+	--maxdays    )
+		OPT=${OPT}${OPTARG}
+		eval 'OPTARG=${'"${OPTIND}"'?}'
+		OPTIND=$(( ${OPTIND} + 1 ))
+		;;
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	esac
+	case -${OPT} in
+	--delete     | -d ) DELETE=+ ;;
+	--expire     | -e ) EXPIRE=+ ;;
+	--help       | -h ) exec cat << __USAGE__ >&3 ;;
+Usage: ${0##*[\\/]} [OPTION]... USER
+
+Options:
+ -d, --delete                 Delete the password.
+ -e, --expire                 Expire the password.
+ -h, --help                   Display this help message and exit.
+ -i, --inactive INACTIVE      Set the inactivity period.
+ -n, --mindays MIN_DAYS       Set the minimum number of days before password
+                              change.
+ -q, --quiet                  Be quiet.
+ -r, --repository REPOSITORY  (ignored)
+ -w, --warndays WARN_DAYS     Set the password expiration warning days.
+ -x, --maxdays MAX_DAYS       Set the maximum number of days before password
+                              change.
+     --dump-ldif              Dump LDIF and exit.
+
+__USAGE__
+	--inactive   | -i ) USER_INACTIVE=${OPTARG} ;;
+	--mindays    | -n ) USER_MIN_DAYS=${OPTARG} ;;
+	--quiet      | -q ) QUIET=+ ;;
+	--repository | -r ) ;;
+	--warndays   | -w ) USER_WARN_DAYS=${OPTARG} ;;
+	--maxdays    | -x ) USER_MAX_DAYS=${OPTARG} ;;
+	--dump-ldif  ) exec >&3 ;;
+	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*            ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+USER=${1-${LOGNAME}}
+: "${USER:?}"
+
+###########################################################################
+#
+# Values.
+#
+###########################################################################
+# USER_DN.
+case ${USER_DN++},${USER} in
+,*=*,*=* ) USER_DN=${USER} ;;
+,* ) USER_DN=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q'
+	) ;;
+esac
+: "${USER_DN:?}"
+
+# LDAPBINDDN.
+case ${USER} in
+"${LOGNAME}" | "${USER_DN}" )
+	printf '# LDAPBINDDN=%s\n' "${USER_DN}"
+	export LDAPBINDDN="${USER_DN}"
+	;;
+esac
+
+case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS++}${USER_WARN_DAYS++} in
++* )
+	###################################################################
+	#
+	# LDIF.
+	#
+	###################################################################
+	case ${EXPIRE:++} in
+	+ )
+		PPOLICY=$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
+				1.1 '(|(pwdChangedTime=*)(pwdPolicySubentry=*))'
+			)
+		case ${PPOLICY:++} in
+		+ ) EXPIRE="\
+replace: pwdReset
+pwdReset: TRUE" ;;
+		* ) EXPIRE="\
+replace: shadowLastChange
+shadowLastChange: 0" ;;
+		esac
+		;;
+	esac
+	cat <<__LDIF__
+dn: ${USER_DN}
+changetype: modify${USER_INACTIVE+
+replace: shadowInactive
+shadowInactive: ${USER_INACTIVE}
+-}${USER_MAX_DAYS+
+replace: shadowMax
+shadowMax: ${USER_MAX_DAYS}
+-}${USER_MIN_DAYS+
+replace: shadowMin
+shadowMin: ${USER_MIN_DAYS}
+-}${USER_WARN_DAYS+
+replace: shadowWarning
+shadowWarning: ${USER_WARN_DAYS}
+-}${DELETE:+
+replace: userPassword
+-}${EXPIRE:+
+${EXPIRE}
+-}
+
+__LDIF__
+	;;
+* )
+	###################################################################
+	#
+	# Password change.
+	#
+	###################################################################
+	exec >&3
+	# Passwd options.
+	case ${LDAPPASSWD_OPTS++},${LDAPSEARCH_OPTS:++} in
+	+,* ) ;;
+	,   ) LDAPPASSWD_OPTS= ;;
+	,+  ) LDAPPASSWD_OPTS="${LDAPSEARCH_OPTS} -W" ;;
+	esac
+	# Prompt for the LDAP password.
+	LDAPBINDPW=${LDAPBINDPW-$(
+		exec "${0%ldap-*}ldap-chfn" --mode=askpass 'Enter LDAP Password: '
+		)}
+	# Determine the URI of the master LDAP server.
+	LDAPURI=${LDAPURI-$(
+		exec "${0%ldap-*}ldap-chfn" --mode=uri << __PASS__
+${LDAPBINDPW}
+__PASS__
+		)}
+	export LDAPURI
+
+	###################################################################
+	#
+	# Password quality check configuration.
+	#
+	###################################################################
+	config=/etc/passwdqc.conf retry=3
+	if [ -f "${config}" ]
+	then
+		min=disabled,24,11,8,7 max=40 passphrase=3 random=47
+		. "${config}"
+		IFS=,; set -- ${min}; unset IFS
+		PWD_POLICY_DN=$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
+				'(objectClass=*)' pwdPolicySubentry \
+			| unfold \
+			| sed -e '/^pwdPolicySubentry: */!d' -e 's///' -e 'q'
+			)
+		min=${PWD_POLICY_DN:+$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${PWD_POLICY_DN}" -s base -- \
+				'(objectClass=*)' pwdMinLength \
+			| unfold \
+			| sed -e '/^pwdMinLength: */!d' -e 's///' -e 'q'
+			)}
+		case ${min:++} in + )
+			for n
+			do
+				[ "${n}" != 'disabled' ] && [ "${n}" -ge "${min}" ] || n=${min}
+				set -- "${@}" "${n}"
+				shift
+			done
+		esac
+		n0=${1:-disabled} n1=${2:-24} n2=${3:-11} n3=${4:-8} n4=${5:-7}
+		# Explain password quality checks.
+		if [ -t 0 ]
+		then
+			n() { case ${1} in 1 | 8* | 11 ) echo 'n' ;; esac; }
+			if [ "${passphrase}" -gt 0 ] && [ "${n2}" -le "${max}" ]
+			then
+				# MESSAGE_INTRO_BOTH
+				printf '
+You can now choose the new password or passphrase.
+' >&2
+			else
+				# MESSAGE_INTRO_PASSWORD
+				printf '
+You can now choose the new password.
+' >&2
+			fi
+			if   [ "${n0}" = "${n4}" ]
+			then
+				# MESSAGE_EXPLAIN_PASSWORD_1CLASS
+				printf '
+A good password should be a mix of upper and lower case letters,
+digits, and other characters.  You can use a%s %d character long
+password.
+' "$( n "${n4}" )" "${n4}" >&2
+			elif [ "${n3}" = "${n4}" ]
+			then
+				# MESSAGE_EXPLAIN_PASSWORD_CLASSES
+				printf '
+A valid password should be a mix of upper and lower case letters,
+digits, and other characters.  You can use a%s %d character long
+password with characters from at least %d of these 4 classes.
+An upper case letter that begins the password and a digit that
+ends it do not count towards the number of character classes used.
+' "$( n "${n4}" )" "${n4}" "$(( ${n1} != ${n3} ? 3 : 2 ))" >&2
+			elif [ "${n3}" = 'disabled' ]
+			then
+				# MESSAGE_EXPLAIN_PASSWORD_ALL_CLASSES
+				printf '
+A valid password should be a mix of upper and lower case letters,
+digits, and other characters.  You can use a%s %d character long
+password with characters from all of these classes.  An upper
+case letter that begins the password and a digit that ends it do
+not count towards the number of character classes used.
+' "$( n "${n4}" )" "${n4}" >&2
+			else
+				# MESSAGE_EXPLAIN_PASSWORD_ALT
+				printf '
+A valid password should be a mix of upper and lower case letters,
+digits, and other characters.  You can use a%s %d character long
+password with characters from at least 3 of these 4 classes, or
+a%s %d character long password containing characters from all the
+classes.  An upper case letter that begins the password and a
+digit that ends it do not count towards the number of character
+classes used.
+' "$( n "${n3}" )" "${n3}" "$( n "${n4}" )" "${n4}" >&2
+			fi
+			if [ "${passphrase}" -gt 0 ] && [ "${n2}" -le "${max}" ]
+			then
+				# MESSAGE_EXPLAIN_PASSPHRASE
+				printf '
+A passphrase should be of at least %d words, %d to %d characters
+long, and contain enough different characters.
+' "${passphrase}" "${n2}" "${max}" >&2
+			fi
+			if [ "${random}" -gt 0 ]
+			then
+				# MESSAGE_RANDOM
+				random_pass=$( pwqgen random="${random}" )
+				# Passwords must never be passed as command-line
+				# arguments due to security and privacy reasons
+				# thus use a here-document.
+				cat <<__EOT__ >&2
+
+Alternatively, if no one else can see your terminal now, you can
+pick this as your password: "${random_pass}".
+__EOT__
+			fi
+			echo >&2
+		fi
+	else
+		pwqcheck() { :; }
+	fi
+
+	###################################################################
+	#
+	# New LDAP password.
+	#
+	###################################################################
+	while :
+	do
+		new_pass=$( "${0%ldap-*}ldap-chfn" --mode=askpass 'Enter new password: ' )
+		# Passwords must never be passed as command-line arguments
+		# due to security and privacy reasons thus use a here-document.
+		if error_msg=$( pwqcheck -1 config="${config}" << __PASS__ )
+${new_pass}
+__PASS__
+		then
+			new_pass2=$( "${0%ldap-*}ldap-chfn" --mode=askpass 'Re-type new password: ' )
+			# Passwords must never be passed as command-line arguments
+			# due to security and privacy reasons thus use the built-in
+			# case compound command.
+			case ${new_pass2} in "${new_pass}" ) break ;; esac
+			error_msg='Sorry, passwords do not match.'
+		fi
+		printf '%s\n' "${error_msg}" >&2
+		retry=$(( ${retry} - 1 ))
+		[ "${retry}" -ge 1 ] || exit 1
+	done
+	unset new_pass2
+
+	###################################################################
+	#
+	# Change the LDAP password.
+	#
+	###################################################################
+	set -x
+	while :
+	do
+		# Passwords must never be passed as command-line arguments
+		# (using the -w option or such) due to security and privacy
+		# reasons thus use a here-document.
+		error_msg=$(
+			setsid ldappasswd ${LDAPPASSWD_OPTS} -S -- \
+				"${USER_DN}" << __PASS__ 2>&1
+${new_pass}
+${new_pass}
+${LDAPBINDPW}
+__PASS__
+			) && break || error=${?}
+		error_msg=${error_msg#'Enter LDAP Password: '}
+		printf '%s\n' "${error_msg}" >&2
+		exit "${error}"
+	done
+	${QUIET:+:} printf '%s\n' 'LDAP Password updated successfully.' >&2
+	;;
+esac

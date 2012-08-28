@@ -1,0 +1,158 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-groupadd 1.0
+#
+# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+
+###########################################################################
+#
+# Defaults.
+#
+###########################################################################
+GID_MIN=10000 GID_MAX=19999
+unset GROUP_BASE_DN GROUP_OU
+unset GROUP_GID
+
+###########################################################################
+#
+# Options.
+#
+###########################################################################
+while getopts g:hK:or-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--gid | --key )
+		OPT=${OPT}${OPTARG}
+		eval 'OPTARG=${'"${OPTIND}"'?}'
+		OPTIND=$(( ${OPTIND} + 1 ))
+		;;
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	esac
+	case -${OPT} in
+	--gid        | -g ) GROUP_GID=${OPTARG} ;;
+	--help       | -h ) exec cat << __USAGE__ >&3 ;;
+Usage: ${0##*[\\/]} [OPTION]... GROUP
+
+Options:
+ -g, --gid GID        Use the group ID for the new group.
+ -h, --help           Display this help message and exit.
+ -K, --key KEY=VALUE  Override a default configuration.
+ -o, --non-unique     (ignored)
+ -r, --system         (ignored)
+     --dump-ldif      Dump LDIF and exit.
+
+__USAGE__
+	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--non-unique | -o ) ;;
+	--system     | -r ) ;;
+	--dump-ldif  ) exec >&3 ;;
+	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*            ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+GROUP=${1-}
+: "${GROUP:?}"
+
+###########################################################################
+#
+# Values.
+#
+###########################################################################
+# GROUP_BASE_DN.
+GROUP_BASE_DN=${GROUP_BASE_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(objectClass=posixGroup)" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
+	)}
+: "${GROUP_BASE_DN:?}"
+
+# GROUP_GID.
+GROUP_GID=${GROUP_GID:-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		"(objectClass=posixGroup)" gidNumber \
+	| unfold \
+	| awk -F ': ' -v min="${GID_MIN:?}" -v max="${GID_MAX:?}" '
+$1 != "gidNumber" { next }
+$2 == min { ++min; while ( used[min] ) delete used[min++] }
+min < $2 && $2 <= max { used[$2] = 1 }
+END { if ( min <= max ) print min }
+'
+	)}
+: "${GROUP_GID:?}"
+
+# GROUP_OU.
+while :
+do
+	###################################################################
+	#
+	# LDIF.
+	#
+	###################################################################
+	# GROUP_OU.
+	case ${GROUP_OU++}${GROUP_OU:++} in
+	'' ) RDN=ou=${GROUP%-*} ;;
+	+  ) break ;;
+	++ ) RDN=${GROUP_OU##*,} ;;
+	esac
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${RDN},${GROUP_BASE_DN}" -s base -- \
+		'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
+	case ${?},${GROUP},${GROUP_OU:++} in
+	0,*,*  ) ;;
+	*,*,+  | \
+	*,*-*, ) cat << __LDIF__ ;;
+dn: ${RDN},${GROUP_BASE_DN}
+changetype: add
+objectClass: organizationalUnit
+${RDN%%=*}: ${RDN#*=}
+
+__LDIF__
+	*,*,*  ) break ;;
+	esac
+	###################################################################
+	#
+	# Values.
+	#
+	###################################################################
+	# GROUP_BASE_DN.
+	GROUP_BASE_DN=${RDN},${GROUP_BASE_DN}
+	case ${GROUP_OU-} in
+	*,* ) GROUP_OU=${GROUP_OU%,*} ;;
+	*   ) break ;;
+	esac
+done
+
+# GROUP_DN.
+GROUP_DN=cn=${GROUP},${GROUP_BASE_DN}
+
+###########################################################################
+#
+# LDIF.
+#
+###########################################################################
+# GROUP.
+cat << __LDIF__
+dn: ${GROUP_DN}
+changetype: add
+objectClass: posixGroup
+cn: ${GROUP}
+gidNumber: ${GROUP_GID}
+
+__LDIF__
