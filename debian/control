@@ -1,0 +1,35 @@
+Source: ldap-shadow
+Build-Depends:
+	debhelper (>= 8),
+	help2man,
+	man-db,
+	passwd
+Maintainer: Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>
+Priority: optional
+Section: admin
+Standards-Version: 3.9.1
+
+Package: ldap-passwd
+Architecture: all
+Depends:
+	ldap-utils
+Recommends:
+	libnss-ldapd,
+	libpam-ldapd,
+	passwdqc
+Description: change and administer password and group data for LDAP accounts
+ This package provides programs to maintain password and group data for
+ user accounts and groups stored on an LDAP server.
+ .
+ Command-line syntax very similar to programs from the standard passwd package.
+
+Package: ppolicy-ldap-passwd
+Architecture: all
+Depends:
+	ldap-passwd,
+	libpam-ldapd,
+	passwd
+Description: password policy compatible password utility
+ This package provides a password utility which bypasses the PAM stack during
+ the grace period in order to work-a-round the lack of slapo-ppolicy(5)
+ compatibility in the pam_ldap(8) module provided by the libpam-ldapd package.

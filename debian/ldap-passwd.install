@@ -1,0 +1,3 @@
+bin/ldap-*	usr/bin/
+man		usr/share/
+sbin/ldap-*	usr/sbin/

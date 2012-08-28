@@ -1,0 +1,5 @@
+ldap-shadow (1.0~rc0.0.20120828) unstable; urgency=low
+
+  * Initial release.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 28 Aug 2012 13:24:50 +0300

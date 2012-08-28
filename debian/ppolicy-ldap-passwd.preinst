@@ -1,0 +1,10 @@
+#! /bin/sh -e
+case ${1} in
+upgrade ) ;;
+* ) dpkg-divert \
+	--divert	/usr/bin/passwd.real	\
+	--package	ppolicy-ldap-passwd	\
+	--rename				\
+	--add					\
+	--		/usr/bin/passwd		;;
+esac
