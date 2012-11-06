@@ -104,10 +104,18 @@ esac
 
 # LDAPBINDDN.
 case ${USER} in
-"${LOGNAME}" | "${USER_DN}" )
-	printf '# LDAPBINDDN=%s\n' "${USER_DN}"
-	export LDAPBINDDN="${USER_DN}"
-	;;
+"${LOGNAME}" | "${USER_DN}" ) LDAPBINDDN=${USER_DN} ;;
+* ) LDAPBINDDN=${LDAPBINDDN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=simpleSecurityObject)(|(cn=${SUDO_USER-${LOGNAME}})(cn=admin)))" \
+		1.1 \
+		2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q' \
+	)} ;;
+esac
+case ${LDAPBINDDN:++} in
++ ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
 esac
 
 case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS++}${USER_WARN_DAYS++} in
@@ -327,7 +335,6 @@ __PASS__
 	# Change the LDAP password.
 	#
 	###################################################################
-	set -x
 	while :
 	do
 		# Passwords must never be passed as command-line arguments

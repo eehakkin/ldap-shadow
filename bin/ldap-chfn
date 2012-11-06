@@ -86,7 +86,18 @@ USER_DN=${USER_DN-$(
 
 # LDAPBINDDN.
 case ${USER} in
-"${LOGNAME}" ) printf '# LDAPBINDDN=%s\n' "${USER_DN}" ;;
+"${LOGNAME}" | "${USER_DN}" ) LDAPBINDDN=${USER_DN} ;;
+* ) LDAPBINDDN=${LDAPBINDDN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=simpleSecurityObject)(|(cn=${SUDO_USER-${LOGNAME}})(cn=admin)))" \
+		1.1 \
+		2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q' \
+	)} ;;
+esac
+case ${LDAPBINDDN:++} in
++ ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
 esac
 
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_OFFICE, USER_OFFICE_PHONE.

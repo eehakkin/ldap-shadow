@@ -44,6 +44,19 @@ shift $(( $OPTIND - 1 ))
 USER=${1-}
 : "${USER:?}"
 
+# LDAPBINDDN.
+LDAPBINDDN=${LDAPBINDDN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(&(objectClass=simpleSecurityObject)(|(cn=${SUDO_USER-${LOGNAME}})(cn=admin)))" \
+		1.1 \
+		2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q' \
+	)}
+case ${LDAPBINDDN:++} in
++ ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
+esac
+
 ###########################################################################
 #
 # Values.
