@@ -30,7 +30,7 @@ case ${1-} in
 		printf '%s' "${*}" >&2
 		stty -echo
 	fi
-	sed -e 'q' | grep -F -e '' || error=${?}
+	sed -e 'q' | grep -e '^.' || error=${?}
 	if [ -t 0 ]
 	then
 		stty echo
