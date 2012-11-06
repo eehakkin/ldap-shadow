@@ -16,6 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
+case ${1-} in
+--help ) exec cat << __USAGE__ ;;
+Usage: ${0##*[\\/]} [OPTION]... USER
+
+Options:
+ -a, --append             Append the account to the secondary groups specified
+                          using -G  without removing the account from other
+                          groups.
+ -c, --comment COMMENT    Change the full name of the account.
+ -d, --home HOME_DIR      Change the home directory of the account.
+ -f, --inactive INACTIVE  Change the password inactivity period.
+ -g, --gid GID            Change the primary group ID of the account.
+ -G, --groups GROUPS      Change the secondary groups of the account.
+ -h, --help               Display this help message and exit.
+ -K, --key KEY=VALUE      Override a default configuration.
+ -l, --login LOGIN_NAME   Change the login name of the account.
+ -o, --non-unique         (ignored)
+ -s, --shell SHELL        Change the login shell of the account.
+ -u, --uid UID            Change the user ID of the account.
+     --dump-ldif          Dump LDIF and exit.
+
+__USAGE__
+esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
@@ -69,27 +92,7 @@ do
 	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
 	--gid            | -g ) USER_GID=${OPTARG} ;;
 	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
-	--help           | -h ) exec cat << __USAGE__ >&3 ;;
-Usage: ${0##*[\\/]} [OPTION]... USER
-
-Options:
- -a, --append             Append the account to the secondary groups specified
-                          using -G  without removing the account from other
-                          groups.
- -c, --comment COMMENT    Change the full name of the account.
- -d, --home HOME_DIR      Change the home directory of the account.
- -f, --inactive INACTIVE  Change the password inactivity period.
- -g, --gid GID            Change the primary group ID of the account.
- -G, --groups GROUPS      Change the secondary groups of the account.
- -h, --help               Display this help message and exit.
- -K, --key KEY=VALUE      Override a default configuration.
- -l, --login LOGIN_NAME   Change the login name of the account.
- -o, --non-unique         (ignored)
- -s, --shell SHELL        Change the login shell of the account.
- -u, --uid UID            Change the user ID of the account.
-     --dump-ldif          Dump LDIF and exit.
-
-__USAGE__
+	--help           | -h ) exec "${0}" --help >&3 ;;
 	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--login          | -l ) NEW_USER=${OPTARG} ;;
 	--non-unique     | -o ) ;;

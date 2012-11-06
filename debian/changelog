@@ -2,8 +2,9 @@ ldap-shadow (1.0~rc0.0.20121106) unstable; urgency=low
 
   * Discarded empty passwords.
   * Defined the default bind DNs.
+  * Improved help support.
 
- -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 06 Nov 2012 21:11:02 +0200
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 06 Nov 2012 21:33:33 +0200
 
 ldap-shadow (1.0~rc0.0.20120828) unstable; urgency=low
 

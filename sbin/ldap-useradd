@@ -17,6 +17,29 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 case ${1-} in
+--help ) exec cat << __USAGE__ ;;
+Usage: ${0##*[\\/]} [OPTION]... USER
+
+Options:
+ -b, --base-dir BASE_DIR       Use the base directory for home directories.
+ -c, --comment COMMENT         Use the full name for the new account.
+ -d, --home-dir HOME_DIR       Use the home directory for the new account.
+ -e, --expiredate EXPIRE_DATE  Use the expiration date for the new account.
+ -f, --inactive INACTIVE       Use the password inactivity period.
+ -g, --gid GID                 Use the primary group ID for the new account.
+ -G, --groups GROUPS           Use the secondary groups for the new account.
+ -h, --help                    Display this help message and exit.
+ -K, --key KEY=VALUE           Override a default configuration.
+ -M, --no-create-home          (ignored)
+ -N, --no-user-group           Do not create a group with the same name.
+ -o, --non-unique              (ignored)
+ -r, --system                  Create a system user.
+ -s, --shell SHELL             Use the login shell for the new account.
+ -u, --uid UID                 Use the user ID for the new account.
+ -U, --user-group              Create a group with the same name.
+     --dump-ldif               Dump LDIF and exit.
+
+__USAGE__
 --mode=askpass ) {
 	shift
 	###################################################################
@@ -49,19 +72,17 @@ case ${1-} in
 	# Modify LDAP entries.
 	#
 	###################################################################
-	export LDAPSEARCH_OPTS
-	# Defaults.
-	unset GROUP_DN USER_DN
 	# Search options.
-	case ${LDAPSEARCH_OPTS++} in
-	'' )
+	export LDAPSEARCH_OPTS
+	case ${LDAPSEARCH_OPTS++} in '' )
 		for LDAPSEARCH_OPTS in '-x' '-W -x' ''
 		do
 			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -s base -- \
 				1.1 > /dev/null 2>&1 && break
 		done
-		;;
 	esac
+	# Defaults.
+	unset GROUP_DN USER_DN
 	# LDIF.
 	LDIF=$( LDAP_HAS_FRONTEND=+ "${@}" ) 3>&1
 	error=0
@@ -225,29 +246,7 @@ do
 	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
 	--gid            | -g ) USER_GID=${OPTARG} ;;
 	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
-	--help           | -h ) exec cat << __USAGE__ >&3 ;;
-Usage: ${0##*[\\/]} [OPTION]... USER
-
-Options:
- -b, --base-dir BASE_DIR       Use the base directory for home directories.
- -c, --comment COMMENT         Use the full name for the new account.
- -d, --home-dir HOME_DIR       Use the home directory for the new account.
- -e, --expiredate EXPIRE_DATE  Use the expiration date for the new account.
- -f, --inactive INACTIVE       Use the password inactivity period.
- -g, --gid GID                 Use the primary group ID for the new account.
- -G, --groups GROUPS           Use the secondary groups for the new account.
- -h, --help                    Display this help message and exit.
- -K, --key KEY=VALUE           Override a default configuration.
- -M, --no-create-home          (ignored)
- -N, --no-user-group           Do not create a group with the same name.
- -o, --non-unique              (ignored)
- -r, --system                  Create a system user.
- -s, --shell SHELL             Use the login shell for the new account.
- -u, --uid UID                 Use the user ID for the new account.
- -U, --user-group              Create a group with the same name.
-     --dump-ldif               Dump LDIF and exit.
-
-__USAGE__
+	--help           | -h ) exec "${0}" --help >&3 ;;
 	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--no-log-init    | -l ) ;;
 	--no-create-home | -M ) ;;

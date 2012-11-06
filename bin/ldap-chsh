@@ -16,6 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
+case ${1-} in
+--help ) exec cat << __USAGE__ ;;
+Usage: ${0##*[\\/]} [OPTION]... USER
+
+Options:
+ -h, --help         Display this help message and exit.
+ -s, --shell SHELL  Change the login shell of the account to SHELL.
+     --dump-ldif    Dump LDIF and exit.
+
+__USAGE__
+esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-chfn" --mode=frontend "${0}" "${@}"
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
@@ -44,15 +55,7 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
 	esac
 	case -${OPT} in
-	--help  | -h ) exec cat << __USAGE__ >&3 ;;
-Usage: ${0##*[\\/]} [OPTION]... USER
-
-Options:
- -h, --help         Display this help message and exit.
- -s, --shell SHELL  Change the login shell of the account to SHELL.
-     --dump-ldif    Dump LDIF and exit.
-
-__USAGE__
+	--help  | -h ) exec "${0}" --help >&3 ;;
 	--shell | -s ) USER_SHELL=${OPTARG} ;;
 	--dump-ldif  ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;

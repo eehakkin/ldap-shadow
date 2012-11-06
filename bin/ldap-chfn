@@ -17,6 +17,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 case ${1-} in
+--help ) exec cat << __USAGE__ ;;
+Usage: ${0##*[\\/]} [OPTIONS] USER
+
+Options:
+ -f COMMENT       Change the full name of the account to COMMENT.
+ -h HOME_PHONE    Change the home phone number of the account to HOME_PHONE.
+ -m MOBILE_PHONE  Change the mobile phone number of the account to MOBILE_PHONE.
+ -o OFFICE        Change the office room number of the account to OFFICE.
+ -p OFFICE_PHONE  Change the office phone number of the account to OFFICE_PHONE.
+ --dump-ldif      Dump LDIF and exit.
+ --help           Display this help message and exit.
+
+__USAGE__
 --mode=* )
 	me=$( which -- "${0}" || ls -d -- "${0}" )
 	dir=$( dirname -- "${me}" )
@@ -49,18 +62,7 @@ do
 	-m* ) USER_MOBILE_PHONE=${OPTARG} ;;
 	-o* ) USER_OFFICE=${OPTARG} ;;
 	-p* ) USER_OFFICE_PHONE=${OPTARG} ;;
-	--help      ) exec cat << __USAGE__ >&3 ;;
-Usage: ${0##*[\\/]} [OPTIONS] USER
-
-Options:
- -f COMMENT       Change the full name of the account to COMMENT.
- -h HOME_PHONE    Change the home phone number of the account to HOME_PHONE.
- -m MOBILE_PHONE  Change the mobile phone number of the account to MOBILE_PHONE.
- -o OFFICE        Change the office room number of the account to OFFICE.
- -p OFFICE_PHONE  Change the office phone number of the account to OFFICE_PHONE.
- --dump-ldif      Dump LDIF and exit.
-
-__USAGE__
+	--help      ) exec "${0}" --help >&3 ;;
 	--dump-ldif ) exec >&3 ;;
 	--*         ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit ;;
 	*           ) exit 1 ;;

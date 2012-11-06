@@ -16,6 +16,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
+case ${1-} in
+--help ) exec cat << __USAGE__ ;;
+Usage: ${0##*[\\/]} [OPTION]... GROUP
+
+Options:
+ -g, --gid GID        Use the group ID for the new group.
+ -h, --help           Display this help message and exit.
+ -K, --key KEY=VALUE  Override a default configuration.
+ -o, --non-unique     (ignored)
+ -r, --system         (ignored)
+     --dump-ldif      Dump LDIF and exit.
+
+__USAGE__
+esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
@@ -46,18 +60,7 @@ do
 	esac
 	case -${OPT} in
 	--gid        | -g ) GROUP_GID=${OPTARG} ;;
-	--help       | -h ) exec cat << __USAGE__ >&3 ;;
-Usage: ${0##*[\\/]} [OPTION]... GROUP
-
-Options:
- -g, --gid GID        Use the group ID for the new group.
- -h, --help           Display this help message and exit.
- -K, --key KEY=VALUE  Override a default configuration.
- -o, --non-unique     (ignored)
- -r, --system         (ignored)
-     --dump-ldif      Dump LDIF and exit.
-
-__USAGE__
+	--help       | -h ) exec "${0}" --help >&3 ;;
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--non-unique | -o ) ;;
 	--system     | -r ) ;;
