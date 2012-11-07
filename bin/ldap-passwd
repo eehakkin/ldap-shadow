@@ -18,7 +18,7 @@
 ###########################################################################
 case ${1-} in
 --help ) exec cat << __USAGE__ ;;
-Usage: ${0##*[\\/]} [OPTION]... USER
+Usage: ${0##*[\\/]} [OPTION]... [USER]
 
 Options:
  -d, --delete                 Delete the password.
@@ -106,9 +106,8 @@ esac
 : "${USER_DN:?}"
 
 # LDAPBINDDN.
-case ${USER} in
-"${LOGNAME}" | "${USER_DN}" ) LDAPBINDDN=${USER_DN} ;;
-* ) LDAPBINDDN=${LDAPBINDDN-$(
+case ${1++} in
++ ) LDAPBINDDN=${LDAPBINDDN-$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
 		"(&(objectClass=simpleSecurityObject)(|(cn=${SUDO_USER-${LOGNAME}})(cn=admin)))" \
 		1.1 \
@@ -116,6 +115,7 @@ case ${USER} in
 	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q' \
 	)} ;;
+* ) LDAPBINDDN=${USER_DN} ;;
 esac
 case ${LDAPBINDDN:++} in
 + ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
