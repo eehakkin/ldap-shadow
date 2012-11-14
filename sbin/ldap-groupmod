@@ -21,12 +21,15 @@ case ${1-} in
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
 Options:
-     --dump-ldif           Dump LDIF and exit.
+ -a, --add USER            Add USER to the group.
+ -d, --delete USER         Remove USER from the group.
  -g, --gid GID             Change the group ID.
  -h, --help                Display this help message and exit.
  -K, --key KEY=VALUE       Override a default configuration.
+ -M, --members USERS       Set the members of the group.
  -n, --new-name NEW_GROUP  Change the group name.
  -o, --non-unique          (ignored)
+     --dump-ldif           Dump LDIF and exit.
 
 __USAGE__
 esac
@@ -38,17 +41,18 @@ unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 # Defaults.
 #
 ###########################################################################
-unset GROUP_GID NEW_GROUP NEW_SUPERIOR_DN
+unset GROUP_GID GROUP_USERS GROUP_USER_ADD GROUP_USER_DELETE
+unset NEW_GROUP NEW_SUPERIOR_DN
 
 ###########################################################################
 #
 # Options.
 #
 ###########################################################################
-while getopts g:hK:n:o-: OPT "${@}"
+while getopts a:d:g:hK:M:n:o-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--gid | --key | --new-name )
+	--add | --delete | --gid | --key | --members | --new-name )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -57,9 +61,12 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
 	esac
 	case -${OPT} in
+	--add        | -a ) GROUP_USER_ADD=${OPTARG} ;;
+	--delete     | -d ) GROUP_USER_DELETE=${OPTARG} ;;
 	--gid        | -g ) GROUP_GID=${OPTARG} ;;
 	--help       | -h ) exec "${0}" --help >&3 ;;
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--members    | -M ) GROUP_USERS=${OPTARG} ;;
 	--new-name   | -n ) NEW_GROUP=${OPTARG} ;;
 	--non-unique | -o ) ;;
 	--dump-ldif  ) exec >&3 ;;
@@ -113,6 +120,36 @@ gidNumber: ${GROUP_GID}
 -
 
 __LDIF__
+esac
+
+# GROUP_USERS, GROUP_USER_ADD, GROUP_USER_ADD.
+case ${GROUP_USERS++}${GROUP_USER_ADD++}${GROUP_USER_DELETE++} in
++ )
+	FILTERS= IFS=, LDIF=
+	for USER in ${GROUP_USER_ADD+"${GROUP_USER_ADD}"} ${GROUP_USERS-}
+	do
+		case ${USER:++} in
+		+ ) LDIF="${LDIF}\\
+memberUid: ${USER}" ;;
+		esac
+	done
+	unset IFS
+	case ${GROUP_USER_ADD++}    in + ) FILTERS="${FILTERS}(!(memberUid=${GROUP_USER_ADD}))" ;; esac
+	case ${GROUP_USER_DELETE++} in + ) FILTERS="${FILTERS}(memberUid=${GROUP_USER_DELETE})" ;; esac
+	case ${GROUP_USERS++}       in + ) FILTERS="${FILTERS}(objectClass=*)"                  ;; esac
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${GROUP_DN}" -s base -- \
+		"(|${FILTERS})" memberUid \
+	| unfold \
+	| sed \
+		-e '/^dn:/a\
+changetype: modify\
+replace: memberUid'"${LDIF}" ${GROUP_USERS+\
+		-e '/^memberUid:/d' } ${GROUP_USER_ADD+\
+		-e '/^memberUid: '"${GROUP_USER_ADD}"'$/d' } ${GROUP_USER_DELETE+\
+		-e '/^memberUid: '"${GROUP_USER_DELETE}"'$/d' } \
+		-e '/^$/i\
+-'
+	;;
 esac
 
 # NEW_GROUP.

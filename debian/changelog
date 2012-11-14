@@ -1,3 +1,9 @@
+ldap-shadow (1.0~rc0.0.20121114) unstable; urgency=low
+
+  * Implemented gpasswd like group membership options in ldap-groupmod.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Wed, 14 Nov 2012 23:55:55 +0200
+
 ldap-shadow (1.0~rc0.0.20121107) unstable; urgency=low
 
   * Discarded empty passwords.
