@@ -105,6 +105,25 @@ esac
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_OFFICE, USER_OFFICE_PHONE.
 case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_OFFICE++}${USER_OFFICE_PHONE++} in
 '' )
+	gettext_fallback() { # -d <DEFAULT-DOMAIN> [OPTION]... <MSGID>
+		eval "msgid=\${${#}}"
+		msgstr=$( gettext "${@}" )
+		case ${msgstr} in "${msgid}" )
+			shift 2 # -d <DEFAULT-DOMAIN>
+			for basename in $(
+				exec 2> /dev/null
+				set +f
+				lang=${LC_ALL:-${LC_MESSAGES:-${LANG:--}}}
+				cd -- /usr/share/locale/${lang%%[_.@]*}*/LC_MESSAGES
+				grep -Flxz -e "${msgid}" -- *.mo
+				)
+			do
+				msgstr=$( gettext -d "${basename%.*}" "${@}" )
+				case ${msgstr} in "${msgid}" ) ;; *) break ;; esac
+			done
+		esac
+		printf '%s' "${msgstr}"
+	}
 	printf "$( gettext -d shadow -- 'Changing the user information for %s
 ' )\\n" "${USER}" >&2
 	gettext -d shadow -s -- 'Enter the new value, or press ENTER for the default' >&2
@@ -127,7 +146,7 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_OFFICE++}
 				printf '%s\n' "${value}"
 			done
 			)
-		printf '\t%s [%s]: ' "$( gettext -d shadow -- "${label}" )" "${value}" >&2
+		printf '\t%s [%s]: ' "$( gettext_fallback -d shadow -- "${label}" )" "${value}" >&2
 		IFS= read -r REPLY
 		case ${REPLY} in
 		' ' ) eval "USER_${variable}"= ;;
@@ -135,9 +154,9 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_OFFICE++}
 		esac
 	done 4<< __INFO__
 		COMMENT		cn		Full Name
-		HOME_PHONE	homePhone	Home Phone
 		OFFICE		roomNumber	Room Number
 		OFFICE_PHONE	telephoneNumber	Work Phone
+		HOME_PHONE	homePhone	Home Phone
 		MOBILE_PHONE	mobile		Mobile Phone
 __INFO__
 	;;
