@@ -1,3 +1,9 @@
+ldap-shadow (1.0~rc0.0.20121115) unstable; urgency=low
+
+  * Unified interactive modes.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Thu, 15 Nov 2012 10:39:01 +0200
+
 ldap-shadow (1.0~rc0.0.20121114) unstable; urgency=low
 
   * Implemented gpasswd like group membership options in ldap-groupmod.

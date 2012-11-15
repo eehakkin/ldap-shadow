@@ -104,10 +104,10 @@ case ${USER_SHELL++} in
 	gettext -d shadow -s -- 'Enter the new value, or press ENTER for the default' >&2
 	value=$( getent -- passwd "${USER}" | cut -d : -f 7 )
 	printf '\t%s [%s]: ' "$( gettext -d shadow -- 'Login Shell' )" "${value}" >&2
-	read REPLY
+	IFS= read -r REPLY
 	case ${REPLY} in
-	' ' ) USER_SHELL= ;;
-	?*  ) USER_SHELL=${REPLY} ;;
+	*[![:space:]]* ) USER_SHELL=${REPLY} ;;
+	[[:space:]]*   ) USER_SHELL= ;;
 	esac
 	;;
 esac

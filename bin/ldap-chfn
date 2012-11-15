@@ -149,8 +149,8 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_OFFICE++}
 		printf '\t%s [%s]: ' "$( gettext_fallback -d shadow -- "${label}" )" "${value}" >&2
 		IFS= read -r REPLY
 		case ${REPLY} in
-		' ' ) eval "USER_${variable}"= ;;
-		?*  ) eval "USER_${variable}"='${REPLY}' ;;
+		*[![:space:]]* ) eval "USER_${variable}"='${REPLY}' ;;
+		[[:space:]]*   ) eval "USER_${variable}"= ;;
 		esac
 	done 4<< __INFO__
 		COMMENT		cn		Full Name
