@@ -255,12 +255,12 @@ esac
 # LDAPBINDDN.
 case ${1++} in
 + ) LDAPBINDDN=${LDAPBINDDN-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
-		"(&(objectClass=simpleSecurityObject)(|(cn=${SUDO_USER-${LOGNAME}})(cn=admin)))" \
-		1.1 \
+	printf '%s\n' "${SUDO_USER-${LOGNAME}}" 'admin' \
+	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -z 1 -- \
+		"(&(objectClass=simpleSecurityObject)(cn=%s))" 1.1 \
 		2> /dev/null \
 	| unfold \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q' \
+	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)} ;;
 * ) LDAPBINDDN=${USER_DN} ;;
 esac
