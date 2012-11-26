@@ -33,7 +33,7 @@ Options:
 
 __USAGE__
 esac
-${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "${@}"
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
 ###########################################################################

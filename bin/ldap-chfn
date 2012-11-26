@@ -30,14 +30,8 @@ Options:
  --help           Display this help message and exit.
 
 __USAGE__
---mode=* )
-	me=$( which -- "${0}" || ls -d -- "${0}" )
-	dir=$( dirname -- "${me}" )
-	base=$( basename -- "${me}" )
-	exec "${dir}/../sbin/${base%ldap-*}ldap-useradd" "${@}"
-	;;
 esac
-${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-chfn" --mode=frontend "${0}" "${@}"
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
 ###########################################################################

@@ -29,8 +29,14 @@ Options:
      --dump-ldif      Dump LDIF and exit.
 
 __USAGE__
+--mode=* )
+	me=$( which -- "${0}" || ls -d -- "${0}" )
+	dir=$( dirname -- "${me}" )
+	base=$( basename -- "${me}" )
+	exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}"
+	;;
 esac
-${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
+${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "${@}"
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
 ###########################################################################
