@@ -45,7 +45,7 @@ Operands:
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
                   server. The default is to search for an distinguished name
-                  (DN) based on username.
+                  (DN) based on the current real username.
  LDAPBINDPW       A password for the distinguished name (DN) to be used for
                   binding to an LDAP server. The default is to prompt for
                   a password.
