@@ -1,3 +1,11 @@
+ldap-shadow (1.0~rc0.0.20121127) unstable; urgency=low
+
+  * Unified prompting.
+  * Moved library code to ldap-passwd.
+  * Improved the default bind DN detection, interaction and documentation.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 27 Nov 2012 10:29:54 +0200
+
 ldap-shadow (1.0~rc0.0.20121115) unstable; urgency=low
 
   * Unified interactive modes.

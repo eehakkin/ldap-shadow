@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... [USER]
@@ -33,6 +34,30 @@ Options:
  -x, --maxdays MAX_DAYS       Set the maximum number of days before password
                               change.
      --dump-ldif              Dump LDIF and exit.
+
+Operands:
+ USER             A username or a distinguished name (DN) of the user
+                  whose password is to be changed using administration
+                  privileges.
+                  The default is to change the password of the current user
+                  using user privileges.
+
+Environment:
+ LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
+                  server. The default is to search for an distinguished name
+                  (DN) based on username.
+ LDAPBINDPW       A password for the distinguished name (DN) to be used for
+                  binding to an LDAP server. The default is to prompt for
+                  a password.
+ LDAPCONF         A system LDAP configuration file.
+ LDAPRC           A user LDAP configuration file.
+ LDAPURI          An URI of an LDAP server or a list of URIs of LDAP servers.
+ LDAPMODIFY_OPTS  Options for ldapmodify(1).
+ LDAPSEARCH_OPTS  Options for ldapsearch(1).
+ LDAPPASSWD_OPTS  Options for ldappasswd(1).
+ LOGNAME          A username.
+ SUDO_USER        A real username.
+ USER             A fallback username.
 
 __USAGE__
 --mode=askpass ) {
@@ -142,6 +167,10 @@ __LDIF__
 	esac
 	exit "${error}"
 	;;
+--mode=unfold )
+	unfold
+	exit
+	;;
 --mode=uri )
 	###################################################################
 	#
@@ -188,7 +217,6 @@ __PASS__
 	;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
-unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
 ###########################################################################
 #
@@ -245,9 +273,9 @@ USER=${1-${LOGNAME}}
 #
 ###########################################################################
 # USER_DN.
-case ${USER_DN++},${USER} in
-,*=*,*=* ) USER_DN=${USER} ;;
-,* ) USER_DN=$(
+case ${USER} in
+*=* ) USER_DN=${USER} ;;
+*   ) USER_DN=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
 		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
 	| unfold \

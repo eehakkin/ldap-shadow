@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
+unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
@@ -39,6 +40,40 @@ Options:
  -U, --user-group              Create a group with the same name.
      --dump-ldif               Dump LDIF and exit.
 
+Operands:
+ USER             A username of the user whose account is to be modified using
+                  administration privileges.
+
+Configuration variables:
+ GID_MIN          A minimum group ID for a new user group.
+ GID_MAX          A maximum group ID for a new user group.
+ GROUP_BASE_DN    A distinguished name (DN) to be used as a base DN while
+                  constructing a new user group DN.
+ GROUP_OU         An organization unit name to be used while constructing
+                  a new user group DN.
+ UID_MIN          A minimum user ID for a new account.
+ UID_MAX          A maximum user ID for a new account.
+ USER_BASE_DN     A distinguished name (DN) to be used as a base DN while
+                  constructing a new user DN.
+ USER_OU          An organization unit name to be used while constructing
+                  a new user DN.
+
+Environment:
+ LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
+                  server. The default is to search for an distinguished name
+                  (DN) based on username.
+ LDAPBINDPW       A password for the distinguished name (DN) to be used for
+                  binding to an LDAP server. The default is to prompt for
+                  a password.
+ LDAPCONF         A system LDAP configuration file.
+ LDAPRC           A user LDAP configuration file.
+ LDAPURI          An URI of an LDAP server or a list of URIs of LDAP servers.
+ LDAPMODIFY_OPTS  Options for ldapmodify(1).
+ LDAPSEARCH_OPTS  Options for ldapsearch(1).
+ LOGNAME          A username.
+ SUDO_USER        A real username.
+ USER             A fallback username.
+
 __USAGE__
 --mode=* )
 	me=$( which -- "${0}" || ls -d -- "${0}" )
@@ -48,7 +83,6 @@ __USAGE__
 	;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
-unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 
 ###########################################################################
 #
