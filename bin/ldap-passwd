@@ -48,7 +48,7 @@ __USAGE__
 		printf '%s' "${*}" >&2
 		stty -echo
 	fi
-	sed -e 'q' | grep -Fvx -e '' || error=${?}
+	sed -e '/^$/d' -e 'q' | grep -Fvx -e '' || error=${?}
 	if [ -t 0 ]
 	then
 		stty echo
@@ -119,11 +119,12 @@ __PASS__
 		export LDAPURI
 		# Modify LDAP entries.
 		error_msg=$(
-			exec ${LDAPBINDPW:+setsid} ldapmodify -M ${LDAPMODIFY_OPTS} 2>&1 << __LDIF__
+			exec ${LDAPBINDPW:+setsid} ldapmodify \
+				-M ${LDAPMODIFY_OPTS} 2>&1
+			) << __LDIF__ || error=${?}
 ${LDAPBINDPW:+${LDAPBINDPW}
 }${LDIF}
 __LDIF__
-			) || error=${?}
 		# Report errors.
 		error_msg=${error_msg#'Enter LDAP Password: '}
 		case ${error_msg:++} in
@@ -172,10 +173,13 @@ __LDIF__
 		# (using the -w option or such) due to security and privacy
 		# reasons thus use a here-document.
 		error_msg=$(
-			setsid ldapwhoami ${LDAPSEARCH_OPTS} -H "${uri}" -W << __PASS__ 2>&1
+			exec setsid ldapwhoami \
+				${LDAPSEARCH_OPTS} -H "${uri}" -W \
+				2>&1 > /dev/null
+			) << __PASS__ && exec printf '%s\n' "${uri}" || error=${?}
 ${LDAPBINDPW}
 __PASS__
-			) && exec printf '%s\n' "${uri}" || error=${?}
+
 	done
 	# Report errors.
 	error_msg=${error_msg#'Enter LDAP Password: '}
@@ -279,7 +283,7 @@ case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS
 	+ )
 		PPOLICY=$(
 			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
-				1.1 '(|(pwdChangedTime=*)(pwdPolicySubentry=*))'
+				'(|(pwdChangedTime=*)(pwdPolicySubentry=*))' 1.1
 			)
 		case ${PPOLICY:++} in
 		+ ) EXPIRE="\
@@ -320,7 +324,7 @@ __LDIF__
 	#
 	###################################################################
 	exec >&3
-	# Passwd options.
+	# Password options.
 	case ${LDAPPASSWD_OPTS++},${LDAPSEARCH_OPTS:++} in
 	+,* ) ;;
 	,   ) LDAPPASSWD_OPTS= ;;
@@ -364,7 +368,7 @@ __PASS__
 		case ${min:++} in + )
 			for n
 			do
-				[ "${n}" != 'disabled' ] && [ "${n}" -ge "${min}" ] || n=${min}
+				[ "${n}" = 'disabled' ] || [ "${n}" -ge "${min}" ] || n=${min}
 				set -- "${@}" "${n}"
 				shift
 			done
@@ -434,19 +438,27 @@ A passphrase should be of at least %d words, %d to %d characters
 long, and contain enough different characters.
 ' "${passphrase}" "${n2}" "${max}" >&2
 			fi
-			if [ "${random}" -gt 0 ]
-			then
-				# MESSAGE_RANDOM
-				random_pass=$( pwqgen random="${random}" )
-				# Passwords must never be passed as command-line
-				# arguments due to security and privacy reasons
-				# thus use a here-document.
-				cat <<__EOT__ >&2
+			while [ "${random}" -gt 0 ]
+			do
+				# Passwords must never be passed as
+				# command-line arguments due to security and
+				# privacy reasons thus use a here-document.
+				random_pass=$( exec pwqgen random="${random}" )
+				if pwqcheck -1 config="${config}" \
+					<< __PASS__ > /dev/null
+${random_pass}
+__PASS__
+				then
+					# MESSAGE_RANDOM
+					cat <<__EOT__ >&2
 
 Alternatively, if no one else can see your terminal now, you can
 pick this as your password: "${random_pass}".
 __EOT__
-			fi
+					break
+				fi
+				random=$(( ${random} + 1 ))
+			done
 			echo >&2
 		fi
 	else
@@ -463,14 +475,17 @@ __EOT__
 		new_pass=$( "${0}" --mode=askpass 'Enter new password: ' )
 		# Passwords must never be passed as command-line arguments
 		# due to security and privacy reasons thus use a here-document.
-		if error_msg=$( pwqcheck -1 config="${config}" << __PASS__ )
+		if error_msg=$( pwqcheck -1 config="${config}" ) << __PASS__
 ${new_pass}
 __PASS__
 		then
-			new_pass2=$( "${0}" --mode=askpass 'Re-type new password: ' )
-			# Passwords must never be passed as command-line arguments
-			# due to security and privacy reasons thus use the built-in
-			# case compound command.
+			new_pass2=$(
+				exec "${0}" --mode=askpass \
+					'Re-type new password: '
+				)
+			# Passwords must never be passed as command-line
+			# arguments due to security and privacy reasons
+			# thus use the built-in case compound command.
 			case ${new_pass2} in "${new_pass}" ) break ;; esac
 			error_msg='Sorry, passwords do not match.'
 		fi
@@ -491,13 +506,13 @@ __PASS__
 		# (using the -w option or such) due to security and privacy
 		# reasons thus use a here-document.
 		error_msg=$(
-			setsid ldappasswd ${LDAPPASSWD_OPTS} -S -- \
-				"${USER_DN}" << __PASS__ 2>&1
+			exec setsid ldappasswd ${LDAPPASSWD_OPTS} -S -- \
+				"${USER_DN}" 2>&1
+			) << __PASS__ && break || error=${?}
 ${new_pass}
 ${new_pass}
 ${LDAPBINDPW}
 __PASS__
-			) && break || error=${?}
 		error_msg=${error_msg#'Enter LDAP Password: '}
 		printf '%s\n' "${error_msg}" >&2
 		exit "${error}"
