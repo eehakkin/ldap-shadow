@@ -222,56 +222,97 @@ case ${NEW_USER++}${USER_GROUPS++} in
 		esac
 	done
 	unset IFS
-	case ${NEW_USER++},${USER_GROUPS++},${APPEND:++} in
-	+,*,* | *,+, )
-		# * -G <GROUPS>:
-		#   Remove <USER> from other groups having <USER> as a member.
-		# * -G <GROUPS> -l <NEW-USER>:
-		#   Remove <NEW-USER> and <USER> from other groups
-		#   having either <NEW-USER> or <USER> as a member.
-		# * -a -G <GROUPS> -l <NEW-USER>:
-		#   Add <NEW-USER> to and remove <USER> from other groups
-		#   having either <NEW-USER> or <USER> as a member.
-		# * [-a] -l <NEW-USER>:
-		#   Add <NEW-USER> to and remove <USER> from all the groups
-		#   having either <NEW-USER> or <USER> as a member.
-		case ${USER_GROUPS++} in
-		'' ) APPEND=+ ;;
-		esac
+	case ${APPEND:++},${USER_GROUPS++},${NEW_USER++} in
+	,+,* ) # -G GROUPS [-l NEW_USER]
+		# Remove USER from other groups.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
-			"(&(objectClass=posixGroup)${FILTERS:+"(!(|${FILTERS}))"}(|${NEW_USER+"(memberUid=${NEW_USER})"}(memberUid=${USER})))" \
-			memberUid \
-		| unfold \
-		| sed \
-			-e '/^dn:/a\
-changetype: modify\
-replace: memberUid'"${APPEND:+"\\
-memberUid: ${NEW_USER}"}" ${NEW_USER+\
-			-e '/^memberUid: '"${NEW_USER}"'$/d' } \
-			-e '/^memberUid: '"${USER}"'$/d' \
-			-e '/^$/i\
--'
-		;;
-	esac
-	case ${FILTERS:++} in
-	+ )
-		# * [-a] -G <GROUPS>:
-		#   Add <USER> to the listed groups
-		#   not having <USER> as a member.
-		# * [-a] -G <GROUPS> -l <NEW-USER>:
-		#   Add <NEW-USER> to matching groups
-		#   having neither <NEW-USER> nor <USER> as a member.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
-			"(&(objectClass=posixGroup)(|${FILTERS})${NEW_USER+"(!(memberUid=${NEW_USER}))"}(!(memberUid=${USER})))" \
+			"(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER}))" \
 			1.1 \
 		| unfold \
-		| sed \
-			-e '/^dn:/a\
-changetype: modify\
-add: memberUid\
-memberUid: '"${NEW_USER-${USER}}" \
-			-e '/^$/i\
--'
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+delete: memberUid\\
+memberUid: ${USER}\\
+-"
+		;;
+	*,,+ | +,+,+ ) # [-a [-G GROUPS]] -l NEW_USER
+		# Remove USER from other groups
+		# if NEW_USER is a member of them.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER})(memberUid=${NEW_USER}))" \
+			1.1 \
+		| unfold \
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+delete: memberUid\\
+memberUid: ${USER}\\
+-"
+		# Add NEW_USER to and remove USER from other groups
+		# if NEW_USER is not a member of them.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER})(!(memberUid=${NEW_USER})))" \
+			1.1 \
+		| unfold \
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+add: memberUid\\
+memberUid: ${NEW_USER}\\
+-\\
+delete: memberUid\\
+memberUid: ${USER}\\
+-"
+		;;
+	esac
+	case ${FILTERS:++},${NEW_USER++} in
+	+, ) # [-a] -G GROUPS
+		# Add USER to the groups if USER is not a member of them.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)(|${FILTERS})(!(memberUid=${USER})))" \
+			1.1 \
+		| unfold \
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+add: memberUid\\
+memberUid: ${USER}\\
+-"
+		;;
+	+,+ ) # [-a] -GROUPS -l NEW_USER
+		# Remove USER from the groups
+		# if NEW_USER is a member of them.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)(|${FILTERS})(memberUid=${USER})(memberUid=${NEW_USER}))" \
+			1.1 \
+		| unfold \
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+delete: memberUid\\
+memberUid: ${USER}\\
+-"
+		# Add NEW_USER to and remove USER from the groups
+		# if NEW_USER is not a member of them but USER is.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)(|${FILTERS})(memberUid=${USER})(!(memberUid=${NEW_USER})))" \
+			1.1 \
+		| unfold \
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+add: memberUid\\
+memberUid: ${NEW_USER}\\
+-\\
+delete: memberUid\\
+memberUid: ${USER}\\
+-"
+		# Add NEW_USER to the groups
+		# if NEW_USER is not a member of them and neither is USER.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(objectClass=posixGroup)(|${FILTERS})(!(memberUid=${USER}))(!(memberUid=${NEW_USER})))" \
+			1.1 \
+		| unfold \
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+add: memberUid\\
+memberUid: ${NEW_USER}\\
+-"
 		;;
 	esac
 	;;
@@ -281,6 +322,7 @@ esac
 case ${NEW_SUPERIOR_DN++}${NEW_USER++} in
 +* )
 	: "${USER_DN:?}"
+	NEW_USER_DN=uid=${NEW_USER-${USER}},${NEW_SUPERIOR_DN-${USER_DN#*,}}
 	for DN_ATTRIBUTE in \
 		aliasedObjectName	\
 		associatedName		\
@@ -292,16 +334,31 @@ case ${NEW_SUPERIOR_DN++}${NEW_USER++} in
 		secretary		\
 		seeAlso
 	do
+		# Remove USER_DN from the groups
+		# if NEW_USER_DN is a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
-			"(${DN_ATTRIBUTE}=${USER_DN})" "${DN_ATTRIBUTE}" \
+			"(&(${DN_ATTRIBUTE}=${USER_DN})(${DN_ATTRIBUTE}=${NEW_USER_DN}))" \
+			1.1 \
 		| unfold \
-		| sed \
-			-e '/^dn:/a\
-changetype: modify\
-replace: '"${DN_ATTRIBUTE}" \
-			-e 's/^\([^:]*\): '"${USER_DN}"'$/\1: '"uid=${NEW_USER-${USER}},${NEW_SUPERIOR_DN-${USER_DN#*,}}"'/' \
-			-e '/^$/i\
--'
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+delete: ${DN_ATTRIBUTE}\\
+${DN_ATTRIBUTE}: ${USER_DN}\\
+-"
+		# Add NEW_USER_DN to and remove USER_DN from the groups
+		# if NEW_USER_DN is not a member of them.
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+			"(&(${DN_ATTRIBUTE}=${USER_DN})(!(${DN_ATTRIBUTE}=${NEW_USER_DN})))" \
+			1.1 \
+		| unfold \
+		| sed -e "/^dn:/a\\
+changetype: modify\\
+add: ${DN_ATTRIBUTE}\\
+${DN_ATTRIBUTE}: ${NEW_USER_DN}\\
+-\\
+delete: ${DN_ATTRIBUTE}\\
+${DN_ATTRIBUTE}: ${USER_DN}\\
+-"
 	done
 	cat << __LDIF__
 dn: ${USER_DN}

@@ -114,14 +114,12 @@ USER_DN=${USER_DN-$(
 ###########################################################################
 # USER_GROUPS.
 ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
-	"(&(objectClass=posixGroup)(memberUid=${USER}))" memberUid \
+	"(&(objectClass=posixGroup)(memberUid=${USER}))" 1.1 \
 | unfold \
-| sed \
-	-e '/^dn:/a\
+| sed -e '/^dn:/a\
 changetype: modify\
-replace: memberUid' \
-	-e '/^memberUid: '"${USER}"'$/d' \
-	-e '/^$/i\
+delete: memberUid\
+memberUid: '"${USER}"'\
 -'
 
 # USER.

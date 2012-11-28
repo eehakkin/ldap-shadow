@@ -65,7 +65,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "
 # Defaults.
 #
 ###########################################################################
-unset GROUP_USERS GROUP_USER_ADD GROUP_USER_DELETE
+unset GROUP_USERS GROUP_USERS_ADD GROUP_USERS_DELETE
 unset NEW_GROUP NEW_SUPERIOR_DN
 
 ###########################################################################
@@ -85,8 +85,10 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
 	esac
 	case -${OPT} in
-	--add        | -a ) GROUP_USER_ADD=${OPTARG} ;;
-	--delete     | -d ) GROUP_USER_DELETE=${OPTARG} ;;
+	--add        | -a ) GROUP_USERS_ADD="${GROUP_USERS_ADD-}\\
+memberUid: ${OPTARG}" ;;
+	--delete     | -d ) GROUP_USERS_DELETE="${GROUP_USERS_DELETE-}\\
+memberUid: ${OPTARG}" ;;
 	--gid        | -g ) GROUP_GID=${OPTARG} ;;
 	--help       | -h ) exec "${0}" --help >&3 ;;
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
@@ -146,33 +148,33 @@ gidNumber: ${GROUP_GID}
 __LDIF__
 esac
 
-# GROUP_USERS, GROUP_USER_ADD, GROUP_USER_ADD.
-case ${GROUP_USERS++}${GROUP_USER_ADD++}${GROUP_USER_DELETE++} in
+# GROUP_USERS, GROUP_USERS_ADD, GROUP_USERS_DELETE.
+case ${GROUP_USERS++}${GROUP_USERS_ADD++}${GROUP_USERS_DELETE++} in
 +* )
-	FILTERS= IFS=, LDIF=
-	for USER in ${GROUP_USER_ADD+"${GROUP_USER_ADD}"} ${GROUP_USERS-}
+	GROUP_USERS_REPLACE= IFS=,
+	for USER in ${GROUP_USERS-}
 	do
 		case ${USER:++} in
-		+ ) LDIF="${LDIF}\\
+		+ ) GROUP_USERS_REPLACE="${GROUP_USERS_REPLACE}\\
 memberUid: ${USER}" ;;
 		esac
 	done
 	unset IFS
-	case ${GROUP_USER_ADD++}    in + ) FILTERS="${FILTERS}(!(memberUid=${GROUP_USER_ADD}))" ;; esac
-	case ${GROUP_USER_DELETE++} in + ) FILTERS="${FILTERS}(memberUid=${GROUP_USER_DELETE})" ;; esac
-	case ${GROUP_USERS++}       in + ) FILTERS="${FILTERS}(objectClass=*)"                  ;; esac
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${GROUP_DN}" -s base -- \
-		"(|${FILTERS})" memberUid \
+		'(objectClass=*)' 1.1 \
 	| unfold \
 	| sed \
 		-e '/^dn:/a\
-changetype: modify\
-replace: memberUid'"${LDIF}" ${GROUP_USERS+\
-		-e '/^memberUid:/d' } ${GROUP_USER_ADD+\
-		-e '/^memberUid: '"${GROUP_USER_ADD}"'$/d' } ${GROUP_USER_DELETE+\
-		-e '/^memberUid: '"${GROUP_USER_DELETE}"'$/d' } \
-		-e '/^$/i\
--'
+changetype: modify' \
+		${GROUP_USERS_DELETE+ -e "/^dn:/a\\
+delete: memberUid${GROUP_USERS_DELETE}\\
+-" } \
+		${GROUP_USERS+        -e "/^dn:/a\\
+replace: memberUid${GROUP_USERS_REPLACE}\\
+-" } \
+		${GROUP_USERS_ADD+    -e "/^dn:/a\\
+add: memberUid${GROUP_USERS_ADD}\\
+-" }
 	;;
 esac
 
