@@ -134,9 +134,10 @@ ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
 	"(&(objectClass=posixGroup)(cn=${USER}))" memberUid \
 | unfold \
 | sed -n \
-	-e '/^dn:/!d' \
-	-e ': in' \
-	-e '/\n$/!{N;b in;}' \
+	-e 'H' \
+	-e '/^dn:/h' \
+	-e '/^$/!d' \
+	-e 'g' \
 	-e 's/^\(dn:[^\n]*\)\(\nmemberUid: '"${USER}"'\)*\n$/\1\
 changetype: delete\
 /p'
