@@ -176,20 +176,6 @@ esac
 # Values.
 #
 ###########################################################################
-# USER_BASE_DN.
-USER_BASE_DN=${USER_BASE_DN-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		${base_dn:+ -b "${base_dn}" } -z 1 -- \
-		"(objectClass=posixAccount)" 1.1 2> /dev/null \
-	| unfold \
-	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-	)}
-: "${USER_BASE_DN:?}"
-
-# USER_COMMENT.
-USER_COMMENT=${USER_COMMENT:-${USER}}
-: "${USER_COMMENT:?}"
-
 # USER_GID.
 case ${USER_GID-},${USER_GROUP:++} in
 ,  ) USER_GID=100 ;;
@@ -221,6 +207,20 @@ case ${USER_GID-},${USER_GROUP:++} in
 	;;
 esac
 : "${USER_GID:?}"
+
+# USER_BASE_DN.
+USER_BASE_DN=${USER_BASE_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		${base_dn:+ -b "${base_dn}" } -z 1 -- \
+		"(objectClass=posixAccount)" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
+	)}
+: "${USER_BASE_DN:?}"
+
+# USER_COMMENT.
+USER_COMMENT=${USER_COMMENT:-${USER}}
+: "${USER_COMMENT:?}"
 
 # USER_HOME_DIR.
 USER_HOME_DIR=${USER_HOME_DIR:-${BASE_DIR:?}/${USER}}
