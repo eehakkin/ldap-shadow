@@ -176,7 +176,7 @@ esac
 #
 ###########################################################################
 # USER_COMMENT, USER_GID, USER_HOME_DIR, USER_SHELL, USER_EXPIRE, USER_INACTIVE, USER_UID.
-case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_UID++} in
+case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_EXPIRE++}${USER_INACTIVE++}${USER_UID++} in
 +* ) : "${USER_DN:?}"; cat << __LDIF__ ;;
 dn: ${USER_DN}
 changetype: modify${USER_COMMENT+
