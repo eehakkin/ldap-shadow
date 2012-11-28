@@ -23,7 +23,7 @@ Usage: ${0##*[\\/]} [OPTION]... [USER]
 
 Options:
  -h, --help         Display this help message and exit.
- -s, --shell SHELL  Change the login shell of the account to SHELL.
+ -s, --shell SHELL  Change the login shell of the account.
      --dry-run      Dump LDIF and exit.
 
 Operands:
