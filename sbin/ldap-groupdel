@@ -22,8 +22,9 @@ case ${1-} in
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
 Options:
- -h, --help       Display this help message and exit.
-     --dump-ldif  Dump LDIF and exit.
+ -h, --help           Display this help message and exit.
+ -K, --key KEY=VALUE  Override a default configuration.
+     --dump-ldif      Dump LDIF and exit.
 
 Operands:
  GROUP            A name of the group whose account is to be modified using
@@ -54,10 +55,20 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "
 # Options.
 #
 ###########################################################################
-while getopts h-: OPT "${@}"
+while getopts hK:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
+	--key )
+		OPT=${OPT}${OPTARG}
+		eval 'OPTARG=${'"${OPTIND}"'?}'
+		OPTIND=$(( ${OPTIND} + 1 ))
+		;;
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	esac
+	case -${OPT} in
 	--help | -h ) exec "${0}" --help >&3 ;;
+	--key  | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--dump-ldif ) exec >&3 ;;
 	--*         ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;
 	*           ) exit 1 ;;

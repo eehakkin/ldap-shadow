@@ -22,8 +22,10 @@ case ${1-} in
 Usage: ${0##*[\\/]} [OPTION]... USER
 
 Options:
- -h, --help       Display this help message and exit.
-     --dump-ldif  Dump LDIF and exit.
+ -f, --force          (ignored)
+ -h, --help           Display this help message and exit.
+ -K, --key KEY=VALUE  Override a default configuration.
+     --dump-ldif      Dump LDIF and exit.
 
 Operands:
  USER             A username of the user whose account is to be modified using
@@ -54,13 +56,24 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "$
 # Options.
 #
 ###########################################################################
-while getopts h-: OPT "${@}"
+while getopts fhK:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--help | -h ) exec "${0}" --help >&3 ;;
-	--dump-ldif ) exec >&3 ;;
-	--*         ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;
-	*           ) exit 1 ;;
+	--key )
+		OPT=${OPT}${OPTARG}
+		eval 'OPTARG=${'"${OPTIND}"'?}'
+		OPTIND=$(( ${OPTIND} + 1 ))
+		;;
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	esac
+	case -${OPT} in
+	--force | -f ) ;;
+	--help  | -h ) exec "${0}" --help >&3 ;;
+	--key   | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--dump-ldif  ) exec >&3 ;;
+	--*          ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;
+	*            ) exit 1 ;;
 	esac
 done
 shift $(( $OPTIND - 1 ))
