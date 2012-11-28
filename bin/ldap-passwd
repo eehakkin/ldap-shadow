@@ -110,6 +110,7 @@ __USAGE__
 				-e 's/=.*$//'			\
 				-e '/^[GU]ID_/p'		\
 				-e '/^GROUP_/p'			\
+				-e '/^SYS_[GU]ID_/p'		\
 				-e '/^USER_/p'			\
 				-e '/^USERGROUPS_/p'
 			)
@@ -126,6 +127,7 @@ __USAGE__
 				case ${name} in
 				[GU]ID_*     | \
 				GROUP_*      | \
+				SYS_[GU]ID_* | \
 				USER_*       | \
 				USERGROUPS_* ) export "${name}=${value}" ;;
 				esac

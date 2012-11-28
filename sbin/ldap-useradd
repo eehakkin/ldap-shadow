@@ -50,6 +50,8 @@ Operands:
 Configuration variables:
  GID_MIN          A minimum group ID for new groups.
  GID_MAX          A maximum group ID for new groups.
+ SYS_GID_MIN      A minimum group ID for new system groups.
+ SYS_GID_MAX      A maximum group ID for new system groups.
  GROUP_BASE_DN    A distinguished name (DN) of an LDAP entry to be used as
                   a search base for groups. This one takes precedence over
                   the GROUP_BASE_RDN variable.
@@ -68,6 +70,8 @@ Configuration variables:
                   use ou=GROUP if that LDAP subentry exists.
  UID_MIN          A minimum user ID for new user accounts.
  UID_MAX          A maximum user ID for new user accounts.
+ SYS_UID_MIN      A minimum user ID for new system user accounts.
+ SYS_UID_MAX      A maximum user ID for new system user accounts.
  USER_BASE_DN     A distinguished name (DN) of an LDAP entry to be used as
                   a search base for users. This one takes precedence over
                   the USER_BASE_RDN variable.
@@ -120,10 +124,10 @@ ${LDAP_HAS_FRONTEND:+:} exec "${dir}/../bin/${base%ldap-*}ldap-passwd" --mode=fr
 #
 ###########################################################################
 BASE_DIR=${BASE_DIR:-/home/users}
-GID_MIN=${GID_MIN:-10000}
-GID_MAX=${GID_MAX:-60000}
-UID_MIN=${UID_MIN:-10000}
-UID_MAX=${UID_MAX:-60000}
+GID_MIN=${GID_MIN:-10000} SYS_GID_MIN=${SYS_GID_MIN:-50000}
+GID_MAX=${GID_MAX:-60000} SYS_GID_MAX=${SYS_GID_MAX:-60000}
+UID_MIN=${UID_MIN:-10000} SYS_UID_MIN=${SYS_UID_MIN:-50000}
+UID_MAX=${UID_MAX:-60000} SYS_UID_MAX=${SYS_UID_MAX:-60000}
 USER_SHELL=${USER_SHELL-/bin/bash}
 USERGROUPS_ENAB=${USERGROUPS_ENAB-yes}
 unset USER_COMMENT USER_GROUPS USER_HOME_DIR
@@ -242,7 +246,10 @@ USER_UID=${USER_UID:-$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
 		"(objectClass=posixAccount)" uidNumber \
 	| unfold \
-	| awk -F ': ' -v min="${UID_MIN:?}" -v max="${UID_MAX:?}" '
+	| awk \
+		-F ': ' \
+		-v min="${NORMAL:+${UID_MIN:?}}${SYSTEM:+${SYS_UID_MIN:?}}" \
+		-v max="${NORMAL:+${UID_MAX:?}}${SYSTEM:+${SYS_UID_MAX:?}}" '
 $1 != "uidNumber" { next }
 $2 == min { ++min; while ( used[min] ) delete used[min++] }
 min < $2 && $2 <= max { used[$2] = 1 }

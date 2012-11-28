@@ -29,7 +29,7 @@ Options:
  -h, --help           Display this help message and exit.
  -K, --key KEY=VALUE  Override a default configuration.
  -o, --non-unique     (ignored)
- -r, --system         (ignored)
+ -r, --system         Create a system group.
      --dump-ldif      Dump LDIF and exit.
 
 Operands:
@@ -39,6 +39,8 @@ Operands:
 Configuration variables:
  GID_MIN          A minimum group ID for new groups.
  GID_MAX          A maximum group ID for new groups.
+ SYS_GID_MIN      A minimum group ID for new system groups.
+ SYS_GID_MAX      A maximum group ID for new system groups.
  GROUP_BASE_DN    A distinguished name (DN) of an LDAP entry to be used as
                   a search base for groups. This one takes precedence over
                   the GROUP_BASE_RDN variable.
@@ -85,8 +87,9 @@ ${LDAP_HAS_FRONTEND:+:} exec "${dir}/../bin/${base%ldap-*}ldap-passwd" --mode=fr
 # Defaults.
 #
 ###########################################################################
-GID_MIN=${GID_MIN:-10000}
-GID_MAX=${GID_MAX:-60000}
+GID_MIN=${GID_MIN:-10000} SYS_GID_MIN=${SYS_GID_MIN:-50000}
+GID_MAX=${GID_MAX:-60000} SYS_GID_MAX=${SYS_GID_MAX:-60000}
+NORMAL=+ SYSTEM=
 
 ###########################################################################
 #
@@ -109,7 +112,7 @@ do
 	--help       | -h ) exec "${0}" --help >&3 ;;
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--non-unique | -o ) ;;
-	--system     | -r ) ;;
+	--system     | -r ) NORMAL= SYSTEM=+ ;;
 	--dump-ldif  ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;
@@ -142,7 +145,10 @@ GROUP_GID=${GROUP_GID:-$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
 		"(objectClass=posixGroup)" gidNumber \
 	| unfold \
-	| awk -F ': ' -v min="${GID_MIN:?}" -v max="${GID_MAX:?}" '
+	| awk \
+		-F ': ' \
+		-v min="${NORMAL:+${GID_MIN:?}}${SYSTEM:+${SYS_GID_MIN:?}}" \
+		-v max="${NORMAL:+${GID_MAX:?}}${SYSTEM:+${SYS_GID_MAX:?}}" '
 $1 != "gidNumber" { next }
 $2 == min { ++min; while ( used[min] ) delete used[min++] }
 min < $2 && $2 <= max { used[$2] = 1 }
