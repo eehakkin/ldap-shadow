@@ -81,6 +81,9 @@ Configuration variables:
                   the last dash separated part.
                   If the username does not contains dashes, the default is to
                   use ou=USER if that LDAP subentry exists.
+ USERGROUPS_ENAB  Whether to enable user private groups (UPG).
+                  If enabled, the default is to create a new group with name of
+                  the user.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -115,8 +118,9 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "$
 ###########################################################################
 GID_MIN=10000 GID_MAX=19999
 UID_MIN=10000 UID_MAX=19999
-NORMAL=+ SYSTEM= USER_GROUP=+
+NORMAL=+ SYSTEM= USERGROUPS_ENAB=yes
 unset GROUP_BASE_DN GROUP_BASE_RDN GROUP_OU_RDN
+unset GROUP_GID
 unset USER_BASE_DN  USER_BASE_RDN  USER_OU_RDN
 unset USER_COMMENT USER_GID USER_GROUPS USER_HOME_DIR USER_UID
 unset USER_EXPIRE USER_INACTIVE
@@ -161,18 +165,18 @@ do
 		esac
 		;;
 	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
-	--gid            | -g ) USER_GID=${OPTARG} ;;
+	--gid            | -g ) USER_GID=${OPTARG} GROUP_GID=${OPTARG} ;;
 	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
 	--help           | -h ) exec "${0}" --help >&3 ;;
 	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--no-log-init    | -l ) ;;
 	--no-create-home | -M ) ;;
-	--no-user-group  | -N ) USER_GROUP= ;;
+	--no-user-group  | -N ) USERGROUPS_ENAB=no ;;
 	--non-unique     | -o ) ;;
 	--system         | -r ) NORMAL= SYSTEM=+ ;;
 	--shell          | -s ) USER_SHELL=${OPTARG} ;;
 	--uid            | -u ) USER_UID=${OPTARG} ;;
-	--user-group     | -U ) USER_GROUP=+ ;;
+	--user-group     | -U ) USERGROUPS_ENAB=yes ;;
 	--dump-ldif      ) exec >&3 ;;
 	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                ) exit 1 ;;
@@ -201,9 +205,8 @@ esac
 #
 ###########################################################################
 # USER_GID.
-case ${USER_GID-},${USER_GROUP:++} in
-,  ) USER_GID=100 ;;
-,+ )
+case ${USERGROUPS_ENAB} in
+yes )
 	USER_GID=$(
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
 			"(&(objectClass=posixGroup)(cn=${USER}))"	\
@@ -219,6 +222,7 @@ case ${USER_GID-},${USER_GROUP:++} in
 			${GID_MAX:+        -K "GID_MAX=${GID_MAX}"               } \
 			${GROUP_BASE_DN:+  -K "GROUP_BASE_DN=${GROUP_BASE_DN}"   } \
 			${GROUP_BASE_RDN:+ -K "GROUP_BASE_RDN=${GROUP_BASE_RDN}" } \
+			${GROUP_GID:+      -K "GROUP_GID=${GROUP_GID}"           } \
 			${GROUP_OU_RDN:+   -K "GROUP_OU_RDN=${GROUP_OU_RDN}"     } \
 			--							   \
 			"${USER}"
@@ -227,8 +231,13 @@ case ${USER_GID-},${USER_GROUP:++} in
 		;;
 	esac
 	;;
-*[![:digit:]]*,* )
-	USER_GID=$( getent -- group "${USER_GID}" | cut -d : -f 3 )
+* )
+	case ${USER_GID-users} in
+	*[![:digit:]]* ) USER_GID=$(
+		getent -- group "${USER_GID-users}" \
+		| cut -d : -f 3
+		) ;;
+	esac
 	;;
 esac
 : "${USER_GID:?}"
