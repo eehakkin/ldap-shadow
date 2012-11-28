@@ -24,7 +24,7 @@ Usage: ${0##*[\\/]} [OPTION]... [USER]
 Options:
  -h, --help         Display this help message and exit.
  -s, --shell SHELL  Change the login shell of the account to SHELL.
-     --dump-ldif    Dump LDIF and exit.
+     --dry-run      Dump LDIF and exit.
 
 Operands:
  USER               A username or a distinguished name (DN) of the user
@@ -80,7 +80,7 @@ do
 	case -${OPT} in
 	--help  | -h ) exec "${0}" --help >&3 ;;
 	--shell | -s ) USER_SHELL=${OPTARG} ;;
-	--dump-ldif  ) exec >&3 ;;
+	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;
 	esac

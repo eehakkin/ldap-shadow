@@ -30,7 +30,7 @@ Options:
  -K, --key KEY=VALUE  Override a default configuration.
  -o, --non-unique     (ignored)
  -r, --system         Create a system group.
-     --dump-ldif      Dump LDIF and exit.
+     --dry-run        Dump LDIF and exit.
 
 Operands:
  GROUP            A name of the group whose account is to be modified using
@@ -113,7 +113,7 @@ do
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--non-unique | -o ) ;;
 	--system     | -r ) NORMAL= SYSTEM=+ ;;
-	--dump-ldif  ) exec >&3 ;;
+	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;
 	esac

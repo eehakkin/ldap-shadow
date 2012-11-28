@@ -30,7 +30,7 @@ Options:
  -M, --members USERS       Set the members of the group.
  -n, --new-name NEW_GROUP  Change the group name.
  -o, --non-unique          (ignored)
-     --dump-ldif           Dump LDIF and exit.
+     --dry-run             Dump LDIF and exit.
 
 Operands:
  GROUP            A name of the group whose account is to be modified using
@@ -93,7 +93,7 @@ do
 	--members    | -M ) GROUP_USERS=${OPTARG} ;;
 	--new-name   | -n ) NEW_GROUP=${OPTARG} ;;
 	--non-unique | -o ) ;;
-	--dump-ldif  ) exec >&3 ;;
+	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;
 	esac

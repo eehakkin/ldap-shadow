@@ -25,7 +25,7 @@ Options:
  -f, --force          (ignored)
  -h, --help           Display this help message and exit.
  -K, --key KEY=VALUE  Override a default configuration.
-     --dump-ldif      Dump LDIF and exit.
+     --dry-run        Dump LDIF and exit.
 
 Operands:
  USER             A username of the user whose account is to be modified using
@@ -71,7 +71,7 @@ do
 	--force | -f ) ;;
 	--help  | -h ) exec "${0}" --help >&3 ;;
 	--key   | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
-	--dump-ldif  ) exec >&3 ;;
+	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;
 	*            ) exit 1 ;;
 	esac

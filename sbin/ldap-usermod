@@ -36,7 +36,7 @@ Options:
  -o, --non-unique         (ignored)
  -s, --shell SHELL        Change the login shell of the account.
  -u, --uid UID            Change the user ID of the account.
-     --dump-ldif          Dump LDIF and exit.
+     --dry-run            Dump LDIF and exit.
 
 Operands:
  USER             A username of the user whose account is to be modified using
@@ -122,7 +122,7 @@ do
 	--non-unique     | -o ) ;;
 	--shell          | -s ) USER_SHELL=${OPTARG} ;;
 	--uid            | -u ) USER_UID=${OPTARG} ;;
-	--dump-ldif      ) exec >&3 ;;
+	--dry-run        ) exec >&3 ;;
 	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                ) exit 1 ;;
 	esac

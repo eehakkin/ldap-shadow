@@ -33,7 +33,7 @@ Options:
  -w, --warndays WARN_DAYS     Set the password expiration warning days.
  -x, --maxdays MAX_DAYS       Set the maximum number of days before password
                               change.
-     --dump-ldif              Dump LDIF and exit.
+     --dry-run                Dump LDIF and exit.
 
 Operands:
  USER             A username or a distinguished name (DN) of the user
@@ -290,7 +290,7 @@ do
 	--repository | -r ) ;;
 	--warndays   | -w ) USER_WARN_DAYS=${OPTARG} ;;
 	--maxdays    | -x ) USER_MAX_DAYS=${OPTARG} ;;
-	--dump-ldif  ) exec >&3 ;;
+	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;
 	esac

@@ -41,7 +41,7 @@ Options:
  -s, --shell SHELL             Use the login shell for the new account.
  -u, --uid UID                 Use the user ID for the new account.
  -U, --user-group              Create a group with the same name.
-     --dump-ldif               Dump LDIF and exit.
+     --dry-run                 Dump LDIF and exit.
 
 Operands:
  USER             A username of the user whose account is to be modified using
@@ -184,7 +184,7 @@ do
 	--shell          | -s ) USER_SHELL=${OPTARG} ;;
 	--uid            | -u ) USER_UID=${OPTARG} ;;
 	--user-group     | -U ) USERGROUPS_ENAB=yes ;;
-	--dump-ldif      ) exec >&3 ;;
+	--dry-run        ) exec >&3 ;;
 	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                ) exit 1 ;;
 	esac
