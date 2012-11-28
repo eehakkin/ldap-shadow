@@ -34,12 +34,22 @@ Operands:
                   administration privileges.
 
 Configuration variables:
- GID_MIN          A minimum group ID for a new group.
- GID_MAX          A maximum group ID for a new group.
- GROUP_BASE_DN    A distinguished name (DN) to be used as a base DN while
-                  constructing a new group DN.
- GROUP_OU         An organization unit name to be used while constructing
-                  a new group DN.
+ GID_MIN          A minimum group ID for new groups.
+ GID_MAX          A maximum group ID for new groups.
+ GROUP_BASE_DN    A distinguished name (DN) of an LDAP entry to be used as
+                  a search base for groups. This one takes precedence over
+                  the GROUP_BASE_RDN variable.
+ GROUP_BASE_RDN   A relative distinguished name (RDN) of an LDAP entry to be
+                  used as a search base for groups. The GROUP_BASE_RDN variable
+                  takes precedence over this one.
+ GROUP_OU_RDN     A relative distinguished name (RDN) of an organization unit
+                  LDAP subentry under the group search base. A new group will
+                  be created under this subentry.
+                  If the group name contains dashes, the default is to use
+                  ou=PREFIX where PREFIX is the group name without the last
+                  dash separated part.
+                  If the group name does not contains dashes, the default is to
+                  use ou=GROUP if that LDAP subentry exists.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -73,7 +83,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "
 #
 ###########################################################################
 GID_MIN=10000 GID_MAX=19999
-unset GROUP_BASE_DN GROUP_OU
+unset GROUP_BASE_DN GROUP_BASE_RDN GROUP_OU_RDN
 unset GROUP_GID
 
 ###########################################################################
@@ -140,15 +150,22 @@ END { if ( min <= max ) print min }
 : "${GROUP_GID:?}"
 
 # GROUP_BASE_DN.
-GROUP_BASE_DN=${GROUP_BASE_DN-$(
+case ${GROUP_BASE_DN++},${GROUP_BASE_RDN++} in
++,* ) ;;
+*,+ ) BASE_DN=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -s base -- "(objectClass=*)" 1.1 \
+	| unfold \
+	| sed -e '/^dn: /!d' -e 's///' -e 'q'
+	); GROUP_BASE_DN=${GROUP_BASE_RDN},${BASE_DN:?} ;;
+*,* ) GROUP_BASE_DN=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
 		"(objectClass=posixGroup)" 1.1 2> /dev/null \
 	| unfold \
 	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-	)}
+	) ;;
+esac
 : "${GROUP_BASE_DN:?}"
-
-# GROUP_OU.
+unset RDN
 while :
 do
 	###################################################################
@@ -156,25 +173,21 @@ do
 	# LDIF.
 	#
 	###################################################################
-	# GROUP_OU.
-	case ${GROUP_OU++}${GROUP_OU:++} in
-	'' ) RDN=ou=${GROUP%-*} ;;
-	+  ) break ;;
-	++ ) RDN=${GROUP_OU##*,} ;;
-	esac
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${RDN},${GROUP_BASE_DN}" -s base -- \
+	DN=${RDN+${RDN},}${GROUP_BASE_DN}
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${DN}" -s base -- \
 		'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
-	case ${?},${GROUP},${GROUP_OU:++} in
-	0,*,*  ) ;;
-	*,*,+  | \
-	*,*-*, ) cat << __LDIF__ ;;
-dn: ${RDN},${GROUP_BASE_DN}
+	case ${?},${GROUP},${GROUP_OU_RDN++},${RDN++} in
+	0,*,*,*  ) ;;
+	*,*,*,   | \
+	*,*,+,+  | \
+	*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
+dn: ${DN}
 changetype: add
 objectClass: organizationalUnit
-${RDN%%=*}: ${RDN#*=}
+${RDN2%%=*}: ${RDN2#*=}
 
 __LDIF__
-	*,*,*  ) break ;;
+	*,*,*,*  ) break ;;
 	esac
 	###################################################################
 	#
@@ -182,10 +195,16 @@ __LDIF__
 	#
 	###################################################################
 	# GROUP_BASE_DN.
-	GROUP_BASE_DN=${RDN},${GROUP_BASE_DN}
-	case ${GROUP_OU-} in
-	*,* ) GROUP_OU=${GROUP_OU%,*} ;;
-	*   ) break ;;
+	GROUP_BASE_DN=${DN}
+	# GROUP_OU_RDN.
+	case ${RDN++},${GROUP_OU_RDN-} in
+	+,*,* ) GROUP_OU_RDN=${GROUP_OU_RDN%,*} ;;
+	+,*   ) break ;;
+	esac
+	# RDN.
+	case ${GROUP_OU_RDN++} in
+	+ ) RDN=${GROUP_OU_RDN##*,} ;;
+	* ) RDN=ou=${GROUP%-*} ;;
 	esac
 done
 

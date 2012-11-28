@@ -45,18 +45,42 @@ Operands:
                   administration privileges.
 
 Configuration variables:
- GID_MIN          A minimum group ID for a new user group.
- GID_MAX          A maximum group ID for a new user group.
- GROUP_BASE_DN    A distinguished name (DN) to be used as a base DN while
-                  constructing a new user group DN.
- GROUP_OU         An organization unit name to be used while constructing
-                  a new user group DN.
- UID_MIN          A minimum user ID for a new account.
- UID_MAX          A maximum user ID for a new account.
- USER_BASE_DN     A distinguished name (DN) to be used as a base DN while
-                  constructing a new user DN.
- USER_OU          An organization unit name to be used while constructing
-                  a new user DN.
+ GID_MIN          A minimum group ID for new groups.
+ GID_MAX          A maximum group ID for new groups.
+ GROUP_BASE_DN    A distinguished name (DN) of an LDAP entry to be used as
+                  a search base for groups. This one takes precedence over
+                  the GROUP_BASE_RDN variable.
+                  The default is to search for an organizationalUnit LDAP entry
+                  containing posixGroup LDAP entries.
+ GROUP_BASE_RDN   A relative distinguished name (RDN) of an LDAP entry to be
+                  used as a search base for groups. The GROUP_BASE_RDN variable
+                  takes precedence over this one.
+ GROUP_OU_RDN     A relative distinguished name (RDN) of an organizationalUnit
+                  LDAP subentry under the group search base. A new group will
+                  be created under this subentry.
+                  If the group name contains dashes, the default is to use
+                  ou=GROUP_PREFIX where GROUP_PREFIX is the group name without
+                  the last dash separated part.
+                  If the group name does not contains dashes, the default is to
+                  use ou=GROUP if that LDAP subentry exists.
+ UID_MIN          A minimum user ID for new user accounts.
+ UID_MAX          A maximum user ID for new user accounts.
+ USER_BASE_DN     A distinguished name (DN) of an LDAP entry to be used as
+                  a search base for users. This one takes precedence over
+                  the USER_BASE_RDN variable.
+                  The default is to search for an organizationalUnit LDAP entry
+                  containing posixAccount LDAP entries.
+ USER_BASE_RDN    A relative distinguished name (RDN) of an LDAP entry to be
+                  used as a search base for users. The USER_BASE_RDN variable
+                  takes precedence over this one.
+ USER_OU_RDN      A relative distinguished name (RDN) of an organizationalUnit
+                  LDAP subentry under the user search base. A new user will be
+                  created under this subentry.
+                  If the username contains dashes, the default is to use
+                  ou=USER_PREFIX where USER_PREFIX is the username without
+                  the last dash separated part.
+                  If the username does not contains dashes, the default is to
+                  use ou=USER if that LDAP subentry exists.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -92,8 +116,8 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "$
 GID_MIN=10000 GID_MAX=19999
 UID_MIN=10000 UID_MAX=19999
 NORMAL=+ SYSTEM= USER_GROUP=+
-unset GROUP_BASE_DN GROUP_OU
-unset USER_BASE_DN  USER_OU
+unset GROUP_BASE_DN GROUP_BASE_RDN GROUP_OU_RDN
+unset USER_BASE_DN  USER_BASE_RDN  USER_OU_RDN
 unset USER_COMMENT USER_GID USER_GROUPS USER_HOME_DIR USER_UID
 unset USER_EXPIRE USER_INACTIVE
 BASE_DIR=/home/users USER_SHELL=/bin/bash
@@ -191,11 +215,12 @@ case ${USER_GID-},${USER_GROUP:++} in
 	case ${USER_GID} in
 	'' )
 		set -- \
-			${GID_MIN:+       -K "GID_MIN=${GID_MIN}"             }	\
-			${GID_MAX:+       -K "GID_MAX=${GID_MAX}"             }	\
-			${GROUP_BASE_DN:+ -K "GROUP_BASE_DN=${GROUP_BASE_DN}" }	\
-			${GROUP_OU:+      -K "GROUP_OU=${GROUP_OU}"           }	\
-			--							\
+			${GID_MIN:+        -K "GID_MIN=${GID_MIN}"               } \
+			${GID_MAX:+        -K "GID_MAX=${GID_MAX}"               } \
+			${GROUP_BASE_DN:+  -K "GROUP_BASE_DN=${GROUP_BASE_DN}"   } \
+			${GROUP_BASE_RDN:+ -K "GROUP_BASE_RDN=${GROUP_BASE_RDN}" } \
+			${GROUP_OU_RDN:+   -K "GROUP_OU_RDN=${GROUP_OU_RDN}"     } \
+			--							   \
 			"${USER}"
 		. "${0%ldap-*}ldap-groupadd"
 		USER_GID=${GROUP_GID:?}
@@ -223,16 +248,22 @@ END { if ( min <= max ) print min }
 : "${USER_UID:?}"
 
 # USER_BASE_DN.
-USER_BASE_DN=${USER_BASE_DN-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		${base_dn:+ -b "${base_dn}" } -z 1 -- \
+case ${USER_BASE_DN++},${USER_BASE_RDN++} in
++,* ) ;;
+*,+ ) BASE_DN=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -s base -- "(objectClass=*)" 1.1 \
+	| unfold \
+	| sed -e '/^dn: /!d' -e 's///' -e 'q'
+	); USER_BASE_DN=${USER_BASE_RDN},${BASE_DN:?} ;;
+*,* ) USER_BASE_DN=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
 		"(objectClass=posixAccount)" 1.1 2> /dev/null \
 	| unfold \
 	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-	)}
+	) ;;
+esac
 : "${USER_BASE_DN:?}"
-
-# USER_OU.
+unset RDN
 while :
 do
 	###################################################################
@@ -240,25 +271,21 @@ do
 	# LDIF.
 	#
 	###################################################################
-	# USER_OU.
-	case ${USER_OU++}${USER_OU:++} in
-	'' ) RDN=ou=${USER%-*} ;;
-	+  ) break ;;
-	++ ) RDN=${USER_OU##*,} ;;
-	esac
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${RDN},${USER_BASE_DN}" -s base -- \
+	DN=${RDN+${RDN},}${USER_BASE_DN}
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${DN}" -s base -- \
 		'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
-	case ${?},${USER},${USER_OU:++} in
-	0,*,*  ) ;;
-	*,*,+  | \
-	*,*-*, ) cat << __LDIF__ ;;
-dn: ${RDN},${USER_BASE_DN}
+	case ${?},${USER},${USER_OU_RDN++},${RDN++} in
+	0,*,*,*  ) ;;
+	*,*,*,   | \
+	*,*,+,+  | \
+	*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
+dn: ${DN}
 changetype: add
 objectClass: organizationalUnit
-${RDN%%=*}: ${RDN#*=}
+${RDN2%%=*}: ${RDN2#*=}
 
 __LDIF__
-	*,*,*  ) break ;;
+	*,*,*,*  ) break ;;
 	esac
 	###################################################################
 	#
@@ -266,10 +293,16 @@ __LDIF__
 	#
 	###################################################################
 	# USER_BASE_DN.
-	USER_BASE_DN=${RDN},${USER_BASE_DN}
-	case ${USER_OU-} in
-	*,* ) USER_OU=${USER_OU%,*} ;;
-	*   ) break ;;
+	USER_BASE_DN=${DN}
+	# USER_OU_RDN.
+	case ${RDN++},${USER_OU_RDN-} in
+	+,*,* ) USER_OU_RDN=${USER_OU_RDN%,*} ;;
+	+,*   ) break ;;
+	esac
+	# RDN.
+	case ${USER_OU_RDN++} in
+	+ ) RDN=${USER_OU_RDN##*,} ;;
+	* ) RDN=ou=${USER%-*} ;;
 	esac
 done
 
