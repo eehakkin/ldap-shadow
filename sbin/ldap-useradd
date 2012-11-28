@@ -208,6 +208,20 @@ case ${USER_GID-},${USER_GROUP:++} in
 esac
 : "${USER_GID:?}"
 
+# USER_UID.
+USER_UID=${USER_UID:-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		"(objectClass=posixAccount)" uidNumber \
+	| unfold \
+	| awk -F ': ' -v min="${UID_MIN:?}" -v max="${UID_MAX:?}" '
+$1 != "uidNumber" { next }
+$2 == min { ++min; while ( used[min] ) delete used[min++] }
+min < $2 && $2 <= max { used[$2] = 1 }
+END { if ( min <= max ) print min }
+'
+	)}
+: "${USER_UID:?}"
+
 # USER_BASE_DN.
 USER_BASE_DN=${USER_BASE_DN-$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
@@ -266,20 +280,6 @@ __LDIF__
 	*   ) break ;;
 	esac
 done
-
-# USER_UID.
-USER_UID=${USER_UID:-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
-		"(objectClass=posixAccount)" uidNumber \
-	| unfold \
-	| awk -F ': ' -v min="${UID_MIN:?}" -v max="${UID_MAX:?}" '
-$1 != "uidNumber" { next }
-$2 == min { ++min; while ( used[min] ) delete used[min++] }
-min < $2 && $2 <= max { used[$2] = 1 }
-END { if ( min <= max ) print min }
-'
-	)}
-: "${USER_UID:?}"
 
 # USER_DN.
 USER_DN=uid=${USER},${USER_BASE_DN}
