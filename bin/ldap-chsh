@@ -145,7 +145,7 @@ esac
 ###########################################################################
 # USER_SHELL.
 case ${USER_SHELL++} in
-+ ) cat <<__LDIF__ ;;
++ ) cat << __LDIF__ ;;
 dn: ${USER_DN}
 changetype: modify
 replace: loginShell${USER_SHELL:+

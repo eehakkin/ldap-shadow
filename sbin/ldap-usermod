@@ -177,7 +177,7 @@ esac
 ###########################################################################
 # USER_COMMENT, USER_GID, USER_HOME_DIR, USER_SHELL, USER_EXPIRE, USER_INACTIVE, USER_UID.
 case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_UID++} in
-+* ) : "${USER_DN:?}"; cat <<__LDIF__ ;;
++* ) : "${USER_DN:?}"; cat << __LDIF__ ;;
 dn: ${USER_DN}
 changetype: modify${USER_COMMENT+
 replace: cn
@@ -303,7 +303,7 @@ replace: '"${DN_ATTRIBUTE}" \
 			-e '/^$/i\
 -'
 	done
-	cat <<__LDIF__
+	cat << __LDIF__
 dn: ${USER_DN}
 changetype: modrdn
 newrdn: uid=${NEW_USER-${USER}}

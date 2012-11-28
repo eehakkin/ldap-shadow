@@ -355,7 +355,7 @@ shadowLastChange: 0" ;;
 		esac
 		;;
 	esac
-	cat <<__LDIF__
+	cat << __LDIF__
 dn: ${USER_DN}
 changetype: modify${USER_INACTIVE+
 replace: shadowInactive
@@ -510,7 +510,7 @@ ${random_pass}
 __PASS__
 				then
 					# MESSAGE_RANDOM
-					cat <<__EOT__ >&2
+					cat << __EOT__ >&2
 
 Alternatively, if no one else can see your terminal now, you can
 pick this as your password: "${random_pass}".

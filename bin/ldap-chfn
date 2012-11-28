@@ -189,7 +189,7 @@ esac
 ###########################################################################
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_OFFICE, USER_OFFICE_PHONE.
 case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_OFFICE++}${USER_OFFICE_PHONE++} in
-+* ) cat <<__LDIF__ ;;
++* ) cat << __LDIF__ ;;
 dn: ${USER_DN}
 changetype: modify${USER_COMMENT+
 replace: cn

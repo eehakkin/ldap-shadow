@@ -125,7 +125,7 @@ replace: memberUid' \
 -'
 
 # USER.
-cat <<__LDIF__
+cat << __LDIF__
 dn: ${USER_DN}
 changetype: delete
 

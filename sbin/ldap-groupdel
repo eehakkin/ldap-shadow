@@ -111,7 +111,7 @@ GROUP_DN=${GROUP_DN-$(
 #
 ###########################################################################
 # GROUP.
-cat <<__LDIF__
+cat << __LDIF__
 dn: ${GROUP_DN}
 changetype: delete
 
