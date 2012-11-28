@@ -372,8 +372,8 @@ ${DN_ATTRIBUTE}: ${USER_DN}\\
 dn: ${USER_DN}
 changetype: modrdn
 newrdn: uid=${NEW_USER-${USER}}
-deleteoldrdn: 1${NEW_SUPERIOR_DN+"
-newsuperior: ${NEW_SUPERIOR_DN}"}
+deleteoldrdn: 1${NEW_SUPERIOR_DN+
+newsuperior: ${NEW_SUPERIOR_DN}}
 
 __LDIF__
 	;;

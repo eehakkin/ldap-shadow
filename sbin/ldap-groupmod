@@ -184,8 +184,8 @@ case ${NEW_GROUP++}${NEW_SUPERIOR_DN++} in
 dn: ${GROUP_DN}
 changetype: modrdn
 newrdn: cn=${NEW_GROUP-${GROUP}}
-deleteoldrdn: 1${NEW_SUPERIOR_DN+"
-newsuperior: ${NEW_SUPERIOR_DN}"}
+deleteoldrdn: 1${NEW_SUPERIOR_DN+
+newsuperior: ${NEW_SUPERIOR_DN}}
 
 __LDIF__
 esac
