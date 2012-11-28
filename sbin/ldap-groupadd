@@ -125,15 +125,6 @@ esac
 # Values.
 #
 ###########################################################################
-# GROUP_BASE_DN.
-GROUP_BASE_DN=${GROUP_BASE_DN-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
-		"(objectClass=posixGroup)" 1.1 2> /dev/null \
-	| unfold \
-	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-	)}
-: "${GROUP_BASE_DN:?}"
-
 # GROUP_GID.
 GROUP_GID=${GROUP_GID:-$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
@@ -147,6 +138,15 @@ END { if ( min <= max ) print min }
 '
 	)}
 : "${GROUP_GID:?}"
+
+# GROUP_BASE_DN.
+GROUP_BASE_DN=${GROUP_BASE_DN-$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		"(objectClass=posixGroup)" 1.1 2> /dev/null \
+	| unfold \
+	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
+	)}
+: "${GROUP_BASE_DN:?}"
 
 # GROUP_OU.
 while :
