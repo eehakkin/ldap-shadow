@@ -102,7 +102,37 @@ __USAGE__
 		done
 	esac
 	# Defaults.
-	unset GROUP_DN USER_DN
+	case ${1} in *add )
+		names=$(
+			set \
+			| sed -n \
+				-e '/^[[:upper:]_]*=/!d'	\
+				-e 's/=.*$//'			\
+				-e '/^[GU]ID_/p'		\
+				-e '/^GROUP_/p'			\
+				-e '/^USER_/p'			\
+				-e '/^USERGROUPS_/p'
+			)
+		unset names ${names}
+		me=$( which -- "${1}" || ls -d -- "${1}" )
+		base=$( basename -- "${me}" )
+		dir=$( dirname -- "${me}" )
+		for dir in /etc "${dir}/../etc"
+		do
+			file=${dir}/${base%-*}-login.defs
+			[ -r "${file}" ] || continue
+			while read -r name value
+			do
+				case ${name} in
+				[GU]ID_*     | \
+				GROUP_*      | \
+				USER_*       | \
+				USERGROUPS_* ) export "${name}=${value}" ;;
+				esac
+			done < "${file}"
+		done
+	esac
+	unset GROUP_DN GROUP_GID USER_DN USER_UID
 	# LDIF.
 	LDIF=$( LDAP_HAS_FRONTEND=+ "${@}" ) 3>&1
 	error=0

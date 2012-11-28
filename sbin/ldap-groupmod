@@ -65,7 +65,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "
 # Defaults.
 #
 ###########################################################################
-unset GROUP_GID GROUP_USERS GROUP_USER_ADD GROUP_USER_DELETE
+unset GROUP_USERS GROUP_USER_ADD GROUP_USER_DELETE
 unset NEW_GROUP NEW_SUPERIOR_DN
 
 ###########################################################################

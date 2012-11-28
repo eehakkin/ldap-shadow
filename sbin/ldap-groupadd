@@ -17,6 +17,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
+me=$( which -- "${0}" || ls -d -- "${0}" )
+dir=$( dirname -- "${me}" )
+base=$( basename -- "${me}" )
 case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
@@ -67,24 +70,23 @@ Environment:
  SUDO_USER        A real username.
  USER             A fallback username.
 
+Files:
+ /etc/${base%ldap-*}ldap-login.def      LDAP shadow suite configuration.
+ ${dir%[\\/]*}/etc/${base%ldap-*}ldap-login.def  LDAP shadow suite configuration.
+ /etc/ldap/ldap.conf      LDAP configuration.
+
 __USAGE__
---mode=* )
-	me=$( which -- "${0}" || ls -d -- "${0}" )
-	dir=$( dirname -- "${me}" )
-	base=$( basename -- "${me}" )
-	exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}"
-	;;
+--mode=* ) exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}" ;;
 esac
-${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "${@}"
+${LDAP_HAS_FRONTEND:+:} exec "${dir}/../bin/${base%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
 
 ###########################################################################
 #
 # Defaults.
 #
 ###########################################################################
-GID_MIN=10000 GID_MAX=19999
-unset GROUP_BASE_DN GROUP_BASE_RDN GROUP_OU_RDN
-unset GROUP_GID
+GID_MIN=${GID_MIN:-10000}
+GID_MAX=${GID_MAX:-60000}
 
 ###########################################################################
 #

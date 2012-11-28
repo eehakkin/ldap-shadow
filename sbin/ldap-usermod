@@ -73,7 +73,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "$
 ###########################################################################
 APPEND=
 unset NEW_SUPERIOR_DN NEW_USER
-unset USER_COMMENT USER_GID USER_GROUPS USER_HOME_DIR USER_SHELL USER_UID
+unset USER_COMMENT USER_GROUPS USER_HOME_DIR USER_SHELL
 unset USER_EXPIRE USER_INACTIVE
 
 ###########################################################################

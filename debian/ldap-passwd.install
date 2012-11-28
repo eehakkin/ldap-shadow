@@ -1,3 +1,4 @@
 bin/ldap-*	usr/bin/
+etc/ldap-*	etc/
 man		usr/share/
 sbin/ldap-*	usr/sbin/
