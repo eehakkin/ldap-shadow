@@ -166,8 +166,16 @@ case ${USER_COMMENT++} in
 esac
 
 # USER_GID.
-case ${USER_GID-} in
-*[![:digit:]]* ) USER_GID=$( getent -- group "${USER_GID}" | cut -d : -f 3 ) ;;
+case ${USER_GID++} in
++ )
+	case ${USER_GID} in
+	*[![:digit:]]* ) USER_GID=$(
+		getent -- group "${USER_GID}" \
+		| cut -d : -f 3
+		) ;;
+	esac
+	: "${USER_GID:?}"
+	;;
 esac
 
 ###########################################################################
