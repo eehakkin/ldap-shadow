@@ -6,6 +6,12 @@ The purpose of these LDAP user account and group management tools is to provide
 command line interface which is mostly compatible with corresponding local user
 account and group management tools from the shadow package.
 
+Dependencies
+------------
+
+ * ldapmodify, ldappasswd, ldapsearch from the openldap package (required)
+ * pwqcheck, pwqgen from the passwdqc package (recommended)
+
 User commands
 -------------
 
