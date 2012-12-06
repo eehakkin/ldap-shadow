@@ -9,8 +9,10 @@ account and group management tools from the shadow package.
 Dependencies
 ------------
 
- * ldapmodify, ldappasswd, ldapsearch from the openldap package (required)
- * pwqcheck, pwqgen from the passwdqc package (recommended)
+ * **ldapmodify**, **ldappasswd** and **ldapsearch**
+   from the openldap package (required)
+ * **pwqcheck** and **pwqgen**
+   from the passwdqc package (recommended)
 
 User commands
 -------------
