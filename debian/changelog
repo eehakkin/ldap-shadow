@@ -1,3 +1,22 @@
+ldap-shadow (1.0~rc0.0.20121206) unstable; urgency=low
+
+  * Replaced GROUP_OU and USER_OU configuration variables with GROUP_OU_RDN and
+    USER_OU_RDN configuration variables.
+  * Added GROUP_BASE_RDN and USER_BASE_RDN configuration variables.
+  * Added the key option to remaining administrative commands.
+  * Replaced the USER_GROUP configuration variable with the USERGROUPS_ENAB
+    configuration variable.
+  * Changed the ldap-userdel command to delete user private groups.
+  * Added configuration file support.
+  * Separated normal and system ID ranges.
+  * Changed chfn options to match the shadow package.
+  * Renamed the --dump-ldif options to --dry-run.
+  * Fixed change tests.
+  * Reimplemented group modifications using incremental changes.
+  * Added a missing conversion success test.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Thu, 06 Dec 2012 13:31:38 +0200
+
 ldap-shadow (1.0~rc0.0.20121127) unstable; urgency=low
 
   * Unified prompting.
