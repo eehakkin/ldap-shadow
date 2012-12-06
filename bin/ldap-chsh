@@ -21,17 +21,23 @@ case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... [USER]
 
+Change the login shell of an LDAP user account on an LDAP server. Whether or
+not a normal user may change the login shell for her own LDAP user account
+without administrative privileges depends on access control configuration on
+the LDAP server being used.
+
 Options:
  -h, --help         Display this help message and exit.
  -s, --shell SHELL  Change the login shell of the account.
      --dry-run      Dump LDIF and exit.
 
 Operands:
- USER               A username or a distinguished name (DN) of the user
-                    whose account is to be modified using administration
-                    privileges.
-                    The default is to modify the account of the current user
-                    using user privileges.
+ USER             The username (the user identifier defined by the uid
+                  attribute) or the distinguished name (DN) of the LDAP user
+                  account which is to be modified using administrative
+                  privileges.
+                  The default is to modify the LDAP user account of the current
+                  user using user privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -48,6 +54,9 @@ Environment:
  LOGNAME          A username.
  SUDO_USER        A real username.
  USER             A fallback username.
+
+Files:
+ /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
 esac

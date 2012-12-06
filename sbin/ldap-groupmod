@@ -21,6 +21,8 @@ case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
+Modify an LDAP group on an LDAP server using administrative privileges.
+
 Options:
  -a, --add USER            Add USER to the group.
  -d, --delete USER         Remove USER from the group.
@@ -33,8 +35,9 @@ Options:
      --dry-run             Dump LDIF and exit.
 
 Operands:
- GROUP            A name of the group whose account is to be modified using
-                  administration privileges.
+ GROUP            The name (the common name defined by cn attribute) of
+                  the LDAP group which is to be modified using administrative
+                  privileges.
 
 Configuration variables:
  NEW_SUPERIOR_DN  A distinguished name (DN) of the new superior LDAP entry
@@ -55,6 +58,9 @@ Environment:
  LOGNAME          A username.
  SUDO_USER        A real username.
  USER             A fallback username.
+
+Files:
+ /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
 esac

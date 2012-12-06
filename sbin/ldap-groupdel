@@ -21,14 +21,17 @@ case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
+Delete an LDAP group from an LDAP server using administrative privileges.
+
 Options:
  -h, --help           Display this help message and exit.
  -K, --key KEY=VALUE  Override a default configuration.
      --dry-run        Dump LDIF and exit.
 
 Operands:
- GROUP            A name of the group whose account is to be modified using
-                  administration privileges.
+ GROUP            The name (the common name defined by cn attribute) of
+                  the LDAP group which is to be deleted using administrative
+                  privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -45,6 +48,9 @@ Environment:
  LOGNAME          A username.
  SUDO_USER        A real username.
  USER             A fallback username.
+
+Files:
+ /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
 esac

@@ -21,6 +21,11 @@ case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTIONS] [USER]
 
+Change the full name, the home, mobile and work phone numbers and the room
+number of an LDAP user account on an LDAP server. Whether a normal user may
+change all, some or none of these for her own LDAP user account without
+administrative privileges depends on access control configuration on the LDAP server being used.
+
 Options:
  -f, --full-name COMMENT    Change the full name of the account.
  -h, --home-phone HOME      Change the home phone number of the account.
@@ -31,11 +36,12 @@ Options:
  --help                     Display this help message and exit.
 
 Operands:
- USER             A username or a distinguished name (DN) of the user
-                  whose account is to be modified using administration
+ USER             The username (the user identifier defined by the uid
+                  attribute) or the distinguished name (DN) of the LDAP user
+                  account which is to be modified using administrative
                   privileges.
-                  The default is to modify the account of the current user
-                  using user privileges.
+                  The default is to modify the LDAP user account of the current
+                  user using user privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -52,6 +58,9 @@ Environment:
  LOGNAME          A username.
  SUDO_USER        A real username.
  USER             A fallback username.
+
+Files:
+ /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
 esac

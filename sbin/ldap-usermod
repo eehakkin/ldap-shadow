@@ -21,6 +21,8 @@ case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
 
+Modify an LDAP user account on an LDAP server using administrative privileges.
+
 Options:
  -a, --append             Append the account to the secondary groups specified
                           using -G  without removing the account from other
@@ -39,8 +41,9 @@ Options:
      --dry-run            Dump LDIF and exit.
 
 Operands:
- USER             A username of the user whose account is to be modified using
-                  administration privileges.
+ USER             The username (the user identifier defined by the uid
+                  attribute) of the LDAP user account which is to be modified
+                  using administrative privileges.
 
 Configuration variables:
  NEW_SUPERIOR_DN  A distinguished name (DN) of the new superior LDAP entry
@@ -61,6 +64,9 @@ Environment:
  LOGNAME          A username.
  SUDO_USER        A real username.
  USER             A fallback username.
+
+Files:
+ /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
 esac

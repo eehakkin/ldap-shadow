@@ -24,6 +24,8 @@ case ${1-} in
 --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
 
+Add a new LDAP user account to an LDAP server using administrative privileges.
+
 Options:
  -b, --base-dir BASE_DIR       Use the base directory for home directories.
  -c, --comment COMMENT         Use the full name for the new account.
@@ -44,8 +46,9 @@ Options:
      --dry-run                 Dump LDIF and exit.
 
 Operands:
- USER             A username of the user whose account is to be modified using
-                  administration privileges.
+ USER             The username (the user identifier defined by the uid
+                  attribute) of the LDAP user account which is to be created
+                  using administrative privileges.
 
 Configuration variables:
  GID_MIN          A minimum group ID for new groups.
@@ -109,9 +112,9 @@ Environment:
  USER             A fallback username.
 
 Files:
- /etc/${base%ldap-*}ldap-login.def      LDAP shadow suite configuration.
- ${dir%[\\/]*}/etc/${base%ldap-*}ldap-login.def  LDAP shadow suite configuration.
- /etc/ldap/ldap.conf      LDAP configuration.
+ /etc/${base%ldap-*}ldap-login.defs      LDAP shadow suite configuration.
+ ${dir%[\\/]*}/etc/${base%ldap-*}ldap-login.defs  LDAP shadow suite configuration.
+ /etc/ldap/ldap.conf       LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
 --mode=* ) exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}" ;;
