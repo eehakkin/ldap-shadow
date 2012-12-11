@@ -417,7 +417,11 @@ __PASS__
 	# Password quality check configuration.
 	#
 	###################################################################
-	config=/etc/passwdqc.conf retry=3
+	for config in /etc/passwdqc-ldap.conf /etc/passwdqc.conf
+	do
+		[ -f "${config}" ] && break
+	done
+	retry=3
 	if [ -f "${config}" ]
 	then
 		min=disabled,24,11,8,7 max=40 passphrase=3 random=47
