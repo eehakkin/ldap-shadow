@@ -18,7 +18,9 @@
 ###########################################################################
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 1 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... [USER]
 
 Change the password of an LDAP user account on an LDAP server.
@@ -26,15 +28,16 @@ Change the password of an LDAP user account on an LDAP server.
 Options:
  -d, --delete                 Delete the password.
  -e, --expire                 Expire the password.
- -h, --help                   Display this help message and exit.
+ -h, --help[=FORMAT]          Show this help message and exit.
  -i, --inactive INACTIVE      Set the inactivity period.
+ -x, --maxdays MAX_DAYS       Set the maximum number of days before password
+                              change.
  -n, --mindays MIN_DAYS       Set the minimum number of days before password
                               change.
  -q, --quiet                  Be quiet.
  -r, --repository REPOSITORY  (ignored)
+ -V, --version                Show version information and exit.
  -w, --warndays WARN_DAYS     Set the password expiration warning days.
- -x, --maxdays MAX_DAYS       Set the maximum number of days before password
-                              change.
      --dry-run                Dump LDIF and exit.
 
 Operands:
@@ -253,6 +256,7 @@ __PASS__
 	printf '%s\n' "${error_msg:?}" >&2
 	exit "${error}"
 	;;
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
 
@@ -270,15 +274,14 @@ unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
 # Options.
 #
 ###########################################################################
-while getopts dehi:n:qr:w:x:-: OPT "${@}"
+while getopts dehi:n:qr:Vw:x:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--inactive   | \
+	--maxdays    | \
 	--mindays    | \
-	--passwdqc   | \
 	--repository | \
-	--warndays   | \
-	--maxdays    )
+	--warndays   )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -289,13 +292,14 @@ do
 	case -${OPT} in
 	--delete     | -d ) DELETE=+ ;;
 	--expire     | -e ) EXPIRE=+ ;;
-	--help       | -h ) exec "${0}" --help >&3 ;;
+	--help       | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--inactive   | -i ) USER_INACTIVE=${OPTARG} ;;
+	--maxdays    | -x ) USER_MAX_DAYS=${OPTARG} ;;
 	--mindays    | -n ) USER_MIN_DAYS=${OPTARG} ;;
 	--quiet      | -q ) QUIET=+ ;;
 	--repository | -r ) ;;
+	--version    | -V ) exec "${0}" --version >&3 ;;
 	--warndays   | -w ) USER_WARN_DAYS=${OPTARG} ;;
-	--maxdays    | -x ) USER_MAX_DAYS=${OPTARG} ;;
 	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;

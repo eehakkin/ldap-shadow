@@ -18,7 +18,9 @@
 ###########################################################################
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 1 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... [USER]
 
 Change the login shell of an LDAP user account on an LDAP server. Whether or
@@ -27,9 +29,10 @@ without administrative privileges depends on access control configuration on
 the LDAP server being used.
 
 Options:
- -h, --help         Display this help message and exit.
- -s, --shell SHELL  Change the login shell of the account.
-     --dry-run      Dump LDIF and exit.
+ -h, --help[=FORMAT]  Show this help message and exit.
+ -s, --shell SHELL    Change the login shell of the account.
+ -V, --version        Show version information and exit.
+     --dry-run        Dump LDIF and exit.
 
 Operands:
  USER             The username (the user identifier defined by the uid
@@ -59,6 +62,7 @@ Files:
  /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
 
@@ -75,7 +79,7 @@ unset USER_SHELL
 # Options.
 #
 ###########################################################################
-while getopts hs:-: OPT "${@}"
+while getopts hs:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--shell )
@@ -87,11 +91,12 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
 	esac
 	case -${OPT} in
-	--help  | -h ) exec "${0}" --help >&3 ;;
-	--shell | -s ) USER_SHELL=${OPTARG} ;;
-	--dry-run    ) exec >&3 ;;
-	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
-	*            ) exit 1 ;;
+	--help    | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--shell   | -s ) USER_SHELL=${OPTARG} ;;
+	--version | -V ) exec "${0}" --version >&3 ;;
+	--dry-run ) exec >&3 ;;
+	--*       ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*         ) exit 1 ;;
 	esac
 done
 shift $(( $OPTIND - 1 ))

@@ -18,27 +18,30 @@
 ###########################################################################
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 8 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
 
 Modify an LDAP user account on an LDAP server using administrative privileges.
 
 Options:
- -a, --append             Append the account to the secondary groups specified
-                          using -G  without removing the account from other
-                          groups.
- -c, --comment COMMENT    Change the full name of the account.
- -d, --home HOME_DIR      Change the home directory of the account.
- -f, --inactive INACTIVE  Change the password inactivity period.
- -g, --gid GID            Change the primary group ID of the account.
- -G, --groups GROUPS      Change the secondary groups of the account.
- -h, --help               Display this help message and exit.
- -K, --key KEY=VALUE      Override a default configuration.
- -l, --login LOGIN_NAME   Change the login name of the account.
- -o, --non-unique         (ignored)
- -s, --shell SHELL        Change the login shell of the account.
- -u, --uid UID            Change the user ID of the account.
-     --dry-run            Dump LDIF and exit.
+ -a, --append              Append the account to the secondary groups specified
+                           using -G  without removing the account from other
+                           groups.
+ -c, --comment COMMENT     Change the full name of the account.
+ -g, --gid GID             Change the primary group ID of the account.
+ -G, --groups GROUPS       Change the secondary groups of the account.
+ -h, --help[=FORMAT]       Show this help message and exit.
+ -d, --home HOME_DIR       Change the home directory of the account.
+ -f, --inactive INACTIVE   Change the password inactivity period.
+ -K, --key KEY=VALUE       Override a default configuration.
+ -l, --login LOGIN_NAME    Change the login name of the account.
+ -o, --non-unique          (ignored)
+ -s, --shell SHELL         Change the login shell of the account.
+ -u, --uid UID             Change the user ID of the account.
+ -V, --version             Show version information and exit.
+     --dry-run             Dump LDIF and exit.
 
 Operands:
  USER             The username (the user identifier defined by the uid
@@ -69,6 +72,7 @@ Files:
  /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "${@}"
 
@@ -87,7 +91,7 @@ unset USER_EXPIRE USER_INACTIVE
 # Options.
 #
 ###########################################################################
-while getopts ac:d:e:f:g:G:hK:l:os:u:-: OPT "${@}"
+while getopts ac:d:e:f:g:G:hK:l:os:u:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--comment    | \
@@ -110,8 +114,6 @@ do
 	case -${OPT} in
 	--append         | -a ) APPEND=+ ;;
 	--comment        | -c ) USER_COMMENT=${OPTARG} ;;
-	--home           |    \
-	--home-dir       | -d ) USER_HOME_DIR=${OPTARG} ;;
 	--expiredate     | -e )
 		USER_EXPIRE=${OPTARG}
 		case ${USER_EXPIRE} in *[![:digit:]]* )
@@ -119,15 +121,18 @@ do
 			USER_EXPIRE=$(( ${USER_EXPIRE} / ( 24 * 60 * 60 ) ))
 		esac
 		;;
-	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
 	--gid            | -g ) USER_GID=${OPTARG} ;;
 	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
-	--help           | -h ) exec "${0}" --help >&3 ;;
+	--help           | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--home           |    \
+	--home-dir       | -d ) USER_HOME_DIR=${OPTARG} ;;
+	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
 	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--login          | -l ) NEW_USER=${OPTARG} ;;
 	--non-unique     | -o ) ;;
 	--shell          | -s ) USER_SHELL=${OPTARG} ;;
 	--uid            | -u ) USER_UID=${OPTARG} ;;
+	--version        | -V ) exec "${0}" --version >&3 ;;
 	--dry-run        ) exec >&3 ;;
 	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                ) exit 1 ;;

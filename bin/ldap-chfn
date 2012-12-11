@@ -18,7 +18,9 @@
 ###########################################################################
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 1 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTIONS] [USER]
 
 Change the full name, the home, mobile and work phone numbers and the room
@@ -28,12 +30,13 @@ administrative privileges depends on access control configuration on the LDAP se
 
 Options:
  -f, --full-name COMMENT    Change the full name of the account.
+     --help[=FORMAT]        Show this help message and exit.
  -h, --home-phone HOME      Change the home phone number of the account.
  -m, --mobile-phone MOBILE  Change the mobile phone number of the account.
  -r, --room-number ROOM     Change the room number of the account.
+ -V, --version              Show version information and exit.
  -w, --work-phone WORK      Change the work phone number of the account.
- --dry-run                  Dump LDIF and exit.
- --help                     Display this help message and exit.
+     --dry-run              Dump LDIF and exit.
 
 Operands:
  USER             The username (the user identifier defined by the uid
@@ -63,6 +66,7 @@ Files:
  /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
 
@@ -80,7 +84,7 @@ unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
 # Options.
 #
 ###########################################################################
-while getopts f:h:m:r:w:-: OPT "${@}"
+while getopts f:h:m:r:Vw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--full-name    | \
@@ -97,13 +101,14 @@ do
 	esac
 	case -${OPT} in
 	--full-name    | -f ) USER_COMMENT=${OPTARG} ;;
+	--help              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--home-phone   | -h ) USER_HOME_PHONE=${OPTARG} ;;
 	--mobile-phone | -m ) USER_MOBILE_PHONE=${OPTARG} ;;
 	--room-number  | -r ) USER_ROOM_NUMBER=${OPTARG} ;;
+	--version      | -V ) exec "${0}" --version >&3 ;;
 	--work-phone   | -w ) USER_WORK_PHONE=${OPTARG} ;;
-	--help         ) exec "${0}" --help >&3 ;;
 	--dry-run      ) exec >&3 ;;
-	--*            ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit ;;
+	--*            ) OPTIND=1; getopts '' OPT "-${OPT}"; exit ;;
 	*              ) exit 1 ;;
 	esac
 done

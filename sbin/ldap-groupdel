@@ -18,14 +18,17 @@
 ###########################################################################
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 8 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
 Delete an LDAP group from an LDAP server using administrative privileges.
 
 Options:
- -h, --help           Display this help message and exit.
+ -h, --help[=FORMAT]  Show this help message and exit.
  -K, --key KEY=VALUE  Override a default configuration.
+ -V, --version        Show version information and exit.
      --dry-run        Dump LDIF and exit.
 
 Operands:
@@ -53,6 +56,7 @@ Files:
  /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "${@}"
 
@@ -61,7 +65,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "
 # Options.
 #
 ###########################################################################
-while getopts hK:-: OPT "${@}"
+while getopts hK:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--key )
@@ -73,11 +77,12 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
 	esac
 	case -${OPT} in
-	--help | -h ) exec "${0}" --help >&3 ;;
-	--key  | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
-	--dry-run   ) exec >&3 ;;
-	--*         ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;
-	*           ) exit 1 ;;
+	--help    | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--key     | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--version | -V ) exec "${0}" --version >&3 ;;
+	--dry-run ) exec >&3 ;;
+	--*       ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;
+	*         ) exit 1 ;;
 	esac
 done
 shift $(( $OPTIND - 1 ))

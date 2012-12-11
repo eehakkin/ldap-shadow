@@ -18,7 +18,9 @@
 ###########################################################################
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 8 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
 Modify an LDAP group on an LDAP server using administrative privileges.
@@ -27,11 +29,12 @@ Options:
  -a, --add USER            Add USER to the group.
  -d, --delete USER         Remove USER from the group.
  -g, --gid GID             Change the group ID.
- -h, --help                Display this help message and exit.
+ -h, --help[=FORMAT]       Show this help message and exit.
  -K, --key KEY=VALUE       Override a default configuration.
  -M, --members USERS       Set the members of the group.
  -n, --new-name NEW_GROUP  Change the group name.
  -o, --non-unique          (ignored)
+ -V, --version             Show version information and exit.
      --dry-run             Dump LDIF and exit.
 
 Operands:
@@ -63,6 +66,7 @@ Files:
  /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-groupadd" --mode=frontend "${0}" "${@}"
 
@@ -79,7 +83,7 @@ unset NEW_GROUP NEW_SUPERIOR_DN
 # Options.
 #
 ###########################################################################
-while getopts a:d:g:hK:M:n:o-: OPT "${@}"
+while getopts a:d:g:hK:M:n:oV-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--add | --delete | --gid | --key | --members | --new-name )
@@ -96,11 +100,12 @@ memberUid: ${OPTARG}" ;;
 	--delete     | -d ) GROUP_USERS_DELETE="${GROUP_USERS_DELETE-}\\
 memberUid: ${OPTARG}" ;;
 	--gid        | -g ) GROUP_GID=${OPTARG} ;;
-	--help       | -h ) exec "${0}" --help >&3 ;;
+	--help       | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--members    | -M ) GROUP_USERS=${OPTARG} ;;
 	--new-name   | -n ) NEW_GROUP=${OPTARG} ;;
 	--non-unique | -o ) ;;
+	--version    | -V ) exec "${0}" --version >&3 ;;
 	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;

@@ -21,7 +21,9 @@ me=$( which -- "${0}" || ls -d -- "${0}" )
 dir=$( dirname -- "${me}" )
 base=$( basename -- "${me}" )
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 8 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
 
 Add a new LDAP user account to an LDAP server using administrative privileges.
@@ -29,20 +31,21 @@ Add a new LDAP user account to an LDAP server using administrative privileges.
 Options:
  -b, --base-dir BASE_DIR       Use the base directory for home directories.
  -c, --comment COMMENT         Use the full name for the new account.
- -d, --home-dir HOME_DIR       Use the home directory for the new account.
  -e, --expiredate EXPIRE_DATE  Use the expiration date for the new account.
- -f, --inactive INACTIVE       Use the password inactivity period.
  -g, --gid GID                 Use the primary group ID for the new account.
  -G, --groups GROUPS           Use the secondary groups for the new account.
- -h, --help                    Display this help message and exit.
+ -h, --help[=FORMAT]           Show this help message and exit.
+ -d, --home-dir HOME_DIR       Use the home directory for the new account.
+ -f, --inactive INACTIVE       Use the password inactivity period.
  -K, --key KEY=VALUE           Override a default configuration.
  -M, --no-create-home          (ignored)
  -N, --no-user-group           Do not create a group with the same name.
  -o, --non-unique              (ignored)
- -r, --system                  Create a system user.
  -s, --shell SHELL             Use the login shell for the new account.
+ -r, --system                  Create a system user.
  -u, --uid UID                 Use the user ID for the new account.
  -U, --user-group              Create a group with the same name.
+ -V, --version                 Show version information and exit.
      --dry-run                 Dump LDIF and exit.
 
 Operands:
@@ -117,7 +120,8 @@ Files:
  /etc/ldap/ldap.conf       LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
---mode=* ) exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}" ;;
+--mode=*  ) exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}" ;;
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${dir}/../bin/${base%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
 
@@ -141,7 +145,7 @@ NORMAL=+ SYSTEM=
 # Options.
 #
 ###########################################################################
-while getopts b:c:d:e:f:g:G:hK:MNors:u:U-: OPT "${@}"
+while getopts b:c:d:e:f:g:G:hK:MNors:u:UV-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--base-dir   | \
@@ -165,8 +169,6 @@ do
 	case -${OPT} in
 	--base-dir       | -b ) BASE_DIR=${OPTARG} ;;
 	--comment        | -c ) USER_COMMENT=${OPTARG} ;;
-	--home           |    \
-	--home-dir       | -d ) USER_HOME_DIR=${OPTARG} ;;
 	--expiredate     | -e )
 		USER_EXPIRE=${OPTARG}
 		case ${USER_EXPIRE} in *[![:digit:]]* )
@@ -174,19 +176,22 @@ do
 			USER_EXPIRE=$(( ${USER_EXPIRE} / ( 24 * 60 * 60 ) ))
 		esac
 		;;
-	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
 	--gid            | -g ) USER_GID=${OPTARG} GROUP_GID=${OPTARG} ;;
 	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
-	--help           | -h ) exec "${0}" --help >&3 ;;
+	--help           | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--home           |    \
+	--home-dir       | -d ) USER_HOME_DIR=${OPTARG} ;;
+	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
 	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
-	--no-log-init    | -l ) ;;
 	--no-create-home | -M ) ;;
+	--no-log-init    | -l ) ;;
 	--no-user-group  | -N ) USERGROUPS_ENAB=no ;;
 	--non-unique     | -o ) ;;
-	--system         | -r ) NORMAL= SYSTEM=+ ;;
 	--shell          | -s ) USER_SHELL=${OPTARG} ;;
+	--system         | -r ) NORMAL= SYSTEM=+ ;;
 	--uid            | -u ) USER_UID=${OPTARG} ;;
 	--user-group     | -U ) USERGROUPS_ENAB=yes ;;
+	--version        | -V ) exec "${0}" --version >&3 ;;
 	--dry-run        ) exec >&3 ;;
 	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                ) exit 1 ;;

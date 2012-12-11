@@ -21,17 +21,20 @@ me=$( which -- "${0}" || ls -d -- "${0}" )
 dir=$( dirname -- "${me}" )
 base=$( basename -- "${me}" )
 case ${1-} in
---help ) exec cat << __USAGE__ ;;
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 8 -- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
 Add a new LDAP group to an LDAP server using administrative privileges.
 
 Options:
  -g, --gid GID        Use the group ID for the new group.
- -h, --help           Display this help message and exit.
+ -h, --help[=FORMAT]  Show this help message and exit.
  -K, --key KEY=VALUE  Override a default configuration.
  -o, --non-unique     (ignored)
  -r, --system         Create a system group.
+ -V, --version        Show version information and exit.
      --dry-run        Dump LDIF and exit.
 
 Operands:
@@ -81,7 +84,8 @@ Files:
  /etc/ldap/ldap.conf      LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
---mode=* ) exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}" ;;
+--mode=*  ) exec "${dir}/../bin/${base%ldap-*}ldap-passwd" "${@}" ;;
+--version ) unset LDAP_HAS_FRONTEND ;;
 esac
 ${LDAP_HAS_FRONTEND:+:} exec "${dir}/../bin/${base%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
 
@@ -99,7 +103,7 @@ NORMAL=+ SYSTEM=
 # Options.
 #
 ###########################################################################
-while getopts g:hK:or-: OPT "${@}"
+while getopts g:hK:orV-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--gid | --key )
@@ -112,10 +116,11 @@ do
 	esac
 	case -${OPT} in
 	--gid        | -g ) GROUP_GID=${OPTARG} ;;
-	--help       | -h ) exec "${0}" --help >&3 ;;
+	--help       | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--non-unique | -o ) ;;
 	--system     | -r ) NORMAL= SYSTEM=+ ;;
+	--version    | -V ) exec "${0}" --version >&3 ;;
 	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;
