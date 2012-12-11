@@ -518,9 +518,10 @@ long, and contain enough different characters.
 				# command-line arguments due to security and
 				# privacy reasons thus use a here-document.
 				random_pass=$( exec pwqgen random="${random}" )
-				if pwqcheck -1 config="${config}" \
+				if pwqcheck -2 config="${config}" \
 					<< __PASS__ > /dev/null
 ${random_pass}
+${LDAPBINDPW}
 __PASS__
 				then
 					# MESSAGE_RANDOM
@@ -549,8 +550,9 @@ __EOT__
 		new_pass=$( "${0}" --mode=askpass 'Enter new password: ' )
 		# Passwords must never be passed as command-line arguments
 		# due to security and privacy reasons thus use a here-document.
-		if error_msg=$( pwqcheck -1 config="${config}" ) << __PASS__
+		if error_msg=$( pwqcheck -2 config="${config}" ) << __PASS__
 ${new_pass}
+${LDAPBINDPW}
 __PASS__
 		then
 			new_pass2=$(

@@ -3,8 +3,9 @@ ldap-shadow (1.0~rc0.0.20121211) unstable; urgency=low
   * Unified help options.
   * Implemented the --new-superior-dn option.
   * Added support for a specialised password quality check configuration file.
+  * Forbade password reuse.
 
- -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 11 Dec 2012 08:26:50 +0200
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 11 Dec 2012 08:28:27 +0200
 
 ldap-shadow (1.0~rc0.0.20121206) unstable; urgency=low
 
