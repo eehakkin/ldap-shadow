@@ -33,6 +33,7 @@ Options:
  -K, --key KEY=VALUE       Override a default configuration.
  -M, --members USERS       Set the members of the group.
  -n, --new-name NEW_GROUP  Change the group name.
+     --new-superior-dn DN  Change the superior LDAP entry of the group.
  -o, --non-unique          (ignored)
  -V, --version             Show version information and exit.
      --dry-run             Dump LDIF and exit.
@@ -41,10 +42,6 @@ Operands:
  GROUP            The name (the common name defined by cn attribute) of
                   the LDAP group which is to be modified using administrative
                   privileges.
-
-Configuration variables:
- NEW_SUPERIOR_DN  A distinguished name (DN) of the new superior LDAP entry
-                  for the group LDAP entry.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -104,6 +101,7 @@ memberUid: ${OPTARG}" ;;
 	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--members    | -M ) GROUP_USERS=${OPTARG} ;;
 	--new-name   | -n ) NEW_GROUP=${OPTARG} ;;
+	--new-superior-dn ) NEW_SUPERIOR_DN=${OPTARG} ;;
 	--non-unique | -o ) ;;
 	--version    | -V ) exec "${0}" --version >&3 ;;
 	--dry-run    ) exec >&3 ;;

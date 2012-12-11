@@ -37,6 +37,7 @@ Options:
  -f, --inactive INACTIVE   Change the password inactivity period.
  -K, --key KEY=VALUE       Override a default configuration.
  -l, --login LOGIN_NAME    Change the login name of the account.
+     --new-superior-dn DN  Change the superior LDAP entry of the account.
  -o, --non-unique          (ignored)
  -s, --shell SHELL         Change the login shell of the account.
  -u, --uid UID             Change the user ID of the account.
@@ -47,10 +48,6 @@ Operands:
  USER             The username (the user identifier defined by the uid
                   attribute) of the LDAP user account which is to be modified
                   using administrative privileges.
-
-Configuration variables:
- NEW_SUPERIOR_DN  A distinguished name (DN) of the new superior LDAP entry
-                  for the user LDAP entry.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
@@ -129,6 +126,7 @@ do
 	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
 	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--login          | -l ) NEW_USER=${OPTARG} ;;
+	--new-superior-dn     ) NEW_SUPERIOR_DN=${OPTARG} ;;
 	--non-unique     | -o ) ;;
 	--shell          | -s ) USER_SHELL=${OPTARG} ;;
 	--uid            | -u ) USER_UID=${OPTARG} ;;
