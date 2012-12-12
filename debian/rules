@@ -4,17 +4,9 @@
 build build-indep: local-build-indep
 local-build-indep:
 	mkdir -p man/man1 man/man8
-	set -e; for f in ./bin/ldap-*[!~]; do \
-		help2man -L en_US.UTF-8 -N -n "$$( \
-			LC_ALL=C whatis -l -s 1 -- "$${f##*/ldap-}" | sed 's/.* - //' \
-			)" -s 1 -- "$${f}" > "man/man1/$${f##*/}.1"; \
-	done
-	set -e; for f in ./sbin/ldap-*[!~]; do \
-		help2man -L en_US.UTF-8 -N -n "$$( \
-			LC_ALL=C whatis -l -s 8 -- "$${f##*/ldap-}" | sed 's/.* - //' \
-			)" -s 8 -- "$${f}" > "man/man8/$${f##*/}.8"; \
-		sed -i 's|\(\\&\)*[.]/|/usr/|g' -- "man/man8/$${f##*/}.8"; \
-	done
+	set -e; for f in  bin/ldap-*[!~]; do "./$${f}" --help=troff > "man/man1/$${f##*/}.1"; done
+	set -e; for f in sbin/ldap-*[!~]; do "./$${f}" --help=troff > "man/man8/$${f##*/}.8"; done
+	sed -i -e 's|\(\\&\)*[.]/|/usr/|g' -- man/man8/*.8
 
 clean: local-clean
 local-clean:

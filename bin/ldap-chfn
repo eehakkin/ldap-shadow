@@ -19,7 +19,7 @@
 unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
---help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 1 -- "${0}" ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -n 'change user information of an LDAP user account' -s 1 -- "${0}" ;;
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTIONS] [USER]
 

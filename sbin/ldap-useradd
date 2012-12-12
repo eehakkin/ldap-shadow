@@ -22,7 +22,7 @@ dir=$( dirname -- "${me}" )
 base=$( basename -- "${me}" )
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
---help=troff      ) exec help2man -L 'en_US.UTF-8' -N -s 8 -- "${0}" ;;
+--help=troff      ) exec help2man -L 'en_US.UTF-8' -N -n 'create a new LDAP POSIX user account' -s 8 -- "${0}" ;;
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
 
