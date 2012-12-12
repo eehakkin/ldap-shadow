@@ -26,7 +26,8 @@ case ${1-} in
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
 
-Add a new LDAP user account to an LDAP server using administrative privileges.
+Add a new LDAP POSIX user account to an LDAP server using administrative
+privileges.
 
 Options:
  -b, --base-dir BASE_DIR       Use the base directory for home directories.
@@ -42,7 +43,7 @@ Options:
  -N, --no-user-group           Do not create a group with the same name.
  -o, --non-unique              (ignored)
  -s, --shell SHELL             Use the login shell for the new account.
- -r, --system                  Create a system user.
+ -r, --system                  Create a system user account.
  -u, --uid UID                 Use the user ID for the new account.
  -U, --user-group              Create a group with the same name.
  -V, --version                 Show version information and exit.
@@ -50,8 +51,8 @@ Options:
 
 Operands:
  USER             The username (the user identifier defined by the uid
-                  attribute) of the LDAP user account which is to be created
-                  using administrative privileges.
+                  attribute) of the LDAP POSIX user account which is to be
+                  created using administrative privileges.
 
 Configuration variables:
  GID_MIN          A minimum group ID for new groups.
@@ -59,16 +60,16 @@ Configuration variables:
  SYS_GID_MIN      A minimum group ID for new system groups.
  SYS_GID_MAX      A maximum group ID for new system groups.
  GROUP_BASE_DN    A distinguished name (DN) of an LDAP entry to be used as
-                  a search base for groups. This one takes precedence over
-                  the GROUP_BASE_RDN variable.
+                  a search base for POSIX groups. This one takes precedence
+                  over the GROUP_BASE_RDN variable.
                   The default is to search for an organizationalUnit LDAP entry
                   containing posixGroup LDAP entries.
  GROUP_BASE_RDN   A relative distinguished name (RDN) of an LDAP entry to be
-                  used as a search base for groups. The GROUP_BASE_RDN variable
-                  takes precedence over this one.
+                  used as a search base for POSIX groups. The GROUP_BASE_RDN
+                  variable takes precedence over this one.
  GROUP_OU_RDN     A relative distinguished name (RDN) of an organizationalUnit
-                  LDAP subentry under the group search base. A new group will
-                  be created under this subentry.
+                  LDAP subentry under the POSIX group search base. A new POSIX
+                  group will be created under this subentry.
                   If the group name contains dashes, the default is to use
                   ou=GROUP_PREFIX where GROUP_PREFIX is the group name without
                   the last dash separated part.
@@ -79,24 +80,24 @@ Configuration variables:
  SYS_UID_MIN      A minimum user ID for new system user accounts.
  SYS_UID_MAX      A maximum user ID for new system user accounts.
  USER_BASE_DN     A distinguished name (DN) of an LDAP entry to be used as
-                  a search base for users. This one takes precedence over
-                  the USER_BASE_RDN variable.
+                  a search base for POSIX user accounts. This one takes
+                  precedence over the USER_BASE_RDN variable.
                   The default is to search for an organizationalUnit LDAP entry
                   containing posixAccount LDAP entries.
  USER_BASE_RDN    A relative distinguished name (RDN) of an LDAP entry to be
-                  used as a search base for users. The USER_BASE_RDN variable
-                  takes precedence over this one.
+                  used as a search base for POSIX user accounts.
+                  The USER_BASE_RDN variable takes precedence over this one.
  USER_OU_RDN      A relative distinguished name (RDN) of an organizationalUnit
-                  LDAP subentry under the user search base. A new user will be
-                  created under this subentry.
+                  LDAP subentry under the POSIX user account search base.
+                  A new POSIX user account will be created under this subentry.
                   If the username contains dashes, the default is to use
                   ou=USER_PREFIX where USER_PREFIX is the username without
                   the last dash separated part.
                   If the username does not contains dashes, the default is to
                   use ou=USER if that LDAP subentry exists.
  USERGROUPS_ENAB  Whether to enable user private groups (UPG).
-                  If enabled, the default is to create a new group with name of
-                  the user.
+                  If enabled, the default is to create a new POSIX group with
+                  name of the POSIX user account.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP

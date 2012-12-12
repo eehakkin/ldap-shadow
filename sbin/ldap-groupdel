@@ -23,7 +23,7 @@ case ${1-} in
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
-Delete an LDAP group from an LDAP server using administrative privileges.
+Delete an LDAP POSIX group from an LDAP server using administrative privileges.
 
 Options:
  -h, --help[=FORMAT]  Show this help message and exit.
@@ -33,8 +33,8 @@ Options:
 
 Operands:
  GROUP            The name (the common name defined by cn attribute) of
-                  the LDAP group which is to be deleted using administrative
-                  privileges.
+                  the LDAP POSIX group which is to be deleted using
+                  administrative privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP

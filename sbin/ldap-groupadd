@@ -26,7 +26,7 @@ case ${1-} in
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
-Add a new LDAP group to an LDAP server using administrative privileges.
+Add a new LDAP POSIX group to an LDAP server using administrative privileges.
 
 Options:
  -g, --gid GID        Use the group ID for the new group.
@@ -39,8 +39,8 @@ Options:
 
 Operands:
  GROUP            The name (the common name defined by cn attribute) of
-                  the LDAP group which is to be created using administrative
-                  privileges.
+                  the LDAP POSIX group which is to be created using
+                  administrative privileges.
 
 Configuration variables:
  GID_MIN          A minimum group ID for new groups.
@@ -48,14 +48,16 @@ Configuration variables:
  SYS_GID_MIN      A minimum group ID for new system groups.
  SYS_GID_MAX      A maximum group ID for new system groups.
  GROUP_BASE_DN    A distinguished name (DN) of an LDAP entry to be used as
-                  a search base for groups. This one takes precedence over
-                  the GROUP_BASE_RDN variable.
+                  a search base for POSIX groups. This one takes precedence
+                  over the GROUP_BASE_RDN variable.
+                  The default is to search for an organizationalUnit LDAP entry
+                  containing posixGroup LDAP entries.
  GROUP_BASE_RDN   A relative distinguished name (RDN) of an LDAP entry to be
-                  used as a search base for groups. The GROUP_BASE_RDN variable
-                  takes precedence over this one.
+                  used as a search base for POSIX groups. The GROUP_BASE_RDN
+                  variable takes precedence over this one.
  GROUP_OU_RDN     A relative distinguished name (RDN) of an organization unit
-                  LDAP subentry under the group search base. A new group will
-                  be created under this subentry.
+                  LDAP subentry under the POSIX group search base. A new POSIX
+                  group will be created under this subentry.
                   If the group name contains dashes, the default is to use
                   ou=PREFIX where PREFIX is the group name without the last
                   dash separated part.

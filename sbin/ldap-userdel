@@ -23,7 +23,7 @@ case ${1-} in
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... USER
 
-Delete an LDAP user account from an LDAP server using administrative
+Delete an LDAP POSIX user account from an LDAP server using administrative
 privileges.
 
 Options:
@@ -35,8 +35,8 @@ Options:
 
 Operands:
  USER             The username (the user identifier defined by the uid
-                  attribute) of the LDAP user account which is to be deleted
-                  using administrative privileges.
+                  attribute) of the LDAP POSIX user account which is to be
+                  deleted using administrative privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP

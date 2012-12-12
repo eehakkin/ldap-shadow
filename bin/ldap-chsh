@@ -39,8 +39,8 @@ Operands:
                   attribute) or the distinguished name (DN) of the LDAP user
                   account which is to be modified using administrative
                   privileges.
-                  The default is to modify the LDAP user account of the current
-                  user using user privileges.
+                  The default is to modify the LDAP POSIX user account of
+                  the current user using user privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP

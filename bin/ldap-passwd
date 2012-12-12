@@ -45,7 +45,7 @@ Operands:
                   attribute) or the distinguished name (DN) of the LDAP user
                   account whose password is to be changed using administrative
                   privileges.
-                  The default is to change the password for the LDAP user
+                  The default is to change the password for the LDAP POSIX user
                   account of the current user using user privileges.
 
 Environment:

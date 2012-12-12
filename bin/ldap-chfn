@@ -26,7 +26,8 @@ Usage: ${0##*[\\/]} [OPTIONS] [USER]
 Change the full name, the home, mobile and work phone numbers and the room
 number of an LDAP user account on an LDAP server. Whether a normal user may
 change all, some or none of these for her own LDAP user account without
-administrative privileges depends on access control configuration on the LDAP server being used.
+administrative privileges depends on access control configuration on the LDAP
+server being used.
 
 Options:
  -f, --full-name COMMENT    Change the full name of the account.
@@ -43,8 +44,8 @@ Operands:
                   attribute) or the distinguished name (DN) of the LDAP user
                   account which is to be modified using administrative
                   privileges.
-                  The default is to modify the LDAP user account of the current
-                  user using user privileges.
+                  The default is to modify the LDAP POSIX user account of
+                  the current user using user privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP

@@ -23,7 +23,7 @@ case ${1-} in
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... GROUP
 
-Modify an LDAP group on an LDAP server using administrative privileges.
+Modify an LDAP POSIX group on an LDAP server using administrative privileges.
 
 Options:
  -a, --add USER            Add USER to the group.
@@ -40,8 +40,8 @@ Options:
 
 Operands:
  GROUP            The name (the common name defined by cn attribute) of
-                  the LDAP group which is to be modified using administrative
-                  privileges.
+                  the LDAP POSIX group which is to be modified using
+                  administrative privileges.
 
 Environment:
  LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
