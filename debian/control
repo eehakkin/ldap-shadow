@@ -14,6 +14,7 @@ Architecture: all
 Depends:
 	ldap-utils
 Recommends:
+	help2man,
 	libnss-ldapd,
 	libpam-ldapd,
 	passwdqc

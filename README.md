@@ -11,8 +11,10 @@ Dependencies
 
  * **ldapmodify**, **ldappasswd** and **ldapsearch**
    from the openldap package (required)
+ * **help2man**
+   from the help2man package for documentation (recommended)
  * **pwqcheck** and **pwqgen**
-   from the passwdqc package (recommended)
+   from the passwdqc package for password quality checking (recommended)
 
 User commands
 -------------
