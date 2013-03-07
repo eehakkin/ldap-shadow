@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-usermod 1.0
 #
-# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -27,23 +27,26 @@ Modify an LDAP POSIX user account on an LDAP server using administrative
 privileges.
 
 Options:
- -a, --append              Append the account to the secondary groups specified
-                           using -G  without removing the account from other
-                           groups.
- -c, --comment COMMENT     Change the full name of the account.
- -g, --gid GID             Change the primary group ID of the account.
- -G, --groups GROUPS       Change the secondary groups of the account.
- -h, --help[=FORMAT]       Show this help message and exit.
- -d, --home HOME_DIR       Change the home directory of the account.
- -f, --inactive INACTIVE   Change the password inactivity period.
- -K, --key KEY=VALUE       Override a default configuration.
- -l, --login LOGIN_NAME    Change the login name of the account.
-     --new-superior-dn DN  Change the superior LDAP entry of the account.
- -o, --non-unique          (ignored)
- -s, --shell SHELL         Change the login shell of the account.
- -u, --uid UID             Change the user ID of the account.
- -V, --version             Show version information and exit.
-     --dry-run             Dump LDIF and exit.
+ -A, --add ATTR=VALUE       Add an LDAP attribute.
+ -D, --delete ATTR[=VALUE]  Delete an LDAP attribute.
+ -R, --replace ATTR=VALUE   Replace an LDAP attribute.
+ -a, --append               Append the account to the secondary groups
+                            specified using -G  without removing the account
+                            from other groups.
+ -c, --comment COMMENT      Change the full name of the account.
+ -g, --gid GID              Change the primary group ID of the account.
+ -G, --groups GROUPS        Change the secondary groups of the account.
+ -h, --help[=FORMAT]        Show this help message and exit.
+ -d, --home HOME_DIR        Change the home directory of the account.
+ -f, --inactive INACTIVE    Change the password inactivity period.
+ -K, --key KEY=VALUE        Override a default configuration.
+ -l, --login LOGIN_NAME     Change the login name of the account.
+     --new-superior-dn DN   Change the superior LDAP entry of the account.
+ -o, --non-unique           (ignored)
+ -s, --shell SHELL          Change the login shell of the account.
+ -u, --uid UID              Change the user ID of the account.
+ -V, --version              Show version information and exit.
+     --dry-run              Dump LDIF and exit.
 
 Operands:
  USER             The username (the user identifier defined by the uid
@@ -79,7 +82,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "$
 # Defaults.
 #
 ###########################################################################
-APPEND=
+APPEND= USER_LDIF=
 unset NEW_SUPERIOR_DN NEW_USER
 unset USER_COMMENT USER_GROUPS USER_HOME_DIR USER_SHELL
 unset USER_EXPIRE USER_INACTIVE
@@ -89,9 +92,12 @@ unset USER_EXPIRE USER_INACTIVE
 # Options.
 #
 ###########################################################################
-while getopts ac:d:e:f:g:G:hK:l:os:u:V-: OPT "${@}"
+while getopts A:D:R:ac:d:e:f:g:G:hK:l:os:u:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
+	--add        | \
+	--delete     | \
+	--replace    | \
 	--comment    | \
 	--home       | \
 	--home-dir   | \
@@ -110,31 +116,43 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
 	esac
 	case -${OPT} in
-	--append         | -a ) APPEND=+ ;;
-	--comment        | -c ) USER_COMMENT=${OPTARG} ;;
-	--expiredate     | -e )
+	--add        | -A ) USER_LDIF="${USER_LDIF}
+add: ${OPTARG%%=*}
+${OPTARG%%=*}: ${OPTARG#*=}
+-" ;;
+	--delete     | -D ) x=${OPTARG#"${OPTARG%%=*}"}; x=${x#=}; USER_LDIF="${USER_LDIF}
+delete: ${OPTARG%%=*}${x:+
+${OPTARG%%=*}: ${OPTARG#*=}}
+-" ;;
+	--replace    | -R ) USER_LDIF="${USER_LDIF}
+replace: ${OPTARG%%=*}
+${OPTARG%%=*}: ${OPTARG#*=}
+-" ;;
+	--append     | -a ) APPEND=+ ;;
+	--comment    | -c ) USER_COMMENT=${OPTARG} ;;
+	--expiredate | -e )
 		USER_EXPIRE=${OPTARG}
 		case ${USER_EXPIRE} in *[![:digit:]]* )
 			USER_EXPIRE=$( date -d "${USER_EXPIRE} UTC" +'%s' )
 			USER_EXPIRE=$(( ${USER_EXPIRE} / ( 24 * 60 * 60 ) ))
 		esac
 		;;
-	--gid            | -g ) USER_GID=${OPTARG} ;;
-	--groups         | -G ) USER_GROUPS=${OPTARG} ;;
-	--help           | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
-	--home           |    \
-	--home-dir       | -d ) USER_HOME_DIR=${OPTARG} ;;
-	--inactive       | -f ) USER_INACTIVE=${OPTARG} ;;
-	--key            | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
-	--login          | -l ) NEW_USER=${OPTARG} ;;
-	--new-superior-dn     ) NEW_SUPERIOR_DN=${OPTARG} ;;
-	--non-unique     | -o ) ;;
-	--shell          | -s ) USER_SHELL=${OPTARG} ;;
-	--uid            | -u ) USER_UID=${OPTARG} ;;
-	--version        | -V ) exec "${0}" --version >&3 ;;
-	--dry-run        ) exec >&3 ;;
-	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
-	*                ) exit 1 ;;
+	--gid        | -g ) USER_GID=${OPTARG} ;;
+	--groups     | -G ) USER_GROUPS=${OPTARG} ;;
+	--help       | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--home       |    \
+	--home-dir   | -d ) USER_HOME_DIR=${OPTARG} ;;
+	--inactive   | -f ) USER_INACTIVE=${OPTARG} ;;
+	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--login      | -l ) NEW_USER=${OPTARG} ;;
+	--new-superior-dn ) NEW_SUPERIOR_DN=${OPTARG} ;;
+	--non-unique | -o ) ;;
+	--shell      | -s ) USER_SHELL=${OPTARG} ;;
+	--uid        | -u ) USER_UID=${OPTARG} ;;
+	--version    | -V ) exec "${0}" --version >&3 ;;
+	--dry-run    ) exec >&3 ;;
+	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*            ) exit 1 ;;
 	esac
 done
 shift $(( $OPTIND - 1 ))
@@ -193,8 +211,8 @@ esac
 # LDIF.
 #
 ###########################################################################
-# USER_COMMENT, USER_GID, USER_HOME_DIR, USER_SHELL, USER_EXPIRE, USER_INACTIVE, USER_UID.
-case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_EXPIRE++}${USER_INACTIVE++}${USER_UID++} in
+# USER_COMMENT, USER_GID, USER_HOME_DIR, USER_SHELL, USER_EXPIRE, USER_INACTIVE, USER_UID, USER_LDIF.
+case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_EXPIRE++}${USER_INACTIVE++}${USER_UID++}${USER_LDIF:++} in
 +* ) : "${USER_DN:?}"; cat << __LDIF__ ;;
 dn: ${USER_DN}
 changetype: modify${USER_COMMENT+
@@ -224,7 +242,7 @@ shadowInactive: ${USER_INACTIVE}
 -}${USER_UID+
 replace: uidNumber
 uidNumber: ${USER_UID}
--}
+-}${USER_LDIF}
 
 __LDIF__
 esac
