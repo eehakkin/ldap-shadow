@@ -34,6 +34,7 @@ Options:
                              specified using -G  without removing the account
                              from other groups.
  -c, --comment COMMENT       Change the full name of the account.
+ -e, --expiredate DATE       Change the expire date of the account.
  -g, --gid GID               Change the primary group ID of the account.
  -G, --groups GROUPS         Change the secondary groups of the account.
  -h, --help[=FORMAT]         Show this help message and exit.
@@ -234,11 +235,11 @@ homeDirectory: ${USER_HOME_DIR}
 replace: loginShell
 loginShell: ${USER_SHELL}
 -}${USER_EXPIRE+
-replace: shadowExpire
-shadowExpire: ${USER_EXPIRE}
+replace: shadowExpire${USER_EXPIRE:+
+shadowExpire: ${USER_EXPIRE}}
 -}${USER_INACTIVE+
-replace: shadowInactive
-shadowInactive: ${USER_INACTIVE}
+replace: shadowInactive${USER_INACTIVE:+
+shadowInactive: ${USER_INACTIVE}}
 -}${USER_UID+
 replace: uidNumber
 uidNumber: ${USER_UID}

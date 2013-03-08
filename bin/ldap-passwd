@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-passwd 1.0
 #
-# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -368,17 +368,17 @@ shadowLastChange: 0" ;;
 	cat << __LDIF__
 dn: ${USER_DN}
 changetype: modify${USER_INACTIVE+
-replace: shadowInactive
-shadowInactive: ${USER_INACTIVE}
+replace: shadowInactive${USER_INACTIVE:+
+shadowInactive: ${USER_INACTIVE}}
 -}${USER_MAX_DAYS+
-replace: shadowMax
-shadowMax: ${USER_MAX_DAYS}
+replace: shadowMax${USER_MAX_DAYS:+
+shadowMax: ${USER_MAX_DAYS}}
 -}${USER_MIN_DAYS+
-replace: shadowMin
-shadowMin: ${USER_MIN_DAYS}
+replace: shadowMin${USER_MIN_DAYS:+
+shadowMin: ${USER_MIN_DAYS}}
 -}${USER_WARN_DAYS+
-replace: shadowWarning
-shadowWarning: ${USER_WARN_DAYS}
+replace: shadowWarning${USER_WARN_DAYS:+
+shadowWarning: ${USER_WARN_DAYS}}
 -}${DELETE:+
 replace: userPassword
 -}${EXPIRE:+
