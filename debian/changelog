@@ -1,3 +1,10 @@
+ldap-shadow (1.0~rc0.0.20130308) unstable; urgency=low
+
+  * Allowed arbitrary LDAP user attributes to be deleted by replacing
+    them with nothing.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Fri, 08 Mar 2013 09:46:59 +0200
+
 ldap-shadow (1.0~rc0.0.20130307) unstable; urgency=low
 
   * Allowed arbitrary LDAP user attributes to be modified.
