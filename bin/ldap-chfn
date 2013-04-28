@@ -31,7 +31,7 @@ server being used.
 
 Options:
  -f, --full-name COMMENT    Change the full name of the account.
-     --help[=FORMAT]        Show this help message and exit.
+ -u, --help[=FORMAT]        Show this help message and exit.
  -h, --home-phone HOME      Change the home phone number of the account.
  -m, --mobile-phone MOBILE  Change the mobile phone number of the account.
  -r, --room-number ROOM     Change the room number of the account.
@@ -86,7 +86,7 @@ unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
 # Options.
 #
 ###########################################################################
-while getopts f:h:m:R:r:Vw:-: OPT "${@}"
+while getopts f:h:m:R:r:uVw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--full-name    | \
@@ -104,7 +104,7 @@ do
 	esac
 	case -${OPT}${OPTARG+=} in
 	--full-name=    | -f* ) USER_COMMENT=${OPTARG} ;;
-	--help          | \
+	--help          | -u* | \
 	--help=         ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--home-phone=   | -h* ) USER_HOME_PHONE=${OPTARG} ;;
 	--mobile-phone= | -m* ) USER_MOBILE_PHONE=${OPTARG} ;;
