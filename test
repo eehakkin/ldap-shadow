@@ -1,0 +1,131 @@
+#! /bin/bash -Ceu
+spawn() { ( set -x; exec "${@}" ); }
+me=$( which -- "${0}" || ls -d -- "${0}" )
+dir=$( dirname -- "${me}" )
+cd -- "${dir}"
+GROUP=${GROUP-$( id -gn )}
+LOGNAME=${LOGNAME-${USER-$( id -un )}}
+for opts in \
+	-{-full-name{=,' '},f{,' '}}optarg	\
+	-{-help,u}				\
+	-{-home-phone{=,' '},h{,' '}}optarg	\
+	-{-mobile-phone{=,' '},m{,' '}}optarg	\
+	-{-room-number{=,' '},r{,' '}}optarg	\
+	-{-root{=,' '},R{,' '}}optarg		\
+	-{-version,V}				\
+	-{-work-phone{=,' '},w{,' '}}optarg
+do
+	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts}
+done > /dev/null
+for opts in \
+	-{-help,h}			\
+	-{-root{=,' '},R{,' '}}optarg	\
+	-{-shell{=,' '},s{,' '}}optarg	\
+	-{-version,V}
+do
+	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts}
+done > /dev/null
+for opts in \
+	-{-delete,d}				\
+	-{-expire,e}				\
+	-{-help,h}				\
+	-{-inactive{=,' '},i{,' '}}optarg	\
+	-{-maxdays{=,' '},x{,' '}}optarg	\
+	-{-mindays{=,' '},n{,' '}}optarg	\
+	-{-quiet,q}				\
+	-{-repository{=,' '},r{,' '}}optarg	\
+	-{-root{=,' '},R{,' '}}optarg		\
+	-{-version,V}				\
+	-{-warndays{=,' '},w{,' '}}optarg
+do
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts}
+done > /dev/null
+for opts in \
+	-{-force,f}				\
+	-{-gid{=,' '},g{,' '}}optarg		\
+	-{-help,h}				\
+	-{-key{=,' '},K{,' '}}KEY=VALUE		\
+	-{-non-unique,o}			\
+	-{-root{=,' '},R{,' '}}optarg		\
+	-{-system,r}				\
+	-{-version,V}
+do
+	spawn ./sbin/ldap-groupadd --dry-run ${opts} "${GROUP}"
+done > /dev/null
+for opts in \
+	-{-help,h}				\
+	-{-key{=,' '},K{,' '}}KEY=VALUE		\
+	-{-root{=,' '},R{,' '}}optarg		\
+	-{-version,V}
+do
+	spawn ./sbin/ldap-groupdel --dry-run ${opts} "${GROUP}"
+done > /dev/null
+for opts in \
+	-{-add{=,' '},a{,' '}}optarg		\
+	-{-delete{=,' '},d{,' '}}optarg		\
+	-{-gid{=,' '},g{,' '}}optarg		\
+	-{-help,h}				\
+	-{-key{=,' '},K{,' '}}KEY=VALUE		\
+	-{-members{=,' '},M{,' '}}optarg	\
+	-{-new-name{=,' '},n{,' '}}optarg	\
+	--new-superior-dn{=,' '}optarg		\
+	-{-non-unique,o}			\
+	-{-root{=,' '},R{,' '}}optarg		\
+	-{-version,V}
+do
+	spawn ./sbin/ldap-groupmod --dry-run ${opts} "${GROUP}"
+done > /dev/null
+for opts in \
+	-{-base-dir{=,' '},b{,' '}}optarg	\
+	-{-comment{=,' '},c{,' '}}optarg	\
+	-{-expiredate{=,' '},e{,' '}}1		\
+	-{-gid{=,' '},g{,' '}}12345		\
+	-{-groups{=,' '},G{,' '}}optarg		\
+	-{-help,h}				\
+	-{-home{,-dir}{=,' '},d{,' '}}optarg	\
+	-{-inactive{=,' '},f{,' '}}optarg	\
+	-{-key{=,' '},K{,' '}}KEY=VALUE		\
+	-{-no-create-home,M}			\
+	-{-no-log-init,l}			\
+	-{-no-user-group,N}			\
+	-{-non-unique,o}			\
+	-{-root{=,' '},R{,' '}}optarg		\
+	-{-shell{=,' '},s{,' '}}optarg		\
+	-{-system,r}				\
+	-{-uid{=,' '},u{,' '}}optarg		\
+	-{-user-group,U}			\
+	-{-version,V}
+do
+	spawn ./sbin/ldap-useradd --dry-run ${opts} "${USER}"
+done > /dev/null
+for opts in \
+	-{-help,h}				\
+	-{-key{=,' '},K{,' '}}KEY=VALUE		\
+	-{-root{=,' '},R{,' '}}optarg		\
+	-{-version,V}
+do
+	spawn ./sbin/ldap-userdel --dry-run ${opts} "${GROUP}"
+done > /dev/null
+for opts in \
+	-{-add-attribute{=,' '},A{,' '}}optarg		\
+	-{-delete-attribute{=,' '},D{,' '}}optarg	\
+	-{-replace-attribute{=,' '},M{,' '}}optarg	\
+	-{-append,a}					\
+	-{-comment{=,' '},c{,' '}}optarg		\
+	-{-expiredate{=,' '},e{,' '}}1			\
+	-{-gid{=,' '},g{,' '}}12345			\
+	-{-groups{=,' '},G{,' '}}optarg			\
+	-{-help,h}					\
+	-{-home{,-dir}{=,' '},d{,' '}}optarg		\
+	-{-inactive{=,' '},f{,' '}}optarg		\
+	-{-key{=,' '},K{,' '}}KEY=VALUE			\
+	-{-login{=,' '},l{,' '}}optarg			\
+	--new-superior-dn{=,' '}optarg			\
+	-{-non-unique,o}				\
+	-{-root{=,' '},R{,' '}}optarg			\
+	-{-shell{=,' '},s{,' '}}optarg			\
+	-{-uid{=,' '},u{,' '}}optarg			\
+	-{-version,V}
+do
+	spawn ./sbin/ldap-usermod --dry-run ${opts} "${USER}"
+done > /dev/null
