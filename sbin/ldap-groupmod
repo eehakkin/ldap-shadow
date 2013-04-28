@@ -83,7 +83,13 @@ unset NEW_GROUP NEW_SUPERIOR_DN
 while getopts a:d:g:hK:M:n:oV-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--add | --delete | --gid | --key | --members | --new-name )
+	--add             | \
+	--delete          | \
+	--gid             | \
+	--key             | \
+	--members         | \
+	--new-name        | \
+	--new-superior-dn )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))

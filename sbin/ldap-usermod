@@ -96,20 +96,21 @@ unset USER_EXPIRE USER_INACTIVE
 while getopts A:D:R:ac:d:e:f:g:G:hK:l:os:u:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--add        | \
-	--delete     | \
-	--replace    | \
-	--comment    | \
-	--home       | \
-	--home-dir   | \
-	--expiredate | \
-	--inactive   | \
-	--gid        | \
-	--groups     | \
-	--key        | \
-	--login      | \
-	--shell      | \
-	--uid        )
+	--add             | \
+	--delete          | \
+	--replace         | \
+	--comment         | \
+	--home            | \
+	--home-dir        | \
+	--expiredate      | \
+	--inactive        | \
+	--gid             | \
+	--groups          | \
+	--key             | \
+	--login           | \
+	--new-superior-dn | \
+	--shell           | \
+	--uid             )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
