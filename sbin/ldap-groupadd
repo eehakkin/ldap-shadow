@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-groupadd 1.0
 #
-# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -114,15 +114,16 @@ do
 		OPTIND=$(( ${OPTIND} + 1 ))
 		;;
 	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
-	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
-	case -${OPT} in
-	--gid        | -g ) GROUP_GID=${OPTARG} ;;
-	--help       | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
-	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
-	--non-unique | -o ) ;;
-	--system     | -r ) NORMAL= SYSTEM=+ ;;
-	--version    | -V ) exec "${0}" --version >&3 ;;
+	case -${OPT}${OPTARG+=} in
+	--gid=       | -g* ) GROUP_GID=${OPTARG} ;;
+	--help       | -h* | \
+	--help=      ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--key=       | -K* ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--non-unique | -o* ) ;;
+	--system     | -r* ) NORMAL= SYSTEM=+ ;;
+	--version    | -V* ) exec "${0}" --version >&3 ;;
 	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;

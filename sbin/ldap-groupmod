@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-groupmod 1.0
 #
-# Copyright (C) 2012 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -95,21 +95,22 @@ do
 		OPTIND=$(( ${OPTIND} + 1 ))
 		;;
 	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
-	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
-	case -${OPT} in
-	--add        | -a ) GROUP_USERS_ADD="${GROUP_USERS_ADD-}\\
+	case -${OPT}${OPTARG+=} in
+	--add=       | -a* ) GROUP_USERS_ADD="${GROUP_USERS_ADD-}\\
 memberUid: ${OPTARG}" ;;
-	--delete     | -d ) GROUP_USERS_DELETE="${GROUP_USERS_DELETE-}\\
+	--delete=    | -d* ) GROUP_USERS_DELETE="${GROUP_USERS_DELETE-}\\
 memberUid: ${OPTARG}" ;;
-	--gid        | -g ) GROUP_GID=${OPTARG} ;;
-	--help       | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
-	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
-	--members    | -M ) GROUP_USERS=${OPTARG} ;;
-	--new-name   | -n ) NEW_GROUP=${OPTARG} ;;
-	--new-superior-dn ) NEW_SUPERIOR_DN=${OPTARG} ;;
-	--non-unique | -o ) ;;
-	--version    | -V ) exec "${0}" --version >&3 ;;
+	--gid=       | -g* ) GROUP_GID=${OPTARG} ;;
+	--help       | -h* | \
+	--help=      ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--key=       | -K* ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--members=   | -M* ) GROUP_USERS=${OPTARG} ;;
+	--new-name=  | -n* ) NEW_GROUP=${OPTARG} ;;
+	--new-superior-dn= ) NEW_SUPERIOR_DN=${OPTARG} ;;
+	--non-unique | -o* ) ;;
+	--version    | -V* ) exec "${0}" --version >&3 ;;
 	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;

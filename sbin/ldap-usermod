@@ -100,9 +100,9 @@ do
 	--delete          | \
 	--replace         | \
 	--comment         | \
+	--expiredate      | \
 	--home            | \
 	--home-dir        | \
-	--expiredate      | \
 	--inactive        | \
 	--gid             | \
 	--groups          | \
@@ -116,46 +116,47 @@ do
 		OPTIND=$(( ${OPTIND} + 1 ))
 		;;
 	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
-	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
-	case -${OPT} in
-	--add        | -A ) USER_LDIF="${USER_LDIF}
+	case -${OPT}${OPTARG+=} in
+	--add=        | -A* ) USER_LDIF="${USER_LDIF}
 add: ${OPTARG%%=*}
 ${OPTARG%%=*}: ${OPTARG#*=}
 -" ;;
-	--delete     | -D ) x=${OPTARG#"${OPTARG%%=*}"}; x=${x#=}; USER_LDIF="${USER_LDIF}
+	--delete=     | -D* ) x=${OPTARG#"${OPTARG%%=*}"}; x=${x#=}; USER_LDIF="${USER_LDIF}
 delete: ${OPTARG%%=*}${x:+
 ${OPTARG%%=*}: ${OPTARG#*=}}
 -" ;;
-	--replace    | -R ) x=${OPTARG#"${OPTARG%%=*}"}; x=${x#=}; USER_LDIF="${USER_LDIF}
+	--replace=    | -R* ) x=${OPTARG#"${OPTARG%%=*}"}; x=${x#=}; USER_LDIF="${USER_LDIF}
 replace: ${OPTARG%%=*}${x:+
 ${OPTARG%%=*}: ${OPTARG#*=}}
 -" ;;
-	--append     | -a ) APPEND=+ ;;
-	--comment    | -c ) USER_COMMENT=${OPTARG} ;;
-	--expiredate | -e )
+	--append      | -a* ) APPEND=+ ;;
+	--comment=    | -c* ) USER_COMMENT=${OPTARG} ;;
+	--expiredate= | -e* )
 		USER_EXPIRE=${OPTARG}
 		case ${USER_EXPIRE} in *[![:digit:]]* )
 			USER_EXPIRE=$( date -d "${USER_EXPIRE} UTC" +'%s' )
 			USER_EXPIRE=$(( ${USER_EXPIRE} / ( 24 * 60 * 60 ) ))
 		esac
 		;;
-	--gid        | -g ) USER_GID=${OPTARG} ;;
-	--groups     | -G ) USER_GROUPS=${OPTARG} ;;
-	--help       | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
-	--home       |    \
-	--home-dir   | -d ) USER_HOME_DIR=${OPTARG} ;;
-	--inactive   | -f ) USER_INACTIVE=${OPTARG} ;;
-	--key        | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
-	--login      | -l ) NEW_USER=${OPTARG} ;;
-	--new-superior-dn ) NEW_SUPERIOR_DN=${OPTARG} ;;
-	--non-unique | -o ) ;;
-	--shell      | -s ) USER_SHELL=${OPTARG} ;;
-	--uid        | -u ) USER_UID=${OPTARG} ;;
-	--version    | -V ) exec "${0}" --version >&3 ;;
-	--dry-run    ) exec >&3 ;;
-	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
-	*            ) exit 1 ;;
+	--gid=        | -g* ) USER_GID=${OPTARG} ;;
+	--groups=     | -G* ) USER_GROUPS=${OPTARG} ;;
+	--help        | -h* | \
+	--help=       ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--home=       | \
+	--home-dir=   | -d* ) USER_HOME_DIR=${OPTARG} ;;
+	--inactive=   | -f* ) USER_INACTIVE=${OPTARG} ;;
+	--key=        | -K* ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--login=      | -l* ) NEW_USER=${OPTARG} ;;
+	--new-superior-dn= ) NEW_SUPERIOR_DN=${OPTARG} ;;
+	--non-unique  | -o* ) ;;
+	--shell=      | -s* ) USER_SHELL=${OPTARG} ;;
+	--uid=        | -u* ) USER_UID=${OPTARG} ;;
+	--version     | -V* ) exec "${0}" --version >&3 ;;
+	--dry-run     ) exec >&3 ;;
+	--*           ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*             ) exit 1 ;;
 	esac
 done
 shift $(( $OPTIND - 1 ))
