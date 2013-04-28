@@ -27,10 +27,11 @@ Delete an LDAP POSIX user account from an LDAP server using administrative
 privileges.
 
 Options:
- -h, --help[=FORMAT]  Show this help message and exit.
- -K, --key KEY=VALUE  Override a default configuration.
- -V, --version        Show version information and exit.
-     --dry-run        Dump LDIF and exit.
+ -h, --help[=FORMAT]    Show this help message and exit.
+ -K, --key KEY=VALUE    Override a default configuration.
+ -R, --root CHROOT_DIR  (ignored)
+ -V, --version          Show version information and exit.
+     --dry-run          Dump LDIF and exit.
 
 Operands:
  USER             The username (the user identifier defined by the uid
@@ -66,10 +67,10 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "$
 # Options.
 #
 ###########################################################################
-while getopts hK:V-: OPT "${@}"
+while getopts hK:R:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--key )
+	--key | --root )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -81,6 +82,7 @@ do
 	--help    | -h* | \
 	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--key=    | -K* ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
+	--root=   | -R* ) ;;
 	--version | -V* ) exec "${0}" --version >&3 ;;
 	--dry-run ) exec >&3 ;;
 	--*       ) OPTIND=1; getopts '' OPT "--${OPTARG-}"; exit 1 ;;

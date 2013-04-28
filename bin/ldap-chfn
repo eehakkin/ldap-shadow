@@ -35,6 +35,7 @@ Options:
  -h, --home-phone HOME      Change the home phone number of the account.
  -m, --mobile-phone MOBILE  Change the mobile phone number of the account.
  -r, --room-number ROOM     Change the room number of the account.
+ -R, --root CHROOT_DIR      (ignored)
  -V, --version              Show version information and exit.
  -w, --work-phone WORK      Change the work phone number of the account.
      --dry-run              Dump LDIF and exit.
@@ -85,13 +86,14 @@ unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
 # Options.
 #
 ###########################################################################
-while getopts f:h:m:r:Vw:-: OPT "${@}"
+while getopts f:h:m:R:r:Vw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--full-name    | \
 	--home-phone   | \
 	--mobile-phone | \
 	--room-number  | \
+	--root         | \
 	--work-phone   )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
@@ -107,6 +109,7 @@ do
 	--home-phone=   | -h* ) USER_HOME_PHONE=${OPTARG} ;;
 	--mobile-phone= | -m* ) USER_MOBILE_PHONE=${OPTARG} ;;
 	--room-number=  | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
+	--root=         | -R* ) ;;
 	--version       | -V* ) exec "${0}" --version >&3 ;;
 	--work-phone=   | -w* ) USER_WORK_PHONE=${OPTARG} ;;
 	--dry-run       ) exec >&3 ;;

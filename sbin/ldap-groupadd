@@ -29,13 +29,14 @@ Usage: ${0##*[\\/]} [OPTION]... GROUP
 Add a new LDAP POSIX group to an LDAP server using administrative privileges.
 
 Options:
- -g, --gid GID        Use the group ID for the new group.
- -h, --help[=FORMAT]  Show this help message and exit.
- -K, --key KEY=VALUE  Override a default configuration.
- -o, --non-unique     (ignored)
- -r, --system         Create a system group.
- -V, --version        Show version information and exit.
-     --dry-run        Dump LDIF and exit.
+ -g, --gid GID          Use the group ID for the new group.
+ -h, --help[=FORMAT]    Show this help message and exit.
+ -K, --key KEY=VALUE    Override a default configuration.
+ -o, --non-unique       (ignored)
+ -R, --root CHROOT_DIR  (ignored)
+ -r, --system           Create a system group.
+ -V, --version          Show version information and exit.
+     --dry-run          Dump LDIF and exit.
 
 Operands:
  GROUP            The name (the common name defined by cn attribute) of
@@ -105,10 +106,10 @@ NORMAL=+ SYSTEM=
 # Options.
 #
 ###########################################################################
-while getopts g:hK:orV-: OPT "${@}"
+while getopts fg:hK:oR:rV-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--gid | --key )
+	--gid | --key | --root )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -122,6 +123,7 @@ do
 	--help=      ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--key=       | -K* ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--non-unique | -o* ) ;;
+	--root=      | -R* ) ;;
 	--system     | -r* ) NORMAL= SYSTEM=+ ;;
 	--version    | -V* ) exec "${0}" --version >&3 ;;
 	--dry-run    ) exec >&3 ;;

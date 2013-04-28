@@ -29,10 +29,11 @@ without administrative privileges depends on access control configuration on
 the LDAP server being used.
 
 Options:
- -h, --help[=FORMAT]  Show this help message and exit.
- -s, --shell SHELL    Change the login shell of the account.
- -V, --version        Show version information and exit.
-     --dry-run        Dump LDIF and exit.
+ -h, --help[=FORMAT]    Show this help message and exit.
+ -R, --root CHROOT_DIR  (ignored)
+ -s, --shell SHELL      Change the login shell of the account.
+ -V, --version          Show version information and exit.
+     --dry-run          Dump LDIF and exit.
 
 Operands:
  USER             The username (the user identifier defined by the uid
@@ -79,10 +80,10 @@ unset USER_SHELL
 # Options.
 #
 ###########################################################################
-while getopts hs:V-: OPT "${@}"
+while getopts hR:s:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--shell )
+	--root | --shell )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -93,6 +94,7 @@ do
 	case -${OPT}${OPTARG+=} in
 	--help    | -h* | \
 	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--root=   | -R* ) ;;
 	--shell=  | -s* ) USER_SHELL=${OPTARG} ;;
 	--version | -V* ) exec "${0}" --version >&3 ;;
 	--dry-run ) exec >&3 ;;

@@ -35,6 +35,7 @@ Options:
  -n, --new-name NEW_GROUP  Change the group name.
      --new-superior-dn DN  Change the superior LDAP entry of the group.
  -o, --non-unique          (ignored)
+ -R, --root CHROOT_DIR     (ignored)
  -V, --version             Show version information and exit.
      --dry-run             Dump LDIF and exit.
 
@@ -80,7 +81,7 @@ unset NEW_GROUP NEW_SUPERIOR_DN
 # Options.
 #
 ###########################################################################
-while getopts a:d:g:hK:M:n:oV-: OPT "${@}"
+while getopts a:d:g:hK:M:n:oR:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--add             | \
@@ -89,7 +90,8 @@ do
 	--key             | \
 	--members         | \
 	--new-name        | \
-	--new-superior-dn )
+	--new-superior-dn | \
+	--root            )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -110,6 +112,7 @@ memberUid: ${OPTARG}" ;;
 	--new-name=  | -n* ) NEW_GROUP=${OPTARG} ;;
 	--new-superior-dn= ) NEW_SUPERIOR_DN=${OPTARG} ;;
 	--non-unique | -o* ) ;;
+	--root=      | -R* ) ;;
 	--version    | -V* ) exec "${0}" --version >&3 ;;
 	--dry-run    ) exec >&3 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;

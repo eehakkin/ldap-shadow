@@ -36,6 +36,7 @@ Options:
                               change.
  -q, --quiet                  Be quiet.
  -r, --repository REPOSITORY  (ignored)
+ -R, --root CHROOT_DIR        (ignored)
  -V, --version                Show version information and exit.
  -w, --warndays WARN_DAYS     Set the password expiration warning days.
      --dry-run                Dump LDIF and exit.
@@ -274,13 +275,14 @@ unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
 # Options.
 #
 ###########################################################################
-while getopts dehi:n:qr:Vw:x:-: OPT "${@}"
+while getopts dehi:n:qR:r:Vw:x:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--inactive   | \
 	--maxdays    | \
 	--mindays    | \
 	--repository | \
+	--root       | \
 	--warndays   )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
@@ -299,6 +301,7 @@ do
 	--mindays=    | -n* ) USER_MIN_DAYS=${OPTARG} ;;
 	--quiet       | -q* ) QUIET=+ ;;
 	--repository= | -r* ) ;;
+	--root=       | -R* ) ;;
 	--version     | -V* ) exec "${0}" --version >&3 ;;
 	--warndays=   | -w* ) USER_WARN_DAYS=${OPTARG} ;;
 	--dry-run     ) exec >&3 ;;

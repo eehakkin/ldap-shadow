@@ -43,6 +43,7 @@ Options:
  -l, --no-log-init             (ignored)
  -N, --no-user-group           Do not create a group with the same name.
  -o, --non-unique              (ignored)
+ -R, --root CHROOT_DIR         (ignored)
  -s, --shell SHELL             Use the login shell for the new account.
  -r, --system                  Create a system user account.
  -u, --uid UID                 Use the user ID for the new account.
@@ -147,7 +148,7 @@ NORMAL=+ SYSTEM=
 # Options.
 #
 ###########################################################################
-while getopts b:c:d:e:f:g:G:hK:lMNors:u:UV-: OPT "${@}"
+while getopts b:c:d:e:f:g:G:hK:lMNoR:rs:u:UV-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--base-dir   | \
@@ -159,6 +160,7 @@ do
 	--gid        | \
 	--groups     | \
 	--key        | \
+	--root       | \
 	--shell      | \
 	--uid        )
 		OPT=${OPT}${OPTARG}
@@ -190,6 +192,7 @@ do
 	--no-log-init    | -l* ) ;;
 	--no-user-group  | -N* ) USERGROUPS_ENAB=no ;;
 	--non-unique     | -o* ) ;;
+	--root=          | -R* ) ;;
 	--shell=         | -s* ) USER_SHELL=${OPTARG} ;;
 	--system         | -r* ) NORMAL= SYSTEM=+ ;;
 	--uid=           | -u* ) USER_UID=${OPTARG} ;;
