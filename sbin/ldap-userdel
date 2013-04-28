@@ -27,7 +27,6 @@ Delete an LDAP POSIX user account from an LDAP server using administrative
 privileges.
 
 Options:
- -f, --force          (ignored)
  -h, --help[=FORMAT]  Show this help message and exit.
  -K, --key KEY=VALUE  Override a default configuration.
  -V, --version        Show version information and exit.
@@ -67,7 +66,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-useradd" --mode=frontend "${0}" "$
 # Options.
 #
 ###########################################################################
-while getopts fhK:V-: OPT "${@}"
+while getopts hK:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--key )
@@ -79,7 +78,6 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*} OPTARG= ;;
 	esac
 	case -${OPT} in
-	--force   | -f ) ;;
 	--help    | -h ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
 	--key     | -K ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--version | -V ) exec "${0}" --version >&3 ;;
