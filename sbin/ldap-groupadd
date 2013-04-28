@@ -29,6 +29,8 @@ Usage: ${0##*[\\/]} [OPTION]... GROUP
 Add a new LDAP POSIX group to an LDAP server using administrative privileges.
 
 Options:
+ -f, --force            Exit successfully if the group already exists and
+                        cancel -g if the group ID is already used.
  -g, --gid GID          Use the group ID for the new group.
  -h, --help[=FORMAT]    Show this help message and exit.
  -K, --key KEY=VALUE    Override a default configuration.
@@ -99,7 +101,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${dir}/../bin/${base%ldap-*}ldap-passwd" --mode=fr
 ###########################################################################
 GID_MIN=${GID_MIN:-10000} SYS_GID_MIN=${SYS_GID_MIN:-50000}
 GID_MAX=${GID_MAX:-60000} SYS_GID_MAX=${SYS_GID_MAX:-60000}
-NORMAL=+ SYSTEM=
+FORCE= NORMAL=+ SYSTEM=
 
 ###########################################################################
 #
@@ -118,6 +120,7 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
 	case -${OPT}${OPTARG+=} in
+	--force      | -f* ) FORCE=+ ;;
 	--gid=       | -g* ) GROUP_GID=${OPTARG} ;;
 	--help       | -h* | \
 	--help=      ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
@@ -153,6 +156,20 @@ esac
 # Values.
 #
 ###########################################################################
+# FORCE.
+case ${FORCE:++} in
++ ) LDIF=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		"(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1
+	); case ${LDIF:++} in + ) exit 0 ;; esac
+esac
+case ${FORCE:++},${GROUP_GID++} in
++,+ ) LDIF=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		"(&(objectClass=posixGroup)(gidNumber=${GROUP_GID}))" 1.1
+	); case ${LDIF:++} in + ) unset GROUP_GID ;; esac ;;
+esac
+
 # GROUP_GID.
 GROUP_GID=${GROUP_GID:-$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
