@@ -1,3 +1,17 @@
+ldap-shadow (1.0~rc0.0.20130428) unstable; urgency=low
+
+  * Dropped the ldap-userdel --force option (ignored).
+  * Fixed the ldap-usermod --login option.
+  * Fixed the --new-superior-dn options.
+  * Fixed and documented the ldap-useradd --no-log-init option (ignored).
+  * Made option parsing to be more strict.
+  * Implemented the --root option (ignored).
+  * Implemented the ldap-chfn -u option.
+  * Implemented the ldap-groupadd --force option.
+  * Added a testcase for options.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 28 Apr 2013 21:24:12 +0300
+
 ldap-shadow (1.0~rc0.0.20130308) unstable; urgency=low
 
   * Allowed arbitrary LDAP user attributes to be deleted by replacing
