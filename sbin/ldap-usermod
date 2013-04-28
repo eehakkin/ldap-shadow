@@ -107,6 +107,7 @@ do
 	--gid        | \
 	--groups     | \
 	--key        | \
+	--login      | \
 	--shell      | \
 	--uid        )
 		OPT=${OPT}${OPTARG}
