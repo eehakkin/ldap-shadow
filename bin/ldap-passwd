@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
+wrapper=${0%ldap-*}ldap-passwd
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
 --help=troff      ) exec help2man -L 'en_US.UTF-8' -N -n 'change the password of an LDAP user account' -s 1 -- "${0}" ;;
@@ -174,11 +175,12 @@ __USAGE__
 		esac
 		# Prompt for the LDAP password.
 		LDAPBINDPW=${LDAPBINDPW-$(
-			exec "${0}" --mode=askpass 'Enter LDAP Password: '
+			exec "${wrapper}" --mode=askpass \
+				'Enter LDAP Password: '
 			)}
 		# Determine the URI of the master LDAP server.
 		LDAPURI=${LDAPURI-$(
-			exec "${0}" --mode=uri << __PASS__
+			exec "${wrapper}" --mode=uri << __PASS__
 ${LDAPBINDPW}
 __PASS__
 			)}
@@ -217,7 +219,7 @@ __LDIF__
 	###################################################################
 	# Prompt for the LDAP password.
 	LDAPBINDPW=${LDAPBINDPW-$(
-		exec "${0}" --mode=askpass 'Enter LDAP Password: '
+		exec "${wrapper}" --mode=askpass 'Enter LDAP Password: '
 		)}
 	# Loop over LDAP servers in order to handle partial replication
 	# (userPassword attributes are not always replicated).
@@ -259,7 +261,7 @@ __PASS__
 	;;
 --version ) unset LDAP_HAS_FRONTEND ;;
 esac
-${LDAP_HAS_FRONTEND:+:} exec "${0%ldap-*}ldap-passwd" --mode=frontend "${0}" "${@}"
+${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 
 ###########################################################################
 #
@@ -404,11 +406,11 @@ __LDIF__
 	esac
 	# Prompt for the LDAP password.
 	LDAPBINDPW=${LDAPBINDPW-$(
-		exec "${0}" --mode=askpass 'Enter LDAP Password: '
+		exec "${wrapper}" --mode=askpass 'Enter LDAP Password: '
 		)}
 	# Determine the URI of the master LDAP server.
 	LDAPURI=${LDAPURI-$(
-		exec "${0}" --mode=uri << __PASS__
+		exec "${wrapper}" --mode=uri << __PASS__
 ${LDAPBINDPW}
 __PASS__
 		)}
@@ -547,7 +549,10 @@ __EOT__
 	###################################################################
 	while :
 	do
-		new_pass=$( exec "${0}" --mode=askpass 'Enter new password: ' )
+		new_pass=$(
+			exec "${wrapper}" --mode=askpass \
+				'Enter new password: '
+			)
 		# Passwords must never be passed as command-line arguments
 		# due to security and privacy reasons thus use a here-document.
 		if error_msg=$( pwqcheck -2 config="${config}" ) << __PASS__
@@ -556,7 +561,7 @@ ${LDAPBINDPW}
 __PASS__
 		then
 			new_pass2=$(
-				exec "${0}" --mode=askpass \
+				exec "${wrapper}" --mode=askpass \
 					'Re-type new password: '
 				)
 			# Passwords must never be passed as command-line
