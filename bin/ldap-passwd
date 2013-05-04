@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
 --help=troff      ) exec help2man -L 'en_US.UTF-8' -N -n 'change the password of an LDAP user account' -s 1 -- "${0}" ;;
@@ -209,10 +208,6 @@ __LDIF__
 	esac
 	exit "${error}"
 	;;
---mode=unfold )
-	unfold
-	exit
-	;;
 --mode=uri )
 	###################################################################
 	#
@@ -322,9 +317,8 @@ USER=${1-${LOGNAME}}
 case ${USER} in
 *=* ) USER_DN=${USER} ;;
 *   ) USER_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	) ;;
 esac
@@ -334,10 +328,9 @@ esac
 case ${1++} in
 + ) LDAPBINDDN=${LDAPBINDDN-$(
 	printf '%s\n' "${SUDO_USER-${LOGNAME}}" 'admin' \
-	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -z 1 -- \
+	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=simpleSecurityObject)(cn=%s))" 1.1 \
 		2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)} ;;
 * ) LDAPBINDDN=${USER_DN} ;;
@@ -432,15 +425,13 @@ __PASS__
 		. "${config}"
 		IFS=,; set -- ${min}; unset IFS
 		PWD_POLICY_DN=$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -o ldif-wrap=no -s base -- \
 				'(objectClass=*)' pwdPolicySubentry \
-			| unfold \
 			| sed -e '/^pwdPolicySubentry: */!d' -e 's///' -e 'q'
 			)
 		min=${PWD_POLICY_DN:+$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${PWD_POLICY_DN}" -s base -- \
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${PWD_POLICY_DN}" -o ldif-wrap=no -s base -- \
 				'(objectClass=*)' pwdMinLength \
-			| unfold \
 			| sed -e '/^pwdMinLength: */!d' -e 's///' -e 'q'
 			)}
 		case ${min:++} in + )

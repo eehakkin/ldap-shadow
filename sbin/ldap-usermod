@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
 --help=troff      ) exec help2man -L 'en_US.UTF-8' -N -n 'modify an LDAP user account' -s 8 -- "${0}" ;;
@@ -177,10 +176,9 @@ USER=${1-}
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$(
 	printf '%s\n' "${SUDO_USER-${LOGNAME}}" 'admin' \
-	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -z 1 -- \
+	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=simpleSecurityObject)(cn=%s))" 1.1 \
 		2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)}
 case ${LDAPBINDDN:++} in
@@ -194,9 +192,8 @@ esac
 ###########################################################################
 # USER_DN.
 USER_DN=${USER_DN-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)}
 
@@ -276,10 +273,9 @@ case ${NEW_USER++}${USER_GROUPS++} in
 	case ${APPEND:++},${USER_GROUPS++},${NEW_USER++} in
 	,+,* ) # -G GROUPS [-l NEW_USER]
 		# Remove USER from other groups.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER}))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 delete: memberUid\\
@@ -289,10 +285,9 @@ memberUid: ${USER}\\
 	*,,+ | +,+,+ ) # [-a [-G GROUPS]] -l NEW_USER
 		# Remove USER from other groups
 		# if NEW_USER is a member of them.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER})(memberUid=${NEW_USER}))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 delete: memberUid\\
@@ -300,10 +295,9 @@ memberUid: ${USER}\\
 -"
 		# Add NEW_USER to and remove USER from other groups
 		# if NEW_USER is not a member of them.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER})(!(memberUid=${NEW_USER})))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 add: memberUid\\
@@ -317,10 +311,9 @@ memberUid: ${USER}\\
 	case ${FILTERS:++},${NEW_USER++} in
 	+, ) # [-a] -G GROUPS
 		# Add USER to the groups if USER is not a member of them.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(objectClass=posixGroup)(|${FILTERS})(!(memberUid=${USER})))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 add: memberUid\\
@@ -330,10 +323,9 @@ memberUid: ${USER}\\
 	+,+ ) # [-a] -GROUPS -l NEW_USER
 		# Remove USER from the groups
 		# if NEW_USER is a member of them.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(objectClass=posixGroup)(|${FILTERS})(memberUid=${USER})(memberUid=${NEW_USER}))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 delete: memberUid\\
@@ -341,10 +333,9 @@ memberUid: ${USER}\\
 -"
 		# Add NEW_USER to and remove USER from the groups
 		# if NEW_USER is not a member of them but USER is.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(objectClass=posixGroup)(|${FILTERS})(memberUid=${USER})(!(memberUid=${NEW_USER})))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 add: memberUid\\
@@ -355,10 +346,9 @@ memberUid: ${USER}\\
 -"
 		# Add NEW_USER to the groups
 		# if NEW_USER is not a member of them and neither is USER.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(objectClass=posixGroup)(|${FILTERS})(!(memberUid=${USER}))(!(memberUid=${NEW_USER})))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 add: memberUid\\
@@ -387,10 +377,9 @@ case ${NEW_SUPERIOR_DN++}${NEW_USER++} in
 	do
 		# Remove USER_DN from the groups
 		# if NEW_USER_DN is a member of them.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(${DN_ATTRIBUTE}=${USER_DN})(${DN_ATTRIBUTE}=${NEW_USER_DN}))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 delete: ${DN_ATTRIBUTE}\\
@@ -398,10 +387,9 @@ ${DN_ATTRIBUTE}: ${USER_DN}\\
 -"
 		# Add NEW_USER_DN to and remove USER_DN from the groups
 		# if NEW_USER_DN is not a member of them.
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 			"(&(${DN_ATTRIBUTE}=${USER_DN})(!(${DN_ATTRIBUTE}=${NEW_USER_DN})))" \
 			1.1 \
-		| unfold \
 		| sed -e "/^dn:/a\\
 changetype: modify\\
 add: ${DN_ATTRIBUTE}\\

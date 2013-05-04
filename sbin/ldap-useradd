@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 me=$( which -- "${0}" || ls -d -- "${0}" )
 dir=$( dirname -- "${me}" )
 base=$( basename -- "${me}" )
@@ -210,10 +209,9 @@ USER=${1-}
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$(
 	printf '%s\n' "${SUDO_USER-${LOGNAME}}" 'admin' \
-	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -z 1 -- \
+	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=simpleSecurityObject)(cn=%s))" 1.1 \
 		2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)}
 case ${LDAPBINDDN:++} in
@@ -229,11 +227,10 @@ esac
 case ${USERGROUPS_ENAB} in
 yes )
 	USER_GID=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 			"(&(objectClass=posixGroup)(cn=${USER}))"	\
 			gidNumber					\
 			2> /dev/null					\
-		| unfold \
 		| sed -e '/^gidNumber: /!d' -e 's///' -e 'q'
 		)
 	case ${USER_GID} in
@@ -257,9 +254,8 @@ esac
 
 # USER_UID.
 USER_UID=${USER_UID:-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 		"(objectClass=posixAccount)" uidNumber \
-	| unfold \
 	| awk \
 		-F ': ' \
 		-v min="${NORMAL:+${UID_MIN:?}}${SYSTEM:+${SYS_UID_MIN:?}}" \
@@ -276,14 +272,13 @@ END { if ( min <= max ) print min }
 case ${USER_BASE_DN++},${USER_BASE_RDN++} in
 +,* ) ;;
 *,+ ) BASE_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -s base -- "(objectClass=*)" 1.1 \
-	| unfold \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -s base -- \
+		"(objectClass=*)" 1.1 \
 	| sed -e '/^dn: /!d' -e 's///' -e 'q'
 	); USER_BASE_DN=${USER_BASE_RDN},${BASE_DN:?} ;;
 *,* ) USER_BASE_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 		"(objectClass=posixAccount)" 1.1 2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
 	) ;;
 esac

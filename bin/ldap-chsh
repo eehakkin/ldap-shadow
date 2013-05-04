@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
 --help=troff      ) exec help2man -L 'en_US.UTF-8' -N -n 'change the login shell of an LDAP user account' -s 1 -- "${0}" ;;
@@ -115,9 +114,8 @@ USER=${1-${LOGNAME}}
 case ${USER} in
 *=* ) USER_DN=${USER} ;;
 *   ) USER_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	) ;;
 esac
@@ -127,10 +125,9 @@ esac
 case ${1++} in
 + ) LDAPBINDDN=${LDAPBINDDN-$(
 	printf '%s\n' "${SUDO_USER-${LOGNAME}}" 'admin' \
-	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -z 1 -- \
+	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=simpleSecurityObject)(cn=%s))" 1.1 \
 		2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)} ;;
 * ) LDAPBINDDN=${USER_DN} ;;

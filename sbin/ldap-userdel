@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-unfold() { exec sed -e ': in' -e 'N' -e 's/\n //' -e 't in' -e 'P' -e 'D'; }
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
 --help=troff      ) exec help2man -L 'en_US.UTF-8' -N -n 'delete an LDAP user account' -s 8 -- "${0}" ;;
@@ -96,10 +95,9 @@ USER=${1-}
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$(
 	printf '%s\n' "${SUDO_USER-${LOGNAME}}" 'admin' \
-	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -z 1 -- \
+	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=simpleSecurityObject)(cn=%s))" 1.1 \
 		2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)}
 case ${LDAPBINDDN:++} in
@@ -113,9 +111,8 @@ esac
 ###########################################################################
 # USER_DN.
 USER_DN=${USER_DN-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -z 1 -- \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
-	| unfold \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	)}
 : "${USER_DN:?}"
@@ -126,9 +123,8 @@ USER_DN=${USER_DN-$(
 #
 ###########################################################################
 # USER_GROUPS.
-ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 	"(&(objectClass=posixGroup)(memberUid=${USER}))" 1.1 \
-| unfold \
 | sed -e '/^dn:/a\
 changetype: modify\
 delete: memberUid\
@@ -143,9 +139,8 @@ changetype: delete
 __LDIF__
 
 # GROUP.
-ldapsearch -LLLM ${LDAPSEARCH_OPTS} -- \
+ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -- \
 	"(&(objectClass=posixGroup)(cn=${USER}))" memberUid \
-| unfold \
 | sed -n \
 	-e 'H' \
 	-e '/^dn:/h' \
