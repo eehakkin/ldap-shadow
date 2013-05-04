@@ -125,8 +125,8 @@ __USAGE__
 			)
 		unset names ${names}
 		me=$( which -- "${1}" || ls -d -- "${1}" )
-		base=$( basename -- "${me}" )
-		dir=$( dirname -- "${me}" )
+		base=$( exec basename -- "${me}" )
+		dir=$( exec dirname -- "${me}" )
 		for dir in /etc "${dir}/../etc"
 		do
 			file=${dir}/${base%-*}-login.defs
@@ -145,7 +145,7 @@ __USAGE__
 	esac
 	unset GROUP_DN GROUP_GID USER_DN USER_UID
 	# LDIF.
-	LDIF=$( LDAP_HAS_FRONTEND=+ "${@}" ) 3>&1
+	LDIF=$( LDAP_HAS_FRONTEND=+ exec "${@}" ) 3>&1
 	error=0
 	case ${LDIF:++} in + )
 		# Extract connection parameters.
@@ -216,7 +216,7 @@ __LDIF__
 	###################################################################
 	# Prompt for the LDAP password.
 	LDAPBINDPW=${LDAPBINDPW-$(
-		"${0}" --mode=askpass 'Enter LDAP Password: '
+		exec "${0}" --mode=askpass 'Enter LDAP Password: '
 		)}
 	# Loop over LDAP servers in order to handle partial replication
 	# (userPassword attributes are not always replicated).
@@ -232,7 +232,7 @@ __LDIF__
 			[ ! -s "${rc}" ] || set -- "${@}" "${rc}"
 			shift
 		done
-		sed -e '/^URI[[:space:]]/{s///;h;};$!d;g' -- "${@}"
+		exec sed -e '/^URI[[:space:]]/{s///;h;};$!d;g' -- "${@}"
 		)}
 	do
 		# Passwords must never be passed as command-line arguments
@@ -512,7 +512,7 @@ long, and contain enough different characters.
 				# Passwords must never be passed as
 				# command-line arguments due to security and
 				# privacy reasons thus use a here-document.
-				random_pass=$( exec pwqgen random="${random}" )
+				random_pass=$( pwqgen random="${random}" )
 				if pwqcheck -2 config="${config}" \
 					<< __PASS__ > /dev/null
 ${random_pass}
@@ -542,7 +542,7 @@ __EOT__
 	###################################################################
 	while :
 	do
-		new_pass=$( "${0}" --mode=askpass 'Enter new password: ' )
+		new_pass=$( exec "${0}" --mode=askpass 'Enter new password: ' )
 		# Passwords must never be passed as command-line arguments
 		# due to security and privacy reasons thus use a here-document.
 		if error_msg=$( pwqcheck -2 config="${config}" ) << __PASS__
