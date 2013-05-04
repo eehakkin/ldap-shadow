@@ -185,11 +185,12 @@ __PASS__
 		export LDAPURI
 		# Modify LDAP entries.
 		error_msg=$(
-			exec ${LDAPBINDPW:+setsid} ldapmodify \
-				-M ${LDAPMODIFY_OPTS} 2>&1
-			) << __LDIF__ || error=${?}
-${LDAPBINDPW:+${LDAPBINDPW}
-}${LDIF}
+			tr -d -- '\n' \
+			| ldapmodify -M ${LDAPMODIFY_OPTS} -f /dev/fd/3 -y /dev/stdin 2>&1
+			) << __PASS__ 3<< __LDIF__ || error=${?}
+${LDAPBINDPW}
+__PASS__
+${LDIF}
 __LDIF__
 		# Report errors.
 		error_msg=${error_msg#'Enter LDAP Password: '}
@@ -220,8 +221,8 @@ __LDIF__
 		)}
 	# Loop over LDAP servers in order to handle partial replication
 	# (userPassword attributes are not always replicated).
-	error=1 error_msg=
-	for uri in ${LDAPURI-$(
+	LDAPURI=${LDAPURI-$(
+		set -e
 		set -- \
 			/etc/ldap/ldap.conf		\
 			~/ldaprc ~/.ldaprc ldaprc	\
@@ -234,21 +235,25 @@ __LDIF__
 		done
 		exec sed -e '/^URI[[:space:]]/{s///;h;};$!d;g' -- "${@}"
 		)}
+	error=1 error_msg=
+	for uri in ${LDAPURI}
 	do
 		# Passwords must never be passed as command-line arguments
 		# (using the -w option or such) due to security and privacy
 		# reasons thus use a here-document.
 		error_msg=$(
-			exec setsid ldapwhoami \
-				${LDAPSEARCH_OPTS} -H "${uri}" -W \
-				2>&1 > /dev/null
+			exec 3>&1 &&
+			x=$(
+				tr -d -- '\n' \
+				| ldapwhoami ${LDAPSEARCH_OPTS} -H "${uri}" -y /dev/stdin 2>&3
+				) &&
+			case ${x} in ( dn:* ) exit 0 ;; esac
+			exit 49
 			) << __PASS__ && exec printf '%s\n' "${uri}" || error=${?}
 ${LDAPBINDPW}
 __PASS__
-
 	done
 	# Report errors.
-	error_msg=${error_msg#'Enter LDAP Password: '}
 	printf '%s\n' "${error_msg:?}" >&2
 	exit "${error}"
 	;;
@@ -571,23 +576,19 @@ __PASS__
 	# Change the LDAP password.
 	#
 	###################################################################
-	while :
-	do
-		# Passwords must never be passed as command-line arguments
-		# (using the -w option or such) due to security and privacy
-		# reasons thus use a here-document.
-		error_msg=$(
-			exec setsid ldappasswd ${LDAPPASSWD_OPTS} -S -- \
-				"${USER_DN}" 2>&1
-			) << __PASS__ && break || error=${?}
+	# Passwords must never be passed as command-line arguments (using
+	# the -s and -w options or such) due to security and privacy reasons
+	# thus use a here-document.
+	{
+		tr -d -- '\n' \
+		| { tr -d -- '\n' <&3 \
+		| ldappasswd ${LDAPPASSWD_OPTS} -T /dev/fd/4 -y /dev/stdin -- \
+			"${USER_DN}"; } 4<&0
+	} << __NEWPASS__ 3<< __PASS__
 ${new_pass}
-${new_pass}
+__NEWPASS__
 ${LDAPBINDPW}
 __PASS__
-		error_msg=${error_msg#'Enter LDAP Password: '}
-		printf '%s\n' "${error_msg}" >&2
-		exit "${error}"
-	done
 	${QUIET:+:} printf '%s\n' 'LDAP Password updated successfully.' >&2
 	;;
 esac
