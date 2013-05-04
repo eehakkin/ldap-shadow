@@ -175,13 +175,7 @@ USER=${1-}
 : "${USER:?}"
 
 # LDAPBINDDN.
-LDAPBINDDN=${LDAPBINDDN-$(
-	printf '%s\n' "${SUDO_USER-${LOGNAME}}" 'admin' \
-	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
-		"(&(objectClass=simpleSecurityObject)(cn=%s))" 1.1 \
-		2> /dev/null \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q'
-	)}
+LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn )}
 case ${LDAPBINDDN:++} in
 + ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
 esac

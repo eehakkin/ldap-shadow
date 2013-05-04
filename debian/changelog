@@ -1,3 +1,9 @@
+ldap-shadow (1.0~rc0.0.20130504) unstable; urgency=low
+
+  * Made administrator searches to be more strict.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sat, 04 May 2013 21:29:23 +0300
+
 ldap-shadow (1.0~rc0.0.20130428) unstable; urgency=low
 
   * Dropped the ldap-userdel --force option (ignored).
