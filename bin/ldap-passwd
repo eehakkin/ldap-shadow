@@ -96,8 +96,9 @@ __USAGE__
 	printf '%s\n' \
 		"&(cn=${ADMIN_USER})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
 		'cn=admin' \
+		"uid=${ADMIN_USER}" \
 	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
-		'(&(objectClass=simpleSecurityObject)(%s))' 1.1 \
+		'(&(%s)(|(objectClass=posixAccount)(objectClass=simpleSecurityObject)))' 1.1 \
 		2> /dev/null \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	exit
