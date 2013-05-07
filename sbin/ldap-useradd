@@ -263,66 +263,72 @@ END { if ( min <= max ) print min }
 	)}
 : "${USER_UID:?}"
 
-# USER_BASE_DN.
-case ${USER_BASE_DN++},${USER_BASE_RDN++} in
-+,* ) ;;
-*,+ ) BASE_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -s base -- \
-		"(objectClass=*)" 1.1 \
-	| sed -e '/^dn: /!d' -e 's///' -e 'q'
-	); USER_BASE_DN=${USER_BASE_RDN},${BASE_DN:?} ;;
-*,* ) USER_BASE_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
-		"(objectClass=posixAccount)" 1.1 2> /dev/null \
-	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-	) ;;
-esac
-: "${USER_BASE_DN:?}"
-unset RDN
-while :
-do
-	###################################################################
-	#
-	# LDIF.
-	#
-	###################################################################
-	DN=${RDN+${RDN},}${USER_BASE_DN}
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${DN}" -s base -- \
-		'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
-	case ${?},${USER},${USER_OU_RDN++},${RDN++} in
-	0,*,*,*  ) ;;
-	*,*,*,   | \
-	*,*,+,+  | \
-	*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
+# USER_DN.
+case ${USER_DN++},${USER} in
+,*=* ) USER_DN=${USER} ;;
+,*   )
+	# USER_BASE_DN.
+	case ${USER_BASE_DN++},${USER_BASE_RDN++} in
+	+,* ) ;;
+	*,+ ) BASE_DN=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -s base -- \
+			"(objectClass=*)" 1.1 \
+		| sed -e '/^dn: /!d' -e 's///' -e 'q'
+		); USER_BASE_DN=${USER_BASE_RDN},${BASE_DN:?} ;;
+	*,* ) USER_BASE_DN=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
+			"(objectClass=posixAccount)" 1.1 2> /dev/null \
+		| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
+		) ;;
+	esac
+	: "${USER_BASE_DN:?}"
+	unset RDN
+	while :
+	do
+		###########################################################
+		#
+		# LDIF.
+		#
+		###########################################################
+		DN=${RDN+${RDN},}${USER_BASE_DN}
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${DN}" -s base -- \
+			'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
+		case ${?},${USER},${USER_OU_RDN++},${RDN++} in
+		0,*,*,*  ) ;;
+		*,*,*,   | \
+		*,*,+,+  | \
+		*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
 dn: ${DN}
 changetype: add
 objectClass: organizationalUnit
 ${RDN2%%=*}: ${RDN2#*=}
 
 __LDIF__
-	*,*,*,*  ) break ;;
-	esac
-	###################################################################
-	#
-	# Values.
-	#
-	###################################################################
-	# USER_BASE_DN.
-	USER_BASE_DN=${DN}
-	# USER_OU_RDN.
-	case ${RDN++},${USER_OU_RDN-} in
-	+,*,* ) USER_OU_RDN=${USER_OU_RDN%,*} ;;
-	+,*   ) break ;;
-	esac
-	# RDN.
-	case ${USER_OU_RDN++} in
-	+ ) RDN=${USER_OU_RDN##*,} ;;
-	* ) RDN=ou=${USER%-*} ;;
-	esac
-done
-
-# USER_DN.
-USER_DN=uid=${USER},${USER_BASE_DN}
+		*,*,*,*  ) break ;;
+		esac
+		###########################################################
+		#
+		# Values.
+		#
+		###########################################################
+		# USER_BASE_DN.
+		USER_BASE_DN=${DN}
+		# USER_OU_RDN.
+		case ${RDN++},${USER_OU_RDN-} in
+		+,*,* ) USER_OU_RDN=${USER_OU_RDN%,*} ;;
+		+,*   ) break ;;
+		esac
+		# RDN.
+		case ${USER_OU_RDN++} in
+		+ ) RDN=${USER_OU_RDN##*,} ;;
+		* ) RDN=ou=${USER%-*} ;;
+		esac
+	done
+	# USER_DN.
+	USER_DN=uid=${USER},${USER_BASE_DN}
+	;;
+esac
+: "${USER_DN:?}"
 
 # USER_COMMENT.
 USER_COMMENT=${USER_COMMENT:-${USER}}

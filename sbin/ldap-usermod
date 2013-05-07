@@ -186,11 +186,14 @@ esac
 #
 ###########################################################################
 # USER_DN.
-USER_DN=${USER_DN-$(
+case ${USER_DN++},${USER} in
+,*=* ) USER_DN=${USER} ;;
+,*   ) USER_DN=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=posixAccount)(uid=${USER}))" 1.1 2> /dev/null \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
-	)}
+	) ;;
+esac
 
 # USER_COMMENT.
 case ${USER_COMMENT++} in

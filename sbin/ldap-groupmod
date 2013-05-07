@@ -135,11 +135,14 @@ esac
 #
 ###########################################################################
 # GROUP_DN.
-GROUP_DN=${GROUP_DN-$(
+case ${GROUP_DN++},${GROUP} in
+,*=* ) GROUP_DN=${GROUP} ;;
+,*   ) GROUP_DN=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
 		"(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 2> /dev/null \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
-	)}
+	) ;;
+esac
 : "${GROUP_DN:?}"
 
 ###########################################################################

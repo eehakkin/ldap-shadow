@@ -179,66 +179,72 @@ END { if ( min <= max ) print min }
 	)}
 : "${GROUP_GID:?}"
 
-# GROUP_BASE_DN.
-case ${GROUP_BASE_DN++},${GROUP_BASE_RDN++} in
-+,* ) ;;
-*,+ ) BASE_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -s base -- \
-		"(objectClass=*)" 1.1 \
-	| sed -e '/^dn: /!d' -e 's///' -e 'q'
-	); GROUP_BASE_DN=${GROUP_BASE_RDN},${BASE_DN:?} ;;
-*,* ) GROUP_BASE_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
-		"(objectClass=posixGroup)" 1.1 2> /dev/null \
-	| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-	) ;;
-esac
-: "${GROUP_BASE_DN:?}"
-unset RDN
-while :
-do
-	###################################################################
-	#
-	# LDIF.
-	#
-	###################################################################
-	DN=${RDN+${RDN},}${GROUP_BASE_DN}
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${DN}" -s base -- \
-		'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
-	case ${?},${GROUP},${GROUP_OU_RDN++},${RDN++} in
-	0,*,*,*  ) ;;
-	*,*,*,   | \
-	*,*,+,+  | \
-	*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
+# GROUP_DN.
+case ${GROUP_DN++},${GROUP} in
+,*=* ) GROUP_DN=${GROUP} ;;
+,*   )
+	# GROUP_BASE_DN.
+	case ${GROUP_BASE_DN++},${GROUP_BASE_RDN++} in
+	+,* ) ;;
+	*,+ ) BASE_DN=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -s base -- \
+			"(objectClass=*)" 1.1 \
+		| sed -e '/^dn: /!d' -e 's///' -e 'q'
+		); GROUP_BASE_DN=${GROUP_BASE_RDN},${BASE_DN:?} ;;
+	*,* ) GROUP_BASE_DN=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
+			"(objectClass=posixGroup)" 1.1 2> /dev/null \
+		| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
+		) ;;
+	esac
+	: "${GROUP_BASE_DN:?}"
+	unset RDN
+	while :
+	do
+		###########################################################
+		#
+		# LDIF.
+		#
+		###########################################################
+		DN=${RDN+${RDN},}${GROUP_BASE_DN}
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${DN}" -s base -- \
+			'(objectClass=*)' 1.1 1> /dev/null 2>&1 && :
+		case ${?},${GROUP},${GROUP_OU_RDN++},${RDN++} in
+		0,*,*,*  ) ;;
+		*,*,*,   | \
+		*,*,+,+  | \
+		*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
 dn: ${DN}
 changetype: add
 objectClass: organizationalUnit
 ${RDN2%%=*}: ${RDN2#*=}
 
 __LDIF__
-	*,*,*,*  ) break ;;
-	esac
-	###################################################################
-	#
-	# Values.
-	#
-	###################################################################
-	# GROUP_BASE_DN.
-	GROUP_BASE_DN=${DN}
-	# GROUP_OU_RDN.
-	case ${RDN++},${GROUP_OU_RDN-} in
-	+,*,* ) GROUP_OU_RDN=${GROUP_OU_RDN%,*} ;;
-	+,*   ) break ;;
-	esac
-	# RDN.
-	case ${GROUP_OU_RDN++} in
-	+ ) RDN=${GROUP_OU_RDN##*,} ;;
-	* ) RDN=ou=${GROUP%-*} ;;
-	esac
-done
-
-# GROUP_DN.
-GROUP_DN=cn=${GROUP},${GROUP_BASE_DN}
+		*,*,*,*  ) break ;;
+		esac
+		###########################################################
+		#
+		# Values.
+		#
+		###########################################################
+		# GROUP_BASE_DN.
+		GROUP_BASE_DN=${DN}
+		# GROUP_OU_RDN.
+		case ${RDN++},${GROUP_OU_RDN-} in
+		+,*,* ) GROUP_OU_RDN=${GROUP_OU_RDN%,*} ;;
+		+,*   ) break ;;
+		esac
+		# RDN.
+		case ${GROUP_OU_RDN++} in
+		+ ) RDN=${GROUP_OU_RDN##*,} ;;
+		* ) RDN=ou=${GROUP%-*} ;;
+		esac
+	done
+	# GROUP_DN.
+	GROUP_DN=cn=${GROUP},${GROUP_BASE_DN}
+	;;
+esac
+: "${GROUP_DN:?}"
 
 ###########################################################################
 #

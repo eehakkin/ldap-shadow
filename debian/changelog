@@ -3,6 +3,8 @@ ldap-shadow (1.0~rc0.0.20130507) unstable; urgency=low
   * Added fallback for non-administrators.
   * Fixed the ldap-chfn --full-name option to update givenName and sn
     attributes, too.
+  * Allowed distinguished names (DNs) to be passes to administration
+    tools, too.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 07 May 2013 09:54:48 +0300
 
