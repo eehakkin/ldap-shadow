@@ -1,8 +1,10 @@
-ldap-shadow (1.0~rc0.0.20130505) UNRELEASED; urgency=low
+ldap-shadow (1.0~rc0.0.20130507) unstable; urgency=low
 
   * Added fallback for non-administrators.
+  * Fixed the ldap-chfn --full-name option to update givenName and sn
+    attributes, too.
 
- -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Mon, 06 May 2013 21:31:28 +0300
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 07 May 2013 09:54:48 +0300
 
 ldap-shadow (1.0~rc0.0.20130504) unstable; urgency=low
 

@@ -210,13 +210,27 @@ esac
 # LDIF.
 #
 ###########################################################################
+# USER_COMMENT.
+case ${USER_COMMENT++} in
++ ) NORMAL=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
+		'(objectClass=inetOrgPerson)' 1.1
+	) ;;
+esac
+
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE.
 case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++} in
 +* ) cat << __LDIF__ ;;
 dn: ${USER_DN}
 changetype: modify${USER_COMMENT+
 replace: cn
-cn: ${USER_COMMENT:-${USER}}
+cn: ${USER_COMMENT:-${USER}}${NORMAL:+
+-
+replace: givenName
+givenName: ${USER_COMMENT%%[[:space:]]*}
+-
+replace: sn
+sn: ${USER_COMMENT#*[[:space:]]}}
 -}${USER_HOME_PHONE+
 replace: homePhone${USER_HOME_PHONE:+
 homePhone: ${USER_HOME_PHONE}}
