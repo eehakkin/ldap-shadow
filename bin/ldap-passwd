@@ -100,7 +100,9 @@ __USAGE__
 	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} -f - -o ldif-wrap=no -z 1 -- \
 		'(&(%s)(|(objectClass=posixAccount)(objectClass=simpleSecurityObject)))' 1.1 \
 		2> /dev/null \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q'
+	| sed -e '/^dn: */!d' -e 's///' -e 'q' \
+	| grep -Fvx -e '' ||
+	printf '%s\n' "${USER_DN-${LDAPBINDDN}}"
 	exit
 	;;
 --mode=frontend )
@@ -342,6 +344,7 @@ case ${USER} in
 	) ;;
 esac
 : "${USER_DN:?}"
+export USER_DN
 
 # LDAPBINDDN.
 case ${1++} in
