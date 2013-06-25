@@ -1,6 +1,7 @@
 ldap-shadow (1.0~rc0.0.20130625) unstable; urgency=low
 
   * Added more fallbacks for non-administrators.
+  * Enhanced master LDAP server detection.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 25 Jun 2013 20:32:09 +0300
 

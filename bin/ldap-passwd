@@ -231,14 +231,21 @@ __LDIF__
 	# Determine the URI of the master LDAP server.
 	#
 	###################################################################
-	# Prompt for the LDAP password.
-	LDAPBINDPW=${LDAPBINDPW-$(
-		exec "${wrapper}" --mode=askpass 'Enter LDAP Password: '
-		)}
-	# Loop over LDAP servers in order to handle partial replication
-	# (userPassword attributes are not always replicated).
+	# Determine the URIs of all the candidate LDAP servers.
 	LDAPURI=${LDAPURI-$(
 		set -e
+		# Determine the URIs of the master LDAP servers.
+		LDAPBASE=${LDAPBASE-$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -s base -- 1.1 \
+			| sed -e '/^dn: */!d' -e 's///' -e 'q'
+			)}
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b cn=config -o ldif-wrap=no -- \
+			"(&(objectClass=olcDatabaseConfig)(olcSuffix=${LDAPBASE:?})(olcUpdateRef=*))" \
+			olcUpdateRef \
+			2> /dev/null \
+		| sed -n -e 's/^olcUpdateRef: *//p' \
+		| grep -Fvx -e '' && exit
+		# Determine the URIs of all the LDAP servers.
 		set -- \
 			/etc/ldap/ldap.conf		\
 			~/ldaprc ~/.ldaprc ldaprc	\
@@ -250,6 +257,12 @@ __LDIF__
 			shift
 		done
 		exec sed -e '/^URI[[:space:]]/{s///;h;};$!d;g' -- "${@}"
+		)}
+	: "${LDAPURI:?}"
+	# Loop over the candidate LDAP servers in order to handle partial
+	# replication (userPassword attributes are not always replicated).
+	LDAPBINDPW=${LDAPBINDPW-$(
+		exec "${wrapper}" --mode=askpass 'Enter LDAP Password: '
 		)}
 	error=1 error_msg=
 	for uri in ${LDAPURI}
