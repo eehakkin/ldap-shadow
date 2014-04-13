@@ -1,3 +1,10 @@
+ldap-shadow (1.0~rc0.0.20140413) unstable; urgency=low
+
+  * Allowed arbitrary LDAP user attribute modification requests to be
+    done by non-administrators.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 13 Apr 2014 23:44:54 +0300
+
 ldap-shadow (1.0~rc0.0.20130625) unstable; urgency=low
 
   * Added more fallbacks for non-administrators.

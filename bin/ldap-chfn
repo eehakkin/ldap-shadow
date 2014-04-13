@@ -30,6 +30,9 @@ administrative privileges depends on access control configuration on the LDAP
 server being used.
 
 Options:
+ -A, --add-attribute ATTR=VALUE        Add an LDAP attribute.
+ -D, --delete-attribute ATTR[=VALUE]   Delete an LDAP attribute.
+ -M, --replace-attribute ATTR[=VALUE]  Replace an LDAP attribute.
  -f, --full-name COMMENT    Change the full name of the account.
  -u, --help[=FORMAT]        Show this help message and exit.
  -h, --home-phone HOME      Change the home phone number of the account.
@@ -78,6 +81,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 #
 ###########################################################################
 LOGNAME=${LOGNAME-${USER-$( id -un )}}
+USER_LDIF=
 unset USER_COMMENT
 unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
 
@@ -86,15 +90,18 @@ unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
 # Options.
 #
 ###########################################################################
-while getopts f:h:m:R:r:uVw:-: OPT "${@}"
+while getopts A:D:M:f:h:m:R:r:uVw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--full-name    | \
-	--home-phone   | \
-	--mobile-phone | \
-	--room-number  | \
-	--root         | \
-	--work-phone   )
+	--add-attribute     | \
+	--delete-attribute  | \
+	--replace-attribute | \
+	--full-name         | \
+	--home-phone        | \
+	--mobile-phone      | \
+	--room-number       | \
+	--root              | \
+	--work-phone        )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -103,18 +110,30 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
 	case -${OPT}${OPTARG+=} in
-	--full-name=    | -f* ) USER_COMMENT=${OPTARG} ;;
-	--help          | -u* | \
-	--help=         ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
-	--home-phone=   | -h* ) USER_HOME_PHONE=${OPTARG} ;;
-	--mobile-phone= | -m* ) USER_MOBILE_PHONE=${OPTARG} ;;
-	--room-number=  | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
-	--root=         | -R* ) ;;
-	--version       | -V* ) exec "${0}" --version >&3 ;;
-	--work-phone=   | -w* ) USER_WORK_PHONE=${OPTARG} ;;
-	--dry-run       ) exec >&3 ;;
-	--*             ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
-	*               ) exit 1 ;;
+	--add-attribute=     | -A* ) USER_LDIF="${USER_LDIF}
+add: ${OPTARG%%=*}
+${OPTARG%%=*}: ${OPTARG#*=}
+-" ;;
+	--delete-attribute=  | -D* ) x=${OPTARG#"${OPTARG%%=*}"}; USER_LDIF="${USER_LDIF}
+delete: ${OPTARG%%=*}${x:+
+${OPTARG%%=*}: ${OPTARG#*=}}
+-" ;;
+	--replace-attribute= | -M* ) x=${OPTARG#"${OPTARG%%=*}"}; USER_LDIF="${USER_LDIF}
+replace: ${OPTARG%%=*}${x:+
+${OPTARG%%=*}: ${OPTARG#*=}}
+-" ;;
+	--full-name=         | -f* ) USER_COMMENT=${OPTARG} ;;
+	--help               | -u* | \
+	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--home-phone=        | -h* ) USER_HOME_PHONE=${OPTARG} ;;
+	--mobile-phone=      | -m* ) USER_MOBILE_PHONE=${OPTARG} ;;
+	--room-number=       | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
+	--root=              | -R* ) ;;
+	--version            | -V* ) exec "${0}" --version >&3 ;;
+	--work-phone=        | -w* ) USER_WORK_PHONE=${OPTARG} ;;
+	--dry-run            ) exec >&3 ;;
+	--*                  ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*                    ) exit 1 ;;
 	esac
 done
 shift $(( $OPTIND - 1 ))
@@ -146,8 +165,8 @@ case ${LDAPBINDDN:++} in
 + ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
 esac
 
-# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++} in
+# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
 '' )
 	gettext_fallback() { # -d <DEFAULT-DOMAIN> [OPTION]... <MSGID>
 		eval "msgid=\${${#}}"
@@ -218,8 +237,8 @@ case ${USER_COMMENT++} in
 	) ;;
 esac
 
-# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++} in
+# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
 +* ) cat << __LDIF__ ;;
 dn: ${USER_DN}
 changetype: modify${USER_COMMENT+
@@ -243,7 +262,7 @@ roomNumber: ${USER_ROOM_NUMBER}}
 -}${USER_WORK_PHONE+
 replace: telephoneNumber${USER_WORK_PHONE:+
 telephoneNumber: ${USER_WORK_PHONE}}
--}
+-}${USER_LDIF}
 
 __LDIF__
 esac
