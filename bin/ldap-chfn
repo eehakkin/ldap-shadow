@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-chfn 1.0
 #
-# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2014 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -80,7 +80,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 # Defaults.
 #
 ###########################################################################
-LOGNAME=${LOGNAME-${USER-$( id -un )}}
+LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 USER_LDIF=
 unset USER_COMMENT
 unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
@@ -170,7 +170,7 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMB
 '' )
 	gettext_fallback() { # -d <DEFAULT-DOMAIN> [OPTION]... <MSGID>
 		eval "msgid=\${${#}}"
-		msgstr=$( gettext "${@}" )
+		msgstr=$( exec gettext "${@}" )
 		case ${msgstr} in "${msgid}" )
 			shift 2 # -d <DEFAULT-DOMAIN>
 			for basename in $(
@@ -181,13 +181,15 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMB
 				grep -Flxz -e "${msgid}" -- *.mo
 				)
 			do
-				msgstr=$( gettext -d "${basename%.*}" "${@}" )
+				msgstr=$(
+					exec gettext -d "${basename%.*}" "${@}"
+					)
 				case ${msgstr} in "${msgid}" ) ;; *) break ;; esac
 			done
 		esac
 		printf '%s' "${msgstr}"
 	}
-	printf "$( gettext -d shadow -- 'Changing the user information for %s
+	printf "$( exec gettext -d shadow -- 'Changing the user information for %s
 ' )\\n" "${USER}" >&2
 	gettext -d shadow -s -- 'Enter the new value, or press ENTER for the default' >&2
 	while read variable attribute label <&4
@@ -232,7 +234,7 @@ esac
 # USER_COMMENT.
 case ${USER_COMMENT++} in
 + ) NORMAL=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
+	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${USER_DN}" -s base -- \
 		'(objectClass=inetOrgPerson)' 1.1
 	) ;;
 esac

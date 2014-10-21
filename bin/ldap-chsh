@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-chsh 1.0
 #
-# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2014 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -72,7 +72,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 # Defaults.
 #
 ###########################################################################
-LOGNAME=${LOGNAME-${USER-$( id -un )}}
+LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 unset USER_SHELL
 
 ###########################################################################
@@ -134,11 +134,14 @@ esac
 # USER_SHELL.
 case ${USER_SHELL++} in
 '' )
-	printf "$( gettext -d shadow -- 'Changing the login shell for %s
+	printf "$( exec gettext -d shadow -- 'Changing the login shell for %s
 ' )\\n" "${USER}" >&2
 	gettext -d shadow -s -- 'Enter the new value, or press ENTER for the default' >&2
 	value=$( getent -- passwd "${USER}" | cut -d : -f 7 )
-	printf '\t%s [%s]: ' "$( gettext -d shadow -- 'Login Shell' )" "${value}" >&2
+	printf '\t%s [%s]: ' \
+		"$( exec gettext -d shadow -- 'Login Shell' )" \
+		"${value}" \
+		>&2
 	IFS= read -r REPLY
 	case ${REPLY} in
 	*[![:space:]]* ) USER_SHELL=${REPLY} ;;

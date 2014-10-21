@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-useradd 1.0
 #
-# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2014 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -176,7 +176,9 @@ do
 	--expiredate=    | -e* )
 		USER_EXPIRE=${OPTARG}
 		case ${USER_EXPIRE} in *[![:digit:]]* )
-			USER_EXPIRE=$( date -d "${USER_EXPIRE} UTC" +'%s' )
+			USER_EXPIRE=$(
+				exec date -d "${USER_EXPIRE} UTC" +'%s'
+				)
 			USER_EXPIRE=$(( ${USER_EXPIRE} / ( 24 * 60 * 60 ) ))
 		esac
 		;;
