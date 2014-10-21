@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-groupmod 1.0
 #
-# Copyright (C) 2012 - 2013 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2014 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -138,8 +138,11 @@ esac
 case ${GROUP_DN++},${GROUP} in
 ,*=* ) GROUP_DN=${GROUP} ;;
 ,*   ) GROUP_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -o ldif-wrap=no -z 1 -- \
-		"(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 2> /dev/null \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-o ldif-wrap=no \
+		-z 1 \
+		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
+		2> /dev/null \
 	| sed -e '/^dn: */!d' -e 's///' -e 'q'
 	) ;;
 esac
@@ -174,8 +177,11 @@ memberUid: ${USER}" ;;
 		esac
 	done
 	unset IFS
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} -b "${GROUP_DN}" -o ldif-wrap=no -s base -- \
-		'(objectClass=*)' 1.1 \
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-b "${GROUP_DN}" \
+		-o ldif-wrap=no \
+		-s base \
+		-- '(objectClass=*)' 1.1 \
 	| sed \
 		-e '/^dn:/a\
 changetype: modify' \
