@@ -373,9 +373,12 @@ esac
 export USER_DN
 
 # LDAPBINDDN.
-case ${1++} in
-+ ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn )} ;;
-* ) LDAPBINDDN=${USER_DN} ;;
+case ${1++}:${USER_DN} in
++:*,uid="${LOGNAME}",* )
+	LDAPBINDDN=uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}
+	;;
++:* ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn )} ;;
+*:* ) LDAPBINDDN=${USER_DN} ;;
 esac
 case ${LDAPBINDDN:++} in
 + ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
@@ -443,7 +446,12 @@ __LDIF__
 	esac
 	# Prompt for the LDAP password.
 	LDAPBINDPW=${LDAPBINDPW-$(
-		exec "${wrapper}" --mode=askpass 'Enter LDAP Password: '
+		case ${USER_DN} in
+		(   "${LDAPBINDDN}" ) type= ;;
+		( *,"${LDAPBINDDN}" ) type='Master ' ;;
+		( *                 ) type='Administrator ' ;;
+		esac &&
+		exec "${wrapper}" --mode=askpass "Enter LDAP ${type}Password: "
 		)}
 	# Determine the URI of the master LDAP server.
 	LDAPURI=${LDAPURI-$(

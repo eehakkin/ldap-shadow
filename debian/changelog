@@ -1,3 +1,9 @@
+ldap-shadow (1.0~rc0.0.20141021) UNRELEASED; urgency=low
+
+  * Added support for master password.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 21 Oct 2014 21:55:07 +0300
+
 ldap-shadow (1.0~rc0.0.20140413) unstable; urgency=low
 
   * Allowed arbitrary LDAP user attribute modification requests to be
