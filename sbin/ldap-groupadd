@@ -180,30 +180,65 @@ END { if ( min <= max ) print min }
 	)}
 : "${GROUP_GID:?}"
 
-# GROUP_DN.
-case ${GROUP_DN++},${GROUP} in
-,*=* ) GROUP_DN=${GROUP} ;;
-,*   )
+# GROUP_DN, GROUP_DN_SPEC.
+case ${GROUP} in
+*=* ) GROUP_DN=${GROUP} ;;
+*   )
 	# GROUP_BASE_DN.
 	case ${GROUP_BASE_DN++},${GROUP_BASE_RDN++} in
 	+,* ) ;;
-	*,+ ) BASE_DN=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-s base \
-			-- "(objectClass=*)" 1.1 \
-		| sed -e '/^dn: /!d' -e 's///' -e 'q'
-		); GROUP_BASE_DN=${GROUP_BASE_RDN},${BASE_DN:?} ;;
-	*,* ) GROUP_BASE_DN=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-z 1 \
-			-- "(objectClass=posixGroup)" 1.1 \
-			2> /dev/null \
-		| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-		) ;;
+	*,+ )
+		BASE_DN_SPEC=$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-o ldif-wrap=no \
+				-s base \
+				-- "(objectClass=*)" 1.1 \
+			| sed -e '/^dn:/!d' -e 'q'
+			)
+		case ${BASE_DN_SPEC} in
+		'dn:: '* ) BASE_DN=$(
+			echo "${BASE_DN_SPEC#"dn:: "}" \
+			| base64 -d
+			) ;;
+		'dn: '*  ) BASE_DN=${BASE_DN_SPEC#"dn: "} ;;
+		*        ) BASE_DN= ;;
+		esac
+		GROUP_BASE_DN=${GROUP_BASE_RDN},${BASE_DN:?}
+		;;
+	*,* )
+		GROUP_DN_SPEC=$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-o ldif-wrap=no \
+				-z 1 \
+				-- "(objectClass=posixGroup)" 1.1 \
+				2> /dev/null \
+			| sed -e '/^dn:/!d' -e 'q'
+			)
+		case ${GROUP_DN_SPEC} in
+		'dn:: '* ) GROUP_DN=$(
+			echo "${GROUP_DN_SPEC#"dn:: "}" \
+			| base64 -d
+			) ;;
+		'dn: '*  ) GROUP_DN=${GROUP_DN_SPEC#"dn: "} ;;
+		*        ) GROUP_DN= ;;
+		esac
+		case ${GROUP_DN:?} in
+		*,ou=* ) GROUP_BASE_DN=ou=${GROUP_DN##*,ou=} ;;
+		*      ) GROUP_BASE_DN=${GROUP_DN#*,} ;;
+		esac
+		;;
 	esac
 	: "${GROUP_BASE_DN:?}"
+	# GROUP_RDN.
+	case ${GROUP} in
+	*[![:alnum:]_\\@.-]* ) GROUP_RDN=cn=$(
+		printf '%s' "${GROUP}" \
+		| perl -pw \
+			-e 's/([^[:alnum:]_\\@.-])/sprintf("\\%02X",ord($1))/ge'
+		) ;;
+	* ) GROUP_RDN=cn=${GROUP} ;;
+	esac
+	# GROUP_DN, GROUP_DN_SPEC.
 	unset RDN
 	while :
 	do
@@ -218,19 +253,26 @@ case ${GROUP_DN++},${GROUP} in
 			-s base \
 			-- '(objectClass=*)' 1.1 \
 			1> /dev/null \
-			2>&1 && :
-		case ${?},${GROUP},${GROUP_OU_RDN++},${RDN++} in
-		0,*,*,*  ) ;;
-		*,*,*,   | \
-		*,*,+,+  | \
-		*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
-dn: ${DN}
+			2>&1 ||
+		case ${GROUP_RDN},${GROUP_OU_RDN++},${RDN++} in
+		*,*,      | \
+		*,+,+     | \
+		cn=*-*,,+ )
+			case ${DN} in
+			*[![:alnum:]_\\@=.,-]* ) DN_SPEC="dn:: $(
+				printf '%s' "${DN}" \
+				| base64 -w 0
+				)" ;;
+			* ) DN_SPEC="dn: ${DN}" ;;
+			esac
+			cat << __LDIF__
+${DN_SPEC}
 changetype: add
 objectClass: organizationalUnit
-${RDN2%%=*}: ${RDN2#*=}
 
 __LDIF__
-		*,*,*,*  ) break ;;
+			;;
+		*,*,*     ) break ;;
 		esac
 		###########################################################
 		#
@@ -247,14 +289,20 @@ __LDIF__
 		# RDN.
 		case ${GROUP_OU_RDN++} in
 		+ ) RDN=${GROUP_OU_RDN##*,} ;;
-		* ) RDN=ou=${GROUP%-*} ;;
+		* ) RDN=ou=${GROUP_RDN#*=}; RDN=${RDN%-*} ;;
 		esac
 	done
-	# GROUP_DN.
-	GROUP_DN=cn=${GROUP},${GROUP_BASE_DN}
+	GROUP_DN=${GROUP_RDN},${GROUP_BASE_DN}
 	;;
 esac
-: "${GROUP_DN:?}"
+case ${GROUP_DN} in
+*[![:alnum:]_\\@=.,-]* ) GROUP_DN_SPEC="dn:: $(
+	printf '%s' "${GROUP_DN}" \
+	| base64 -w 0
+	)" ;;
+* ) GROUP_DN_SPEC="dn: ${GROUP_DN}" ;;
+esac
+: "${GROUP_DN:?}" "${GROUP_DN_SPEC:?}"
 
 ###########################################################################
 #
@@ -263,10 +311,9 @@ esac
 ###########################################################################
 # GROUP.
 cat << __LDIF__
-dn: ${GROUP_DN}
+${GROUP_DN_SPEC}
 changetype: add
 objectClass: posixGroup
-cn: ${GROUP}
 gidNumber: ${GROUP_GID}
 
 __LDIF__

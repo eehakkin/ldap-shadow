@@ -268,29 +268,64 @@ END { if ( min <= max ) print min }
 : "${USER_UID:?}"
 
 # USER_DN.
-case ${USER_DN++},${USER} in
-,*=* ) USER_DN=${USER} ;;
-,*   )
+case ${USER} in
+*=* ) USER_DN=${USER} ;;
+*   )
 	# USER_BASE_DN.
 	case ${USER_BASE_DN++},${USER_BASE_RDN++} in
 	+,* ) ;;
-	*,+ ) BASE_DN=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-s base \
-			-- "(objectClass=*)" 1.1 \
-		| sed -e '/^dn: /!d' -e 's///' -e 'q'
-		); USER_BASE_DN=${USER_BASE_RDN},${BASE_DN:?} ;;
-	*,* ) USER_BASE_DN=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-z 1 \
-			-- "(objectClass=posixAccount)" 1.1 \
-			2> /dev/null \
-		| sed -e '/^dn: [^\n]*,\(ou=[^\n]*\)$/!d' -e 's//\1/' -e 'q'
-		) ;;
+	*,+ )
+		BASE_DN_SPEC=$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-o ldif-wrap=no \
+				-s base \
+				-- "(objectClass=*)" 1.1 \
+			| sed -e '/^dn:/!d' -e 'q'
+			)
+		case ${BASE_DN_SPEC} in
+		'dn:: '* ) BASE_DN=$(
+			echo "${BASE_DN_SPEC#"dn:: "}" \
+			| base64 -d
+			) ;;
+		'dn: '*  ) BASE_DN=${BASE_DN_SPEC#"dn: "} ;;
+		*        ) BASE_DN= ;;
+		esac
+		USER_BASE_DN=${USER_BASE_RDN},${BASE_DN:?}
+		;;
+	*,* )
+		USER_DN_SPEC=$(
+			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-o ldif-wrap=no \
+				-z 1 \
+				-- "(objectClass=posixAccount)" 1.1 \
+				2> /dev/null \
+			| sed -e '/^dn:/!d' -e 'q'
+			)
+		case ${USER_DN_SPEC} in
+		'dn:: '* ) USER_DN=$(
+			echo "${USER_DN_SPEC#"dn:: "}" \
+			| base64 -d
+			) ;;
+		'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
+		*        ) USER_DN= ;;
+		esac
+		case ${USER_DN:?} in
+		*,ou=* ) USER_BASE_DN=ou=${USER_DN##*,ou=} ;;
+		*      ) USER_BASE_DN=${USER_DN#*,} ;;
+		esac
+		;;
 	esac
 	: "${USER_BASE_DN:?}"
+	# USER_RDN.
+	case ${USER} in
+	*[![:alnum:]_\\@.-]* ) USER_RDN=uid=$(
+		printf '%s' "${USER}" \
+		| perl -pw \
+			-e 's/([^[:alnum:]_\\@.-])/sprintf("\\%02X",ord($1))/ge'
+		) ;;
+	* ) USER_RDN=uid=${USER} ;;
+	esac
+	# USER_DN, USER_DN_SPEC.
 	unset RDN
 	while :
 	do
@@ -305,19 +340,26 @@ case ${USER_DN++},${USER} in
 			-s base \
 			-- '(objectClass=*)' 1.1 \
 			1> /dev/null \
-			2>&1 && :
-		case ${?},${USER},${USER_OU_RDN++},${RDN++} in
-		0,*,*,*  ) ;;
-		*,*,*,   | \
-		*,*,+,+  | \
-		*,*-*,,+ ) RDN2=${DN%%,*}; cat << __LDIF__ ;;
-dn: ${DN}
+			2>&1 ||
+		case ${USER},${USER_OU_RDN++},${RDN++} in
+		*,*,       | \
+		*,+,+      | \
+		uid=*-*,,+ )
+			case ${DN} in
+			*[![:alnum:]_\\@=.,-]* ) DN_SPEC="dn:: $(
+				printf '%s' "${DN}" \
+				| base64 -w 0
+				)" ;;
+			* ) DN_SPEC="dn: ${DN}" ;;
+			esac
+			cat << __LDIF__
+${DN_SPEC}
 changetype: add
 objectClass: organizationalUnit
-${RDN2%%=*}: ${RDN2#*=}
 
 __LDIF__
-		*,*,*,*  ) break ;;
+			;;
+		*,*,*      ) break ;;
 		esac
 		###########################################################
 		#
@@ -334,14 +376,20 @@ __LDIF__
 		# RDN.
 		case ${USER_OU_RDN++} in
 		+ ) RDN=${USER_OU_RDN##*,} ;;
-		* ) RDN=ou=${USER%-*} ;;
+		* ) RDN=ou=${USER_RDN#*=}; RDN=${RDN%-*} ;;
 		esac
 	done
-	# USER_DN.
-	USER_DN=uid=${USER},${USER_BASE_DN}
+	USER_DN=${USER_RDN},${USER_BASE_DN}
 	;;
 esac
-: "${USER_DN:?}"
+case ${USER_DN} in
+*[![:alnum:]_\\@=.,-]* ) USER_DN_SPEC="dn:: $(
+	printf '%s' "${USER_DN}" \
+	| base64 -w 0
+	)" ;;
+* ) USER_DN_SPEC="dn: ${USER_DN}" ;;
+esac
+: "${USER_DN:?}" "${USER_DN_SPEC:?}"
 
 # USER_COMMENT.
 USER_COMMENT=${USER_COMMENT:-${USER}}
@@ -358,7 +406,7 @@ USER_HOME_DIR=${USER_HOME_DIR:-${BASE_DIR:?}/${USER}}
 ###########################################################################
 # USER.
 cat << __LDIF__
-dn: ${USER_DN}
+${USER_DN_SPEC}
 changetype: add
 objectClass: posixAccount
 objectClass: shadowAccount${NORMAL:+

@@ -145,19 +145,35 @@ USER=${1-${LOGNAME}}
 # Values.
 #
 ###########################################################################
-# USER_DN.
+# USER_DN, USER_DN_SPEC.
 case ${USER} in
-*=* ) USER_DN=${USER} ;;
-*   ) USER_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		-o ldif-wrap=no \
-		-z 1 \
-		-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
-		2> /dev/null \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q'
-	) ;;
+*=* )
+	USER_DN_SPEC=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-b "${USER}" \
+			-o ldif-wrap=no \
+			-s base \
+			-- '(objectClass=posixAccount)' 1.1 \
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	USER_DN=${USER_DN_SPEC:+${USER}}
+	;;
+* )
+	USER_DN_SPEC=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-o ldif-wrap=no \
+			-z 1 \
+			-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	case ${USER_DN_SPEC} in
+	'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+	'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
+	*        ) USER_DN= ;;
+	esac
+	;;
 esac
-: "${USER_DN:?}"
+: "${USER_DN:?}" "${USER_DN_SPEC:?}"
 
 # LDAPBINDDN.
 case ${1++} in
@@ -210,7 +226,7 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMB
 			do
 				case ${value} in
 				( ': '* ) value=$(
-					printf '%s\n' "${value#": "}" \
+					echo "${value#": "}" \
 					| base64 -d
 					) ;;
 				( ' '* ) value=${value#" "} ;;
@@ -252,7 +268,7 @@ esac
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
 case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
 +* ) cat << __LDIF__ ;;
-dn: ${USER_DN}
+${USER_DN_SPEC}
 changetype: modify${USER_COMMENT+
 replace: cn
 cn: ${USER_COMMENT:-${USER}}${NORMAL:+

@@ -94,19 +94,24 @@ __USAGE__
 	} && : ;;
 --mode=binddn )
 	ADMIN_USER=${SUDO_USER-${LOGNAME-${USER-$( exec id -un )}}}
-	printf '%s\n' \
-		"&(cn=${ADMIN_USER})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
-		'cn=admin' \
-		"uid=${ADMIN_USER}" \
-	| ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		-f - \
-		-o ldif-wrap=no \
-		-z 1 \
-		-- '(&(%s)(|(objectClass=posixAccount)(objectClass=simpleSecurityObject)))' 1.1 \
-		2> /dev/null \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q' \
-	| grep -Fvx -e '' ||
-	printf '%s\n' "${USER_DN-${LDAPBINDDN}}"
+	dn_spec=$(
+		printf '%s\n' \
+			"&(cn=${ADMIN_USER})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
+			'cn=admin' \
+			"uid=${ADMIN_USER}" \
+		| ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-f - \
+			-o ldif-wrap=no \
+			-z 1 \
+			-- '(&(%s)(|(objectClass=posixAccount)(objectClass=simpleSecurityObject)))' 1.1 \
+			2> /dev/null \
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	case ${dn_spec} in
+	'dn:: '* ) echo "${dn_spec#"dn:: "}" | base64 -d && echo ;;
+	'dn: '*  ) printf '%s\n' "${dn_spec#"dn: "}" ;;
+	*        ) printf '%s\n' "${USER_DN-${LDAPBINDDN}}" ;;
+	esac
 	exit
 	;;
 --mode=frontend )
@@ -173,14 +178,14 @@ __USAGE__
 		# Extract connection parameters.
 		while :
 		do
-			head=${LDIF%%'
-'*}
+			head=${LDIF%%"
+"*}
 			case ${head} in
 			'# LDAP'*=* )
 				export "${head#??}"
 				LDIF=${LDIF#"${head}"}
-				LDIF=${LDIF#'
-'}
+				LDIF=${LDIF#"
+"}
 				;;
 			* ) break ;;
 			esac
@@ -216,7 +221,7 @@ __PASS__
 ${LDIF}
 __LDIF__
 		# Report errors.
-		error_msg=${error_msg#'Enter LDAP Password: '}
+		error_msg=${error_msg#"Enter LDAP Password: "}
 		case ${error_msg:++} in
 		+ ) printf '%s\n' "${error_msg}" >&2 ;;
 		esac
@@ -242,13 +247,24 @@ __LDIF__
 	LDAPURI=${LDAPURI-$(
 		set -e
 		# Determine the URIs of the master LDAP servers.
-		LDAPBASE=${LDAPBASE-$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-				-o ldif-wrap=no \
-				-s base \
-				-- 1.1 \
-			| sed -e '/^dn: */!d' -e 's///' -e 'q'
-			)}
+		case ${LDAPBASE++} in
+		'' )
+			BASE_DN_SPEC=$(
+				ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+					-o ldif-wrap=no \
+					-s base \
+					-- 1.1 \
+				| sed -e '/^dn:/!d' -e 'q'
+				)
+			case ${BASE_DN_SPEC} in
+			'dn:: '* ) LDAPBASE=$(
+				echo "${BASE_DN_SPEC#"dn:: "}" \
+				| base64 -d
+				) ;;
+			*        ) LDAPBASE=${BASE_DN_SPEC#"dn: "} ;;
+			esac
+			;;
+		esac
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-b cn=config \
 			-o ldif-wrap=no \
@@ -360,33 +376,52 @@ USER=${1-${LOGNAME}}
 # Values.
 #
 ###########################################################################
-# USER_DN.
+# USER_DN, USER_DN_SPEC.
 case ${USER} in
 *=* )
-	USER_DN=${USER}
+	USER_DN_SPEC=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-b "${USER}" \
+			-o ldif-wrap=no \
+			-s base \
+			-- '(objectClass=posixAccount)' 1.1 \
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	USER_DN=${USER_DN_SPEC:+${USER}}
 	;;
 * )
-	USER_DN=$(
+	USER_DN_SPEC=$(
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-o ldif-wrap=no \
 			-z 1 \
 			-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
-			2> /dev/null \
-		| sed -e '/^dn: */!d' -e 's///' -e 'q'
+		| sed -e '/^dn:/!d' -e 'q'
 		)
-	case ${SERVICE++} in
-	+ ) USER_DN=$(
+	case ${USER_DN_SPEC} in
+	'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+	'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
+	*        ) USER_DN= ;;
+	esac
+	;;
+esac
+case ${SERVICE++} in
++ )
+	USER_DN_SPEC=$(
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-o ldif-wrap=no \
 			-z 1 \
 			-- "(&(objectClass=organizationalRole)(|(dc:dn:=${SERVICE})(ou:dn:=${SERVICE}))(roleOccupant=${USER_DN:?}))" 1.1 \
 			2> /dev/null \
-		| sed -e '/^dn: */!d' -e 's///' -e 'q'
-		) ;;
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	case ${USER_DN_SPEC} in
+	'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+	'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
+	*        ) USER_DN= ;;
 	esac
 	;;
 esac
-: "${USER_DN:?}"
+: "${USER_DN:?}" "${USER_DN_SPEC:?}"
 export USER_DN
 
 # LDAPBINDDN.
@@ -427,7 +462,7 @@ shadowLastChange: 0" ;;
 		;;
 	esac
 	cat << __LDIF__
-dn: ${USER_DN}
+${USER_DN_SPEC}
 changetype: modify${USER_INACTIVE+
 replace: shadowInactive${USER_INACTIVE:+
 shadowInactive: ${USER_INACTIVE}}
@@ -493,14 +528,21 @@ __PASS__
 		min=disabled,24,11,8,7 max=40 passphrase=3 random=47
 		. "${config}"
 		IFS=,; set -- ${min}; unset IFS
-		PWD_POLICY_DN=$(
+		PWD_POLICY_DN_SPEC=$(
 			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${USER_DN}" \
 				-o ldif-wrap=no \
 				-s base \
 				-- '(objectClass=*)' pwdPolicySubentry \
-			| sed -e '/^pwdPolicySubentry: */!d' -e 's///' -e 'q'
+			| sed -e '/^pwdPolicySubentry: */!d' -e 'q'
 			)
+		case ${PWD_POLICY_DN_SPEC} in
+		'pwdPolicySubentry:: '* ) PWD_POLICY_DN=$(
+			echo "${PWD_POLICY_DN_SPEC#"pwdPolicySubentry:: "}" \
+			| base64 -d
+			) ;;
+		* ) PWD_POLICY_DN=${PWD_POLICY_DN_SPEC#"pwdPolicySubentry: "} ;;
+		esac
 		min=${PWD_POLICY_DN:+$(
 			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${PWD_POLICY_DN}" \
@@ -655,8 +697,10 @@ __PASS__
 	{
 		tr -d -- '\n' \
 		| { tr -d -- '\n' <&3 \
-		| ldappasswd ${LDAPPASSWD_OPTS} -T /dev/fd/4 -y /dev/stdin -- \
-			"${USER_DN}"; } 4<&0
+		| ldappasswd ${LDAPPASSWD_OPTS} \
+			-T /dev/fd/4 \
+			-y /dev/stdin \
+			-- "${USER_DN}"; } 4<&0
 	} << __NEWPASS__ 3<< __PASS__
 ${new_pass}
 __NEWPASS__

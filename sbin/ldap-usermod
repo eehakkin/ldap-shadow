@@ -179,22 +179,39 @@ esac
 # Values.
 #
 ###########################################################################
-# USER_DN.
-case ${USER_DN++},${USER} in
-,*=* ) USER_DN=${USER} ;;
-,*   ) USER_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		-o ldif-wrap=no \
-		-z 1 \
-		-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
-		2> /dev/null \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q'
-	) ;;
+# USER_DN, USER_DN_SPEC.
+case ${USER} in
+*=* )
+	USER_DN_SPEC=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-b "${USER}" \
+			-o ldif-wrap=no \
+			-s base \
+			-- '(objectClass=posixAccount)' 1.1 \
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	USER_DN=${USER_DN_SPEC:+${USER}}
+	;;
+* )
+	USER_DN_SPEC=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-o ldif-wrap=no \
+			-z 1 \
+			-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	case ${USER_DN_SPEC} in
+	'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+	'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
+	*        ) USER_DN= ;;
+	esac
+	;;
 esac
+: "${USER_DN:?}" "${USER_DN_SPEC:?}"
 
 # USER_COMMENT.
 case ${USER_COMMENT++} in
-+ ) : "${USER_DN:?}"; NORMAL=$(
++ ) NORMAL=$(
 	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 		-b "${USER_DN}" \
 		-s base \
@@ -222,8 +239,8 @@ esac
 ###########################################################################
 # USER_COMMENT, USER_GID, USER_HOME_DIR, USER_SHELL, USER_EXPIRE, USER_INACTIVE, USER_UID, USER_LDIF.
 case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_EXPIRE++}${USER_INACTIVE++}${USER_UID++}${USER_LDIF:++} in
-+* ) : "${USER_DN:?}"; cat << __LDIF__ ;;
-dn: ${USER_DN}
++* ) cat << __LDIF__ ;;
+${USER_DN_SPEC}
 changetype: modify${USER_COMMENT+
 replace: cn
 cn: ${USER_COMMENT}${NORMAL:+
@@ -397,7 +414,7 @@ ${DN_ATTRIBUTE}: ${USER_DN}\\
 -"
 	done
 	cat << __LDIF__
-dn: ${USER_DN}
+${USER_DN_SPEC}
 changetype: modrdn
 newrdn: uid=${NEW_USER-${USER}}
 deleteoldrdn: 1${NEW_SUPERIOR_DN+

@@ -1,3 +1,9 @@
+ldap-shadow (1.0~rc0.0.20141118) UNRELEASED; urgency=low
+
+  * Improve handling of non-ASCII distinguished names (DNs).
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 18 Nov 2014 09:39:37 +0200
+
 ldap-shadow (1.0~rc0.0.20141021) unstable; urgency=low
 
   * Added support for master password.

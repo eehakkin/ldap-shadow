@@ -103,19 +103,26 @@ esac
 # Values.
 #
 ###########################################################################
-# GROUP_DN.
-case ${GROUP_DN++},${GROUP} in
-,*=* ) GROUP_DN=${GROUP} ;;
-,*   ) GROUP_DN=$(
+# GROUP_DN_SPEC.
+case ${GROUP} in
+*=* ) GROUP_DN_SPEC=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-b "${GROUP}" \
+		-o ldif-wrap=no \
+		-s base \
+		-- '(objectClass=posixGroup)' 1.1 \
+	| sed -e '/^dn:/!d' -e 'q'
+	) ;;
+*   ) GROUP_DN_SPEC=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 		-o ldif-wrap=no \
 		-z 1 \
 		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
 		2> /dev/null \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q'
+	| sed -e '/^dn:/!d' -e 'q'
 	) ;;
 esac
-: "${GROUP_DN:?}"
+: "${GROUP_DN_SPEC:?}"
 
 ###########################################################################
 #
@@ -124,7 +131,7 @@ esac
 ###########################################################################
 # GROUP.
 cat << __LDIF__
-dn: ${GROUP_DN}
+${GROUP_DN_SPEC}
 changetype: delete
 
 __LDIF__

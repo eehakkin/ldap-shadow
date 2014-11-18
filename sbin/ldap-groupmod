@@ -134,19 +134,36 @@ esac
 # Values.
 #
 ###########################################################################
-# GROUP_DN.
-case ${GROUP_DN++},${GROUP} in
-,*=* ) GROUP_DN=${GROUP} ;;
-,*   ) GROUP_DN=$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		-o ldif-wrap=no \
-		-z 1 \
-		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
-		2> /dev/null \
-	| sed -e '/^dn: */!d' -e 's///' -e 'q'
-	) ;;
+# GROUP_DN, GROUP_DN_SPEC.
+case ${GROUP} in
+*=* )
+	GROUP_DN_SPEC=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-b "${GROUP}" \
+			-o ldif-wrap=no \
+			-s base \
+			-- '(objectClass=posixGroup)' 1.1 \
+		| sed -e '/^dn:/!d' -e 'q'
+		)
+	GROUP_DN=${GROUP_DN_SPEC:+${GROUP}}
+	;;
+* )
+	GROUP_DN_SPEC=$(
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-o ldif-wrap=no \
+			-z 1 \
+			-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
+			2> /dev/null \
+		| sed -e '/^dn: */!d' -e 's///' -e 'q'
+		)
+	case ${GROUP_DN_SPEC} in
+	'dn:: '* ) GROUP_DN=$( echo "${GROUP_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+	'dn: '*  ) GROUP_DN=${GROUP_DN_SPEC#"dn: "} ;;
+	*        ) GROUP_DN= ;;
+	esac
+	;;
 esac
-: "${GROUP_DN:?}"
+: "${GROUP_DN:?}" "${GROUP_DN_SPEC:?}"
 
 ###########################################################################
 #
@@ -156,7 +173,7 @@ esac
 # GROUP_GID.
 case ${GROUP_GID++} in
 +* ) cat << __LDIF__ ;;
-dn: ${GROUP_DN}
+${GROUP_DN_SPEC}
 changetype: modify
 replace: gidNumber
 gidNumber: ${GROUP_GID}
@@ -197,10 +214,10 @@ add: memberUid${GROUP_USERS_ADD}\\
 	;;
 esac
 
-# NEW_GROUP.
+# NEW_GROUP, NEW_SUPERIOR_DN.
 case ${NEW_GROUP++}${NEW_SUPERIOR_DN++} in
 +* ) cat << __LDIF__ ;;
-dn: ${GROUP_DN}
+${GROUP_DN_SPEC}
 changetype: modrdn
 newrdn: cn=${NEW_GROUP-${GROUP}}
 deleteoldrdn: 1${NEW_SUPERIOR_DN+
