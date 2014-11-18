@@ -221,8 +221,8 @@ esac
 #
 ###########################################################################
 # USER_GID.
-case ${USERGROUPS_ENAB} in
-yes )
+case ${USERGROUPS_ENAB},${USER_GID-},${USER_GID++} in
+yes,, )
 	USER_GID=$(
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-o ldif-wrap=no \
@@ -231,21 +231,20 @@ yes )
 			2> /dev/null \
 		| sed -e '/^gidNumber: /!d' -e 's///' -e 'q'
 		)
-	case ${USER_GID} in
-	'' )
+	case ${USER},${USER_GID} in
+	*=*,* ) ;;
+	*,    )
 		set -- ${SYSTEM:+ --system } -- "${USER}"
 		. "${0%ldap-*}ldap-groupadd"
 		USER_GID=${GROUP_GID:?}
 		;;
 	esac
 	;;
-* )
-	case ${USER_GID-users} in
-	*[![:digit:]]* ) USER_GID=$(
+*,*[![:digit:]]*,+ | *,, )
+	USER_GID=$(
 		getent -- group "${USER_GID-users}" \
 		| cut -d : -f 3
-		) ;;
-	esac
+		)
 	;;
 esac
 : "${USER_GID:?}"
