@@ -46,7 +46,9 @@ Operands:
  USER             The username (the user identifier defined by the uid
                   attribute) or the distinguished name (DN) of the LDAP user
                   account whose password is to be changed using administrative
-                  privileges.
+                  privileges and either a master password (if USER is
+                  the current user and a service password is to be changed) or
+                  an administrator password (otherwise).
                   The default is to change the password for the LDAP POSIX user
                   account of the current user using user privileges.
 
