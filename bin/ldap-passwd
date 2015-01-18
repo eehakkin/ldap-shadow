@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-passwd 1.0
 #
-# Copyright (C) 2012 - 2014 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2015 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -628,10 +628,23 @@ long, and contain enough different characters.
 			fi
 			while [ "${random}" -gt 0 ]
 			do
+				# Prefer passphrases over passwords.
+				case $(( ${random} % 13 )) in
+				0 ) random_pass=$(
+					exec pwqgen random="$((
+						( 13 + 4 ) * ( ${random} / 13 )
+						))" \
+					| exec sed \
+						-e 's/[^[:alpha:]]/ /g' \
+						-e 's/ *$//'
+					) ;;
+				* ) random_pass=$(
+					exec pwqgen random="${random}"
+					) ;;
+				esac
 				# Passwords must never be passed as
 				# command-line arguments due to security and
 				# privacy reasons thus use a here-document.
-				random_pass=$( exec pwqgen random="${random}" )
 				if pwqcheck -2 config="${config}" \
 					<< __PASS__ > /dev/null
 ${random_pass}

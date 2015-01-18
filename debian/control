@@ -6,7 +6,7 @@ Build-Depends-Indep:
 Maintainer: Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>
 Priority: optional
 Section: admin
-Standards-Version: 3.9.4
+Standards-Version: 3.9.6
 
 Package: ldap-passwd
 Architecture: all
