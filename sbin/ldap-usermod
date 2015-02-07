@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-usermod 1.0
 #
-# Copyright (C) 2012 - 2014 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2015 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -187,7 +187,7 @@ case ${USER} in
 			-b "${USER}" \
 			-o ldif-wrap=no \
 			-s base \
-			-- '(objectClass=posixAccount)' 1.1 \
+			-- '(|(objectClass=inetOrgPerson)(objectClass=organizationalRole)(objectClass=posixAccount))' 1.1 \
 		| sed -e '/^dn:/!d' -e 'q'
 		)
 	USER_DN=${USER_DN_SPEC:+${USER}}
