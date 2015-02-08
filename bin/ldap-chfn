@@ -181,7 +181,8 @@ case ${1++} in
 * ) LDAPBINDDN=${USER_DN} ;;
 esac
 case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' \
+	"LDAPBINDDN=${LDAPBINDDN}" "USER_DN=${USER_DN}" ;;
 esac
 
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.

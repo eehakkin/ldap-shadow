@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-groupadd 1.0
 #
-# Copyright (C) 2012 - 2014 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2015 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -141,7 +141,7 @@ GROUP=${1-}
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn )}
 case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" ;;
 esac
 
 ###########################################################################

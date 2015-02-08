@@ -73,13 +73,29 @@ Files:
  /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
---mode=askpass ) {
+--mode=askpass )
 	shift
+	case ${#} in
+	0 )
+		###########################################################
+		#
+		# Generate a default prompt.
+		#
+		###########################################################
+		case ${USER_DN++},${USER_DN-} in
+		+,"${LDAPBINDDN}"   ) set -- 'Enter LDAP Password: ' ;;
+		+,*,"${LDAPBINDDN}" ) set -- 'Enter LDAP Master Password: ' ;;
+		*,*                 ) set -- \
+			'Enter LDAP Administrator Password: ' ;;
+		esac
+		;;
+	esac
 	###################################################################
 	#
 	# Prompt for a password.
 	#
 	###################################################################
+	set +e
 	error=0
 	if [ -t 0 ]
 	then
@@ -93,7 +109,7 @@ __USAGE__
 		echo >&2
 	fi
 	exit "${error}"
-	} && : ;;
+	;;
 --mode=binddn )
 	ADMIN_USER=${SUDO_USER-${LOGNAME-${USER-$( exec id -un )}}}
 	dn_spec=$(
@@ -180,12 +196,12 @@ __USAGE__
 		# Extract connection parameters.
 		while :
 		do
-			head=${LDIF%%"
-"*}
-			case ${head} in
-			'# LDAP'*=* )
-				export "${head#??}"
-				LDIF=${LDIF#"${head}"}
+			case ${LDIF} in
+			'# ,,,[LDAPBINDDN='*'],,,'* | \
+			'# ,,,[USER_DN='*'],,,'*    )
+				LDIF=${LDIF#"# ,,,["}
+				export "${LDIF%%"],,,"*}"
+				LDIF=${LDIF#*=*"],,,"}
 				LDIF=${LDIF#"
 "}
 				;;
@@ -202,10 +218,7 @@ __USAGE__
 		,+  ) LDAPMODIFY_OPTS="${LDAPSEARCH_OPTS} -W" ;;
 		esac
 		# Prompt for the LDAP password.
-		LDAPBINDPW=${LDAPBINDPW-$(
-			exec "${wrapper}" --mode=askpass \
-				'Enter LDAP Password: '
-			)}
+		LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
 		# Determine the URI of the master LDAP server.
 		LDAPURI=${LDAPURI-$(
 			exec "${wrapper}" --mode=uri << __PASS__
@@ -290,9 +303,7 @@ __LDIF__
 	: "${LDAPURI:?}"
 	# Loop over the candidate LDAP servers in order to handle partial
 	# replication (userPassword attributes are not always replicated).
-	LDAPBINDPW=${LDAPBINDPW-$(
-		exec "${wrapper}" --mode=askpass 'Enter LDAP Password: '
-		)}
+	LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
 	error=1 error_msg=
 	for uri in ${LDAPURI}
 	do
@@ -435,7 +446,8 @@ case ${1++}:${USER_DN} in
 *:* ) LDAPBINDDN=${USER_DN} ;;
 esac
 case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' \
+	"LDAPBINDDN=${LDAPBINDDN}" "USER_DN=${USER_DN}" ;;
 esac
 
 case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS++}${USER_WARN_DAYS++} in
@@ -499,14 +511,7 @@ __LDIF__
 	,+  ) LDAPPASSWD_OPTS="${LDAPSEARCH_OPTS} -W" ;;
 	esac
 	# Prompt for the LDAP password.
-	LDAPBINDPW=${LDAPBINDPW-$(
-		case ${USER_DN} in
-		(   "${LDAPBINDDN}" ) type= ;;
-		( *,"${LDAPBINDDN}" ) type='Master ' ;;
-		( *                 ) type='Administrator ' ;;
-		esac &&
-		exec "${wrapper}" --mode=askpass "Enter LDAP ${type}Password: "
-		)}
+	LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
 	# Determine the URI of the master LDAP server.
 	LDAPURI=${LDAPURI-$(
 		exec "${wrapper}" --mode=uri << __PASS__

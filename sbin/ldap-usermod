@@ -171,7 +171,7 @@ USER=${1-}
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn )}
 case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# LDAPBINDDN=%s\n' "${LDAPBINDDN}" ;;
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" ;;
 esac
 
 ###########################################################################
