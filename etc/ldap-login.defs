@@ -24,7 +24,7 @@ SYS_GID_MAX	60000
 #GROUP_BASE_DN	ou=Groups,dc=example,dc=com
 
 # A relative distinguished name (RDN) of an LDAP entry to be used as a search
-# base for groups. The GROUP_BASE_RDN variable takes precedence over this one.
+# base for groups. The GROUP_BASE_DN variable takes precedence over this one.
 #GROUP_BASE_RDN	ou=Groups
 
 # A relative distinguished name (RDN) of an organizationalUnit LDAP subentry
@@ -32,7 +32,7 @@ SYS_GID_MAX	60000
 # If the group name contains dashes, the default is to use ou=GROUP_PREFIX
 # where GROUP_PREFIX is the group name without the last dash separated part.
 # If the group name does not contains dashes, the default is to use ou=GROUP
-# if that LDAP subentry exists.
+# but only if that LDAP subentry exists.
 #GROUP_OU_RDN	ou=Staff
 
 # A minimum user ID for new user accounts.
@@ -54,7 +54,7 @@ SYS_UID_MAX	60000
 #USER_BASE_DN	ou=Users,dc=example,dc=com
 
 # A relative distinguished name (RDN) of an LDAP entry to be used as a search
-# base for users. The USER_BASE_RDN variable takes precedence over this one.
+# base for users. The USER_BASE_DN variable takes precedence over this one.
 #USER_BASE_RDN	ou=Users
 
 # A relative distinguished name (RDN) of an organizationalUnit LDAP subentry
@@ -62,7 +62,7 @@ SYS_UID_MAX	60000
 # If the username contains dashes, the default is to use ou=USER_PREFIX
 # where USER_PREFIX is the username without the last dash separated part.
 # If the username does not contains dashes, the default is to use ou=USER
-# if that LDAP subentry exists.
+# but only if that LDAP subentry exists.
 #USER_OU_RDN	ou=Staff
 
 # A default expiration date number for the new user accounts.
