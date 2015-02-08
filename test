@@ -9,6 +9,30 @@ GROUP=${GROUP-$( id -gn )}
 OPTS=${OPTS-}
 SERVICE=${SERVICE-Mail}
 USER=${USER-$( id -un )}
+GROUP_DN_SPEC=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-o ldif-wrap=no \
+		-z 1 \
+		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
+	| sed -e '/^dn:/!d' -e 'q'
+	)
+case ${GROUP_DN_SPEC} in
+'dn:: '* ) GROUP_DN=$( echo "${GROUP_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+'dn: '*  ) GROUP_DN=${GROUP_DN_SPEC#"dn: "} ;;
+*        ) GROUP_DN= ;;
+esac
+USER_DN_SPEC=$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-o ldif-wrap=no \
+		-z 1 \
+		-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
+	| sed -e '/^dn:/!d' -e 'q'
+	)
+case ${USER_DN_SPEC} in
+'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
+*        ) USER_DN= ;;
+esac
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
 	-{-delete-attribute{=,' '},D{,' '}}ATTR{,=VALUE}	\
@@ -23,6 +47,8 @@ for opts in \
 	-{-work-phone{=,' '},w{,' '}}optarg
 do
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS}
+	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER}"
+	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER_DN}"
 done 3> /dev/null
 for opts in \
 	-{-help,h}			\
@@ -31,6 +57,8 @@ for opts in \
 	-{-version,V}
 do
 	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS}
+	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS} "${USER}"
+	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS} "${USER_DN}"
 done 3> /dev/null
 for opts in \
 	-{-delete,d}					\
@@ -48,6 +76,8 @@ for opts in \
 do
 	case ${opts} in *SKIP ) continue ;; esac
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS}
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER}"
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER_DN}"
 done 3> /dev/null
 for opts in \
 	-{-force,f}				\
@@ -60,6 +90,7 @@ for opts in \
 	-{-version,V}
 do
 	spawn ./sbin/ldap-groupadd --dry-run ${opts} ${OPTS} "${GROUP}"
+	spawn ./sbin/ldap-groupadd --dry-run ${opts} ${OPTS} "${GROUP_DN}"
 done 3> /dev/null
 for opts in \
 	-{-help,h}				\
@@ -68,6 +99,7 @@ for opts in \
 	-{-version,V}
 do
 	spawn ./sbin/ldap-groupdel --dry-run ${opts} ${OPTS} "${GROUP}"
+	spawn ./sbin/ldap-groupdel --dry-run ${opts} ${OPTS} "${GROUP_DN}"
 done 3> /dev/null
 for opts in \
 	-{-add{=,' '},a{,' '}}optarg		\
@@ -83,6 +115,7 @@ for opts in \
 	-{-version,V}
 do
 	spawn ./sbin/ldap-groupmod --dry-run ${opts} ${OPTS} "${GROUP}"
+	spawn ./sbin/ldap-groupmod --dry-run ${opts} ${OPTS} "${GROUP_DN}"
 done 3> /dev/null
 for opts in \
 	-{-base-dir{=,' '},b{,' '}}optarg	\
@@ -106,6 +139,7 @@ for opts in \
 	-{-version,V}
 do
 	spawn ./sbin/ldap-useradd --dry-run ${opts} ${OPTS} "${USER}"
+	spawn ./sbin/ldap-useradd --dry-run ${opts} ${OPTS} --gid=12345 "${USER_DN}"
 done 3> /dev/null
 for opts in \
 	-{-help,h}				\
@@ -114,6 +148,7 @@ for opts in \
 	-{-version,V}
 do
 	spawn ./sbin/ldap-userdel --dry-run ${opts} ${OPTS} "${USER}"
+	spawn ./sbin/ldap-userdel --dry-run ${opts} ${OPTS} "${USER_DN}"
 done 3> /dev/null
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
@@ -137,4 +172,5 @@ for opts in \
 	-{-version,V}
 do
 	spawn ./sbin/ldap-usermod --dry-run ${opts} ${OPTS} "${USER}"
+	spawn ./sbin/ldap-usermod --dry-run ${opts} ${OPTS} "${USER_DN}"
 done 3> /dev/null
