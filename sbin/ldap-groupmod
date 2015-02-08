@@ -154,7 +154,7 @@ case ${GROUP} in
 			-z 1 \
 			-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
 			2> /dev/null \
-		| sed -e '/^dn: */!d' -e 's///' -e 'q'
+		| sed -e '/^dn:/!d' -e 'q'
 		)
 	case ${GROUP_DN_SPEC} in
 	'dn:: '* ) GROUP_DN=$( echo "${GROUP_DN_SPEC#"dn:: "}" | base64 -d ) ;;
