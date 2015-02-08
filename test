@@ -110,7 +110,7 @@ for opts in \
 	-{-root{=,' '},R{,' '}}optarg		\
 	-{-version,V}
 do
-	spawn ./sbin/ldap-userdel --dry-run ${opts} "${GROUP}"
+	spawn ./sbin/ldap-userdel --dry-run ${opts} "${USER}"
 done 3> /dev/null
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
