@@ -6,6 +6,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 spawn() { ( set -x; exec "${@}" ); }
 cd -- "${dir}"
 GROUP=${GROUP-$( id -gn )}
+OPTS=${OPTS-}
 SERVICE=${SERVICE-Mail}
 USER=${USER-$( id -un )}
 for opts in \
@@ -21,7 +22,7 @@ for opts in \
 	-{-version,V}						\
 	-{-work-phone{=,' '},w{,' '}}optarg
 do
-	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts}
+	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS}
 done 3> /dev/null
 for opts in \
 	-{-help,h}			\
@@ -29,7 +30,7 @@ for opts in \
 	-{-shell{=,' '},s{,' '}}optarg	\
 	-{-version,V}
 do
-	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts}
+	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS}
 done 3> /dev/null
 for opts in \
 	-{-delete,d}					\
@@ -46,7 +47,7 @@ for opts in \
 	-{-warndays{=,' '},w{,' '}}optarg
 do
 	case ${opts} in *SKIP ) continue ;; esac
-	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts}
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS}
 done 3> /dev/null
 for opts in \
 	-{-force,f}				\
@@ -58,7 +59,7 @@ for opts in \
 	-{-system,r}				\
 	-{-version,V}
 do
-	spawn ./sbin/ldap-groupadd --dry-run ${opts} "${GROUP}"
+	spawn ./sbin/ldap-groupadd --dry-run ${opts} ${OPTS} "${GROUP}"
 done 3> /dev/null
 for opts in \
 	-{-help,h}				\
@@ -66,7 +67,7 @@ for opts in \
 	-{-root{=,' '},R{,' '}}optarg		\
 	-{-version,V}
 do
-	spawn ./sbin/ldap-groupdel --dry-run ${opts} "${GROUP}"
+	spawn ./sbin/ldap-groupdel --dry-run ${opts} ${OPTS} "${GROUP}"
 done 3> /dev/null
 for opts in \
 	-{-add{=,' '},a{,' '}}optarg		\
@@ -81,7 +82,7 @@ for opts in \
 	-{-root{=,' '},R{,' '}}optarg		\
 	-{-version,V}
 do
-	spawn ./sbin/ldap-groupmod --dry-run ${opts} "${GROUP}"
+	spawn ./sbin/ldap-groupmod --dry-run ${opts} ${OPTS} "${GROUP}"
 done 3> /dev/null
 for opts in \
 	-{-base-dir{=,' '},b{,' '}}optarg	\
@@ -104,7 +105,7 @@ for opts in \
 	-{-user-group,U}			\
 	-{-version,V}
 do
-	spawn ./sbin/ldap-useradd --dry-run ${opts} "${USER}"
+	spawn ./sbin/ldap-useradd --dry-run ${opts} ${OPTS} "${USER}"
 done 3> /dev/null
 for opts in \
 	-{-help,h}				\
@@ -112,7 +113,7 @@ for opts in \
 	-{-root{=,' '},R{,' '}}optarg		\
 	-{-version,V}
 do
-	spawn ./sbin/ldap-userdel --dry-run ${opts} "${USER}"
+	spawn ./sbin/ldap-userdel --dry-run ${opts} ${OPTS} "${USER}"
 done 3> /dev/null
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
@@ -135,5 +136,5 @@ for opts in \
 	-{-uid{=,' '},u{,' '}}optarg				\
 	-{-version,V}
 do
-	spawn ./sbin/ldap-usermod --dry-run ${opts} "${USER}"
+	spawn ./sbin/ldap-usermod --dry-run ${opts} ${OPTS} "${USER}"
 done 3> /dev/null
