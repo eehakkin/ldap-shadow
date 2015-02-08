@@ -6,6 +6,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 spawn() { ( set -x; exec "${@}" ); }
 cd -- "${dir}"
 GROUP=${GROUP-$( id -gn )}
+SERVICE=${SERVICE-Mail}
 USER=${USER-$( id -un )}
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
@@ -31,19 +32,20 @@ do
 	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts}
 done 3> /dev/null
 for opts in \
-	-{-delete,d}				\
-	-{-expire,e}				\
-	-{-help,h}				\
-	-{-inactive{=,' '},i{,' '}}optarg	\
-	-{-maxdays{=,' '},x{,' '}}optarg	\
-	-{-mindays{=,' '},n{,' '}}optarg	\
-	-{-quiet,q}				\
-	-{-repository{=,' '},r{,' '}}optarg	\
-	-{-root{=,' '},R{,' '}}optarg		\
-	-{-service{=,' '},s{,' '}}optarg	\
-	-{-version,V}				\
+	-{-delete,d}					\
+	-{-expire,e}					\
+	-{-help,h}					\
+	-{-inactive{=,' '},i{,' '}}optarg		\
+	-{-maxdays{=,' '},x{,' '}}optarg		\
+	-{-mindays{=,' '},n{,' '}}optarg		\
+	-{-quiet,q}					\
+	-{-repository{=,' '},r{,' '}}optarg		\
+	-{-root{=,' '},R{,' '}}optarg			\
+	-{-service{=,' '},s{,' '}}"${SERVICE:-SKIP}"	\
+	-{-version,V}					\
 	-{-warndays{=,' '},w{,' '}}optarg
 do
+	case ${opts} in *SKIP ) continue ;; esac
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts}
 done 3> /dev/null
 for opts in \
