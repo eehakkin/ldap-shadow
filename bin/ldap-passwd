@@ -190,7 +190,7 @@ __USAGE__
 	esac
 	unset GROUP_DN GROUP_GID USER_DN USER_UID
 	# LDIF.
-	LDIF=$( LDAP_HAS_FRONTEND=+ exec "${@}" ) 3>&1
+	{ LDIF=$( LDAP_HAS_FRONTEND=+ exec "${@}" ); } 3>&1
 	error=0
 	case ${LDIF:++} in + )
 		# Extract connection parameters.

@@ -3,7 +3,7 @@ me=$( which -- "${0}" || ls -d -- "${0}" )
 dir=$( dirname -- "${me}" )
 wrapper=${dir}/bin/ldap-passwd
 ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
-spawn() { ( set -x; exec "${@}" ); }
+spawn() { ( set -x && exec "${@}" ); }
 cd -- "${dir}"
 GROUP=${GROUP-$( id -gn )}
 OPTS=${OPTS-}
