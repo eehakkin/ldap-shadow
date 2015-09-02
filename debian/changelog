@@ -2,6 +2,7 @@ ldap-shadow (1.0.20150903) UNRELEASED; urgency=medium
 
   * Renamed the common administrator bind DN mode.
   * Added a common LDAP search option mode.
+  * Added a common LDAP modify option mode.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Thu, 03 Sep 2015 01:02:49 +0300
 

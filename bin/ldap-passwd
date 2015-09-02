@@ -205,11 +205,9 @@ __USAGE__
 	esac
 	case ${LDIF:++} in + )
 		# Modify options.
-		case ${LDAPMODIFY_OPTS++},${LDAPSEARCH_OPTS:++} in
-		+,* ) ;;
-		,   ) LDAPMODIFY_OPTS= ;;
-		,+  ) LDAPMODIFY_OPTS="${LDAPSEARCH_OPTS} -W" ;;
-		esac
+		LDAPMODIFY_OPTS=${LDAPMODIFY_OPTS-$(
+			exec "${wrapper}" --mode=opts-modify
+			)}
 		# Prompt for the LDAP password.
 		LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
 		# Determine the URI of the master LDAP server.
@@ -244,6 +242,14 @@ __LDIF__
 		;;
 	esac
 	exit "${error}"
+	;;
+--mode=opts-modify )
+	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-$( "${wrapper}" --mode=opts-search )}
+	case ${LDAPSEARCH_OPTS} in
+	-W* ) printf '%s\n' "${LDAPSEARCH_OPTS}" ;;
+	?*  ) printf '%s\n' "${LDAPSEARCH_OPTS} -W" ;;
+	esac
+	exit
 	;;
 --mode=opts-search )
 	for LDAPSEARCH_OPTS in '-x' '-W -x' # ''
@@ -509,11 +515,9 @@ __LDIF__
 	###################################################################
 	exec >&3
 	# Password options.
-	case ${LDAPPASSWD_OPTS++},${LDAPSEARCH_OPTS:++} in
-	+,* ) ;;
-	,   ) LDAPPASSWD_OPTS= ;;
-	,+  ) LDAPPASSWD_OPTS="${LDAPSEARCH_OPTS} -W" ;;
-	esac
+	LDAPPASSWD_OPTS=${LDAPPASSWD_OPTS-$(
+		exec "${wrapper}" --mode=opts-modify
+		)}
 	# Prompt for the LDAP password.
 	LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
 	# Determine the URI of the master LDAP server.
