@@ -244,7 +244,7 @@ __LDIF__
 		case ${error_msg:++} in
 		+ ) printf '%s\n' "${error_msg}" >&2 ;;
 		esac
-		case ${1##[\\/]} in *group* | *user* )
+		case ${1##*[\\/]} in *group* | *user* )
 			# Invalidate name service caches.
 			if nscd=$( exec which -- 'nscd' )
 			then
