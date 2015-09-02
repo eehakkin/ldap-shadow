@@ -143,7 +143,7 @@ esac
 
 # LDAPBINDDN.
 case ${1++} in
-+ ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn )} ;;
++ ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )} ;;
 * ) LDAPBINDDN=${USER_DN} ;;
 esac
 case ${LDAPBINDDN:++} in

@@ -110,13 +110,13 @@ __USAGE__
 	fi
 	exit "${error}"
 	;;
---mode=binddn )
-	ADMIN_USER=${SUDO_USER-${LOGNAME-${USER-$( exec id -un )}}}
-	dn_spec=$(
+--mode=binddn-admin )
+	LOGNAME=${SUDO_USER-${LOGNAME-${USER-$( exec id -un )}}}
+	DN_SPEC=$(
 		printf '%s\n' \
-			"&(cn=${ADMIN_USER})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
+			"&(cn=${LOGNAME})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
 			'cn=admin' \
-			"uid=${ADMIN_USER}" \
+			"uid=${LOGNAME}" \
 		| ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-f - \
 			-o ldif-wrap=no \
@@ -125,10 +125,10 @@ __USAGE__
 			2> /dev/null \
 		| sed -e '/^dn:/!d' -e 'q'
 		)
-	case ${dn_spec} in
-	'dn:: '* ) echo "${dn_spec#"dn:: "}" | base64 -d && echo ;;
-	'dn: '*  ) printf '%s\n' "${dn_spec#"dn: "}" ;;
-	*        ) printf '%s\n' "${USER_DN-${LDAPBINDDN}}" ;;
+	case ${DN_SPEC} in
+	'dn:: '* ) echo "${DN_SPEC#"dn:: "}" | base64 -d && echo ;;
+	'dn: '*  ) printf '%s\n' "${DN_SPEC#"dn: "}" ;;
+	*        ) printf '%s\n' "${USER_DN:?}" ;;
 	esac
 	exit
 	;;
@@ -442,7 +442,7 @@ case ${1++}:${USER_DN} in
 +:*,uid="${LOGNAME}",* )
 	LDAPBINDDN=uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}
 	;;
-+:* ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn )} ;;
++:* ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )} ;;
 *:* ) LDAPBINDDN=${USER_DN} ;;
 esac
 case ${LDAPBINDDN:++} in
