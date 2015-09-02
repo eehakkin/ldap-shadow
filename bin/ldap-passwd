@@ -324,9 +324,10 @@ __LDIF__
 		exec sed -e '/^URI[[:space:]]/{s///;h;};$!d;g' -- "${@}"
 		)}
 	: "${LDAPURI:?}"
+	# Prompt for the LDAP password.
+	LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
 	# Loop over the candidate LDAP servers in order to handle partial
 	# replication (userPassword attributes are not always replicated).
-	LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
 	error=1 error_msg=
 	for uri in ${LDAPURI}
 	do
