@@ -421,7 +421,7 @@ case ${USER} in
 			-b "${USER}" \
 			-o ldif-wrap=no \
 			-s base \
-			-- '(objectClass=posixAccount)' 1.1 \
+			-- '(|(objectClass=inetOrgPerson)(objectClass=organizationalRole)(objectClass=posixAccount)(objectClass=simpleSecurityObject))' 1.1 \
 		| sed -e '/^dn:/!d' -e 'q'
 		)
 	USER_DN=${USER_DN_SPEC:+${USER}}
