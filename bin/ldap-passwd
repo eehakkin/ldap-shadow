@@ -145,16 +145,9 @@ __USAGE__
 	###################################################################
 	# Search options.
 	export LDAPSEARCH_OPTS
-	case ${LDAPSEARCH_OPTS++} in '' )
-		for LDAPSEARCH_OPTS in '-x' '-W -x' ''
-		do
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-				-s base \
-				-- 1.1 \
-				1> /dev/null \
-				2>&1 && break
-		done
-	esac
+	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-$(
+		exec "${wrapper}" --mode=opts-search
+		)}
 	# Defaults.
 	case ${1} in *add )
 		names=$(
@@ -251,6 +244,17 @@ __LDIF__
 		;;
 	esac
 	exit "${error}"
+	;;
+--mode=opts-search )
+	for LDAPSEARCH_OPTS in '-x' '-W -x' # ''
+	do
+		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-s base \
+			-- 1.1 \
+			1> /dev/null \
+			2>&1 && exec printf '%s\n' "${LDAPSEARCH_OPTS}"
+	done
+	exit
 	;;
 --mode=uri )
 	###################################################################
