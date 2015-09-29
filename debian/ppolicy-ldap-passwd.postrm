@@ -1,9 +1,0 @@
-#! /bin/sh -e
-case ${1} in
-abort-install | disappear | remove ) dpkg-divert \
-	--divert	/usr/bin/passwd.real	\
-	--package	ppolicy-ldap-passwd	\
-	--rename				\
-	--remove				\
-	--		/usr/bin/passwd		;;
-esac

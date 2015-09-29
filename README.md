@@ -26,10 +26,6 @@ User commands
                     server.
  * **ldap-passwd**: Change the password of an LDAP user account on an LDAP
                     server.
- * **passwd**:      A wrapper for the passwd(1) command. Bypasses the PAM stack
-                    during the grace period in order to work-a-round the lack
-                    of slapo-ppolicy(5) compatibility in the pam_ldap(8) module
-                    from the nss-pam-ldapd package.
 
 Administrative commands
 -----------------------
