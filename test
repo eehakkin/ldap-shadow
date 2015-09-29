@@ -33,6 +33,7 @@ case ${USER_DN_SPEC} in
 'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
 *        ) USER_DN= ;;
 esac
+ADMIN_DN=$( exec "${wrapper}" --mode=binddn-admin )
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
 	-{-delete-attribute{=,' '},D{,' '}}ATTR{,=VALUE}	\
@@ -78,6 +79,8 @@ do
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS}
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER}"
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER_DN}"
+	case ${opts} in --service[=\ ]* | -s* ) continue ;; esac
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${ADMIN_DN}"
 done 3> /dev/null
 for opts in \
 	-{-force,f}				\
