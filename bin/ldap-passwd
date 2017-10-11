@@ -547,15 +547,36 @@ __PASS__
 	# Password quality check configuration.
 	#
 	###################################################################
-	for config in /etc/passwdqc-ldap.conf /etc/passwdqc.conf
+	config=/etc/passwdqc.conf
+	for config in "${config%.conf}-ldap.conf" "${config}"
 	do
-		[ -f "${config}" ] && break
+		for config in "${config%.conf}-site.conf" "${config}"
+		do
+			[ -f "${config}" ] && break 2
+		done
 	done
 	retry=3
 	if [ -f "${config}" ]
 	then
 		min=disabled,24,11,8,7 max=40 passphrase=3 random=47
-		. "${config}"
+		read_config() {
+			while read -r line
+			do
+				case ${line} in
+				config=*     )
+					read_config < "${line#*=}"
+					;;
+				max=*        | \
+				min=*        | \
+				passphrase=* | \
+				random=*     | \
+				retry=*      )
+					eval "${line%%=*}"='${line#*=}'
+					;;
+				esac
+			done
+		}
+		read_config < "${config}"
 		IFS=,; set -- ${min}; unset IFS
 		PWD_POLICY_DN_SPEC=$(
 			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
