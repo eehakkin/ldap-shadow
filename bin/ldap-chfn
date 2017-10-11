@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-chfn 1.0
 #
-# Copyright (C) 2012 - 2015 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2017 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -263,7 +263,7 @@ case ${USER_COMMENT++} in
 		-b "${USER_DN}" \
 		-s base \
 		-- '(objectClass=inetOrgPerson)' 1.1
-	) ;;
+	) USER_COMMENT=${USER_COMMENT:-${USER}} ;;
 esac
 
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
@@ -272,7 +272,7 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMB
 ${USER_DN_SPEC}
 changetype: modify${USER_COMMENT+
 replace: cn
-cn: ${USER_COMMENT:-${USER}}${NORMAL:+
+cn: ${USER_COMMENT}${NORMAL:+
 -
 replace: givenName
 givenName: ${USER_COMMENT%%[[:space:]]*}
