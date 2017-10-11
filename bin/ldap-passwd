@@ -577,7 +577,9 @@ __PASS__
 			done
 		}
 		read_config < "${config}"
+		# Split ${min}.
 		IFS=,; set -- ${min}; unset IFS
+		# Apply password policy if applicable.
 		PWD_POLICY_DN_SPEC=$(
 			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${USER_DN}" \
@@ -602,14 +604,29 @@ __PASS__
 			| sed -e '/^pwdMinLength: */!d' -e 's///' -e 'q'
 			)}
 		case ${min:++} in + )
+			n4=${5:-7}
+			case ${n4} in
+			disabled ) coefficient=100 ;;
+			*        ) coefficient=$(( 100 * ${min} / ${n4} )) ;;
+			esac
 			for n
 			do
-				[ "${n}" = 'disabled' ] || [ "${n}" -ge "${min}" ] || n=${min}
+				case ${n} in
+				disabled ) ;;
+				* )
+					n=$(( ( ${coefficient} * ${n} + 50 ) / 100 ))
+					[ "${n}" -ge "${min}" ] || n=${min}
+					;;
+				esac
 				set -- "${@}" "${n}"
 				shift
 			done
+			passphrase=$(( ( ${coefficient} * ${passphrase} + 50 ) / 100 ))
+			random=$(( ( ${coefficient} * ${random%%,*} + 50 ) / 100 ))
 		esac
+		# Merge ${min}.
 		n0=${1:-disabled} n1=${2:-24} n2=${3:-11} n3=${4:-8} n4=${5:-7}
+		min=${n0},${n1},${n2},${n3},${n4}
 		# Explain password quality checks.
 		if [ -t 0 ]
 		then
@@ -693,7 +710,10 @@ long, and contain enough different characters.
 				# Passwords must never be passed as
 				# command-line arguments due to security and
 				# privacy reasons thus use a here-document.
-				if pwqcheck -2 config="${config}" \
+				if pwqcheck -2 \
+					config="${config}" \
+					min="${min}" \
+					passphrase="${passphrase}" \
 					<< __PASS__ > /dev/null
 ${random_pass}
 ${LDAPBINDPW}
@@ -728,7 +748,12 @@ __EOT__
 			)
 		# Passwords must never be passed as command-line arguments
 		# due to security and privacy reasons thus use a here-document.
-		if error_msg=$( pwqcheck -2 config="${config}" ) << __PASS__
+		if error_msg=$(
+			pwqcheck -2 \
+				config="${config}" \
+				min="${min}" \
+				passphrase="${passphrase}"
+			) << __PASS__
 ${new_pass}
 ${LDAPBINDPW}
 __PASS__
