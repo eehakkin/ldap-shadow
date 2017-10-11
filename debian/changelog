@@ -1,9 +1,10 @@
-ldap-shadow (1.0.20171011) UNRELEASED; urgency=medium
+ldap-shadow (1.0.20171011) unstable; urgency=medium
 
   * Fixed handling of user comment ldap-chfn.
   * Relaxed service related user filters.
   * Added support for specialized configuration files.
   * Improved support for password policies in ldap-passwd.
+  * Fixed generation of long random passphases and passwords.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Wed, 11 Oct 2017 22:36:23 +0300
 

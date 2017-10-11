@@ -1,12 +1,12 @@
 Source: ldap-shadow
 Build-Depends:
-	debhelper (>= 8)
+	debhelper (>= 10)
 Build-Depends-Indep:
 	help2man
 Maintainer: Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>
 Priority: optional
 Section: admin
-Standards-Version: 3.9.6
+Standards-Version: 3.9.8
 
 Package: ldap-passwd
 Architecture: all
