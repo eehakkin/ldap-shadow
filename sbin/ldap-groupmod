@@ -73,6 +73,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 # Defaults.
 #
 ###########################################################################
+export GROUP GROUP_DN GROUP_DN_SPEC
 unset GROUP_USERS GROUP_USERS_ADD GROUP_USERS_DELETE
 unset NEW_GROUP NEW_SUPERIOR_DN
 
@@ -121,49 +122,19 @@ memberUid: ${OPTARG}" ;;
 done
 shift $(( $OPTIND - 1 ))
 GROUP=${1-}
-: "${GROUP:?}"
-
-# LDAPBINDDN.
-LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
-case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
-esac
+GROUP_DN_SPEC=$( exec "${wrapper}" --mode=group-dn-spec )
+GROUP_DN=$( exec "${wrapper}" --mode=group-dn )
 
 ###########################################################################
 #
 # Values.
 #
 ###########################################################################
-# GROUP_DN, GROUP_DN_SPEC.
-case ${GROUP} in
-*=* )
-	GROUP_DN_SPEC=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-b "${GROUP}" \
-			-o ldif-wrap=no \
-			-s base \
-			-- '(objectClass=posixGroup)' 1.1 \
-		| sed -e '/^dn:/!d' -e 'q'
-		)
-	GROUP_DN=${GROUP_DN_SPEC:+${GROUP}}
-	;;
-* )
-	GROUP_DN_SPEC=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-z 1 \
-			-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
-			2> /dev/null \
-		| sed -e '/^dn:/!d' -e 'q'
-		)
-	case ${GROUP_DN_SPEC} in
-	'dn:: '* ) GROUP_DN=$( echo "${GROUP_DN_SPEC#"dn:: "}" | base64 -d ) ;;
-	'dn: '*  ) GROUP_DN=${GROUP_DN_SPEC#"dn: "} ;;
-	*        ) GROUP_DN= ;;
-	esac
-	;;
+# LDAPBINDDN.
+LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
+case ${LDAPBINDDN:++} in
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
 esac
-: "${GROUP_DN:?}" "${GROUP_DN_SPEC:?}"
 
 ###########################################################################
 #

@@ -99,6 +99,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 # Defaults.
 #
 ###########################################################################
+export GROUP GROUP_DN GROUP_DN_SPEC
 GID_MIN=${GID_MIN:-10000} SYS_GID_MIN=${SYS_GID_MIN:-50000}
 GID_MAX=${GID_MAX:-60000} SYS_GID_MAX=${SYS_GID_MAX:-60000}
 FORCE= NORMAL=+ SYSTEM=
@@ -138,17 +139,17 @@ shift $(( $OPTIND - 1 ))
 GROUP=${1-}
 : "${GROUP:?}"
 
+###########################################################################
+#
+# Values.
+#
+###########################################################################
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
 case ${LDAPBINDDN:++} in
 + ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
 esac
 
-###########################################################################
-#
-# Values.
-#
-###########################################################################
 # FORCE.
 case ${FORCE:++} in
 + ) LDIF=$(

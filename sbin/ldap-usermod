@@ -84,6 +84,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 # Defaults.
 #
 ###########################################################################
+export USER USER_DN USER_DN_SPEC
 APPEND= USER_LDIF=
 unset NEW_SUPERIOR_DN NEW_USER
 unset USER_COMMENT USER_GROUPS USER_HOME_DIR USER_SHELL
@@ -166,48 +167,19 @@ ${OPTARG%%=*}: ${OPTARG#*=}}
 done
 shift $(( $OPTIND - 1 ))
 USER=${1-}
-: "${USER:?}"
-
-# LDAPBINDDN.
-LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
-case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
-esac
+USER_DN_SPEC=${USER_DN_SPEC-$( exec "${wrapper}" --mode=user-dn-spec )}
+USER_DN=${USER_DN-$( exec "${wrapper}" --mode=user-dn )}
 
 ###########################################################################
 #
 # Values.
 #
 ###########################################################################
-# USER_DN, USER_DN_SPEC.
-case ${USER} in
-*=* )
-	USER_DN_SPEC=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-b "${USER}" \
-			-o ldif-wrap=no \
-			-s base \
-			-- '(|(objectClass=inetOrgPerson)(objectClass=organizationalRole)(objectClass=posixAccount))' 1.1 \
-		| sed -e '/^dn:/!d' -e 'q'
-		)
-	USER_DN=${USER_DN_SPEC:+${USER}}
-	;;
-* )
-	USER_DN_SPEC=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-z 1 \
-			-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
-		| sed -e '/^dn:/!d' -e 'q'
-		)
-	case ${USER_DN_SPEC} in
-	'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
-	'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
-	*        ) USER_DN= ;;
-	esac
-	;;
+# LDAPBINDDN.
+LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
+case ${LDAPBINDDN:++} in
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
 esac
-: "${USER_DN:?}" "${USER_DN_SPEC:?}"
 
 # USER_COMMENT.
 case ${USER_COMMENT++} in
