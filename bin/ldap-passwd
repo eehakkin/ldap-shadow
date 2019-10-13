@@ -903,7 +903,11 @@ __PASS__
 		# Explain password quality checks.
 		if [ -t 0 ]
 		then
-			n() { case ${1} in 1 | 8* | 11 ) echo 'n' ;; esac; }
+			n() {
+				case ${1} in
+				1 | 8* | 11 | 18 ) echo 'n' ;;
+				esac
+			}
 			if [ "${passphrase}" -gt 0 ] && [ "${n2}" -le "${max}" ]
 			then
 				# MESSAGE_INTRO_BOTH
