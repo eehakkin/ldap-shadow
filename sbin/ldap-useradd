@@ -19,7 +19,7 @@
 me=$( which -- "${0}" || exec ls -d -- "${0}" )
 dir=$( exec dirname -- "${me}" )
 base=$( exec basename -- "${me}" )
-wrapper=${dir}/../bin/${base%ldap-*}ldap-passwd
+wrapper=${dir}/../bin/${base%-*}-passwd
 case ${1-} in
 --help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
 --help=troff      ) exec help2man \
@@ -128,8 +128,8 @@ Environment:
  USER              A fallback username.
 
 Files:
- /etc/${base%ldap-*}ldap-login.defs      LDAP shadow suite configuration.
- ${dir%[\\/]*}/etc/${base%ldap-*}ldap-login.defs  LDAP shadow suite configuration.
+ /etc/${base%-*}-login.defs      LDAP shadow suite configuration.
+ ${dir%[\\/]*}/etc/${base%-*}-login.defs  LDAP shadow suite configuration.
  /etc/ldap/ldap.conf       LDAP configuration. See also ldap.conf(5).
 
 __USAGE__
@@ -248,7 +248,7 @@ yes,, )
 	*=*,* ) ;;
 	*,    )
 		set -- ${SYSTEM:+ --system } -- "${USER}"
-		. "${0%ldap-*}ldap-groupadd"
+		. "${0%-*}-groupadd"
 		USER_GID=${GROUP_GID:?}
 		;;
 	esac
@@ -441,6 +441,6 @@ __LDIF__
 case ${USER_GROUPS:++} in
 + )
 	set -- -a -G "${USER_GROUPS}" -- "${USER}"
-	. "${0%ldap-*}ldap-usermod"
+	. "${0%-*}-usermod"
 	;;
 esac
