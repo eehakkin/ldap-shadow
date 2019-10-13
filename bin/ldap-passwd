@@ -258,15 +258,15 @@ __USAGE__
 		esac
 		# Master LDAP URI.
 		export LDAPURI
-		LDAPURI=${LDAPURI-$(
+		LDAPURI=$(
 			{ exec tr -d -- '\n' <&4 \
 			| exec "${wrapper}" \
-				--mode=uri \
+				--mode=uri-master \
 				4<&0 0<&5 5<&-; } \
 				4<< __PASS__ 5<&0
 ${LDAPBINDPW}
 __PASS__
-			)}
+			)
 		# Modify LDAP entries.
 		{ exec tr -d -- '\n' <&4 \
 		| exec ldapmodify -M ${LDAPMODIFY_OPTS} \
@@ -502,79 +502,89 @@ END {
 	}
 	exit
 	;;
---mode=uri )
-	###################################################################
-	#
-	# Determine the URI of the master LDAP server.
-	#
-	###################################################################
+--mode=uri-master )
+	# Search options.
+	export LDAPDEFAULT_OPTS LDAPSEARCH_OPTS
+	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-${LDAPDEFAULT_OPTS=$(
+		exec "${wrapper}" --mode=opts
+		)}}
+	# Determine the search base.
+	case ${LDAPBASE++} in '' )
+		BASE_DN_SPEC=$(
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-o ldif-wrap=no \
+				-s base \
+				-- 1.1 \
+			| exec sed -e '/^dn:/!d' -e 'q'
+			)
+		case ${BASE_DN_SPEC} in
+		'dn:: '* ) LDAPBASE=$(
+			echo "${BASE_DN_SPEC#"dn:: "}" \
+			| exec base64 -d
+			) ;;
+		* ) LDAPBASE=${BASE_DN_SPEC#"dn: "} ;;
+		esac
+		: "${LDAPBASE:?}"
+	esac
+	# Determine the URIs of the master LDAP servers.
+	master_uri=$(
+		printf '%s\n' \
+			"${LDAPBASE}"		\
+			"${LDAPBASE#*,}"	\
+			"${LDAPBASE#*,*,}"	\
+		| exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-b cn=config \
+			-f - \
+			-o ldif-wrap=no \
+			-- "(&(objectClass=olcDatabaseConfig)(olcSuffix=%s)(olcUpdateRef=*))" olcUpdateRef \
+			2> /dev/null \
+		| exec sed \
+			-n \
+			-e '/^dn:/,/^$/!d' \
+			-e 's/^olcUpdateRef: *//p' \
+			-e '/^$/q'
+		)
+	case ${master_uri:++} in
+	+ ) printf '%s\n' "${master_uri}"; exit ;;
+	esac
 	# Determine the URIs of all the candidate LDAP servers.
 	LDAPURI=${LDAPURI-$(
-		set -e
-		# Determine the URIs of the master LDAP servers.
-		case ${LDAPBASE++} in
-		'' )
-			BASE_DN_SPEC=$(
-				ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-					-o ldif-wrap=no \
-					-s base \
-					-- 1.1 \
-				| sed -e '/^dn:/!d' -e 'q'
-				)
-			case ${BASE_DN_SPEC} in
-			'dn:: '* ) LDAPBASE=$(
-				echo "${BASE_DN_SPEC#"dn:: "}" \
-				| base64 -d
-				) ;;
-			*        ) LDAPBASE=${BASE_DN_SPEC#"dn: "} ;;
-			esac
-			;;
-		esac
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-b cn=config \
-			-o ldif-wrap=no \
-			-- "(&(objectClass=olcDatabaseConfig)(olcSuffix=${LDAPBASE:?})(olcUpdateRef=*))" olcUpdateRef \
-			2> /dev/null \
-		| sed -n -e 's/^olcUpdateRef: *//p' \
-		| grep -Fvx -e '' && exit
-		# Determine the URIs of all the LDAP servers.
-		set -- \
-			/etc/ldap/ldap.conf		\
-			~/ldaprc ~/.ldaprc ldaprc	\
-			${LDAPCONF+ "${LDAPCONF}" }	\
-			${LDAPRC+ ~/"${LDAPRC}" ~/".${LDAPRC}" "${LDAPRC}" }
-		for rc
-		do
-			[ ! -s "${rc}" ] || set -- "${@}" "${rc}"
-			shift
-		done
-		exec sed -e '/^URI[[:space:]]/{s///;h;};$!d;g' -- "${@}"
+		exec "${wrapper}" --mode=ldap-conf sed \
+			-n \
+			-e 's/^URI[[:space:]][[:space:]]*//p'
 		)}
-	: "${LDAPURI:?}"
-	# Prompt for the LDAP password.
-	LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
+	set -- ${LDAPURI:?}
+	case ${#} in 0 | 1 )
+		LDAPURI=${1-}
+		printf '%s\n' "${LDAPURI:?}"
+		exit
+	esac
+	# Whoami options.
+	export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
+	opts=${LDAPWHOAMI_OPTS-${LDAPDEFAULT_OPTS=$(
+		exec "${wrapper}" --mode=opts
+		)}}
+	LDAPBINDPW=$( exec "${wrapper}" --mode=getpass-simple-whoami )
+	case ${LDAPBINDPW:++},${opts} in
+	,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
+	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
+	esac
 	# Loop over the candidate LDAP servers in order to handle partial
 	# replication (userPassword attributes are not always replicated).
-	error=1 error_msg=
-	for uri in ${LDAPURI}
+	for uri
 	do
 		# Passwords must never be passed as command-line arguments
 		# (using the -w option or such) due to security and privacy
 		# reasons thus use a here-document.
-		error_msg=$(
-			exec 3>&1 &&
-			x=$(
-				tr -d -- '\n' \
-				| ldapwhoami ${LDAPSEARCH_OPTS} -H "${uri}" -y /dev/stdin 2>&3
-				) &&
-			case ${x} in ( dn:* ) exit 0 ;; esac
-			exit 49
-			) << __PASS__ && exec printf '%s\n' "${uri}" || error=${?}
+		{ exec tr -d -- '\n' <&4 \
+		| exec ldapwhoami ${LDAPWHOAMI_OPTS} \
+			-H "${uri}" \
+			4<&0 0<&5 1> /dev/null 5<&-; } \
+			4<< __PASS__ 5<&0 &&
 ${LDAPBINDPW}
 __PASS__
+		{ printf '%s\n' "${uri}" && exit; } || error=${?}
 	done
-	# Report errors.
-	printf '%s\n' "${error_msg:?}" >&2
 	exit "${error}"
 	;;
 --version ) unset LDAP_HAS_FRONTEND ;;
@@ -748,15 +758,15 @@ __LDIF__
 	esac
 	# Master LDAP URI.
 	export LDAPURI
-	LDAPURI=${LDAPURI-$(
+	LDAPURI=$(
 		{ exec tr -d -- '\n' <&4 \
 		| exec "${wrapper}" \
-			--mode=uri \
+			--mode=uri-master \
 			4<&0 0<&5 5<&-; } \
 			4<< __PASS__ 5<&0
 ${LDAPBINDPW}
 __PASS__
-		)}
+		)
 
 	###################################################################
 	#

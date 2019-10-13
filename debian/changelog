@@ -9,6 +9,7 @@ ldap-shadow (1.0.20191013) unstable; urgency=medium
   * Implemented an LDAP configuration wrapper mode.
   * Unified options wrapper modes.
   * Implemented getpass wrapper modes for simple authentication.
+  * Improved the master URI wrapper mode.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 13 Oct 2019 09:13:38 +0300
 
