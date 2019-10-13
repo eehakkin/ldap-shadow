@@ -2,7 +2,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
 Files: *
 Copyright:
- Copyright © 2012 - 2015 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+ Copyright © 2012 - 2019 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 License: GPL-3
  On Debian systems, the full text of the GNU General Public
  License version 3 can be found in the file
