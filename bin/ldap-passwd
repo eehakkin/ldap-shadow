@@ -194,6 +194,7 @@ __USAGE__
 			| sed -n \
 				-e '/^[[:upper:]_]*=/!d'	\
 				-e 's/=.*$//'			\
+				-e '/^BASE_/p'			\
 				-e '/^[GU]ID_/p'		\
 				-e '/^GROUP_/p'			\
 				-e '/^SYS_[GU]ID_/p'		\
@@ -211,6 +212,7 @@ __USAGE__
 			while read -r name value
 			do
 				case ${name} in
+				BASE_*       | \
 				[GU]ID_*     | \
 				GROUP_*      | \
 				SYS_[GU]ID_* | \

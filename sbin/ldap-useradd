@@ -62,6 +62,7 @@ Operands:
                   created using administrative privileges.
 
 Configuration variables:
+ BASE_DIR          A base directory for home directories.
  GID_MIN           A minimum group ID for new groups.
  GID_MAX           A maximum group ID for new groups.
  SYS_GID_MIN       A minimum group ID for new system groups.
