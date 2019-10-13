@@ -41,47 +41,50 @@ Options:
      --dry-run          Dump LDIF and exit.
 
 Operands:
- GROUP            The name (the common name defined by cn attribute) of
-                  the LDAP POSIX group which is to be created using
-                  administrative privileges.
+ GROUP             The name (the common name defined by cn attribute) of
+                   the LDAP POSIX group which is to be created using
+                   administrative privileges.
 
 Configuration variables:
- GID_MIN          A minimum group ID for new groups.
- GID_MAX          A maximum group ID for new groups.
- SYS_GID_MIN      A minimum group ID for new system groups.
- SYS_GID_MAX      A maximum group ID for new system groups.
- GROUP_BASE_DN    A distinguished name (DN) of an LDAP entry to be used as
-                  a search base for POSIX groups. This one takes precedence
-                  over the GROUP_BASE_RDN variable.
-                  The default is to search for an organizationalUnit LDAP entry
-                  containing posixGroup LDAP entries.
- GROUP_BASE_RDN   A relative distinguished name (RDN) of an LDAP entry to be
-                  used as a search base for POSIX groups. The GROUP_BASE_RDN
-                  variable takes precedence over this one.
- GROUP_OU_RDN     A relative distinguished name (RDN) of an organization unit
-                  LDAP subentry under the POSIX group search base. A new POSIX
-                  group will be created under this subentry.
-                  If the group name contains dashes, the default is to use
-                  ou=PREFIX where PREFIX is the group name without the last
-                  dash separated part.
-                  If the group name does not contains dashes, the default is to
-                  use ou=GROUP if that LDAP subentry exists.
+ GID_MIN           A minimum group ID for new groups.
+ GID_MAX           A maximum group ID for new groups.
+ SYS_GID_MIN       A minimum group ID for new system groups.
+ SYS_GID_MAX       A maximum group ID for new system groups.
+ GROUP_BASE_DN     A distinguished name (DN) of an LDAP entry to be used as
+                   a search base for POSIX groups. This one takes precedence
+                   over the GROUP_BASE_RDN variable.
+                   The default is to search for an organizationalUnit LDAP
+                   entry containing posixGroup LDAP entries.
+ GROUP_BASE_RDN    A relative distinguished name (RDN) of an LDAP entry to be
+                   used as a search base for POSIX groups. The GROUP_BASE_RDN
+                   variable takes precedence over this one.
+ GROUP_OU_RDN      A relative distinguished name (RDN) of an organization unit
+                   LDAP subentry under the POSIX group search base. A new POSIX
+                   group will be created under this subentry.
+                   If the group name contains dashes, the default is to use
+                   ou=PREFIX where PREFIX is the group name without the last
+                   dash separated part.
+                   If the group name does not contains dashes, the default is
+                   to use ou=GROUP if that LDAP subentry exists.
 
 Environment:
- LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
-                  server. The default is to search for a distinguished name
-                  (DN) based on the current real username.
- LDAPBINDPW       A password for the distinguished name (DN) to be used for
-                  binding to an LDAP server. The default is to prompt for
-                  a password.
- LDAPCONF         A system LDAP configuration file.
- LDAPRC           A user LDAP configuration file.
- LDAPURI          An URI of an LDAP server or a list of URIs of LDAP servers.
- LDAPMODIFY_OPTS  Options for ldapmodify(1).
- LDAPSEARCH_OPTS  Options for ldapsearch(1).
- LOGNAME          A username.
- SUDO_USER        A real username.
- USER             A fallback username.
+ LDAPBINDDN        A distinguished name (DN) to be used for binding to an LDAP
+                   server. The default is to search for a distinguished name
+                   (DN) based on the current real username.
+ LDAPBINDPW        A password for the distinguished name (DN) to be used for
+                   binding to an LDAP server. The default is to prompt for
+                   a password.
+ LDAPCONF          A system LDAP configuration file.
+ LDAPRC            A user LDAP configuration file.
+ LDAPURI           An URI of an LDAP server or a list of URIs of LDAP servers.
+ LDAPDEFAULT_OPTS  Default options for ldapmodify(1), ldapsearch(1) and
+                   ldapwhoami(1).
+ LDAPMODIFY_OPTS   Options for ldapmodify(1).
+ LDAPSEARCH_OPTS   Options for ldapsearch(1).
+ LDAPWHOAMI_OPTS   Options for ldapwhoami(1).
+ LOGNAME           A username.
+ SUDO_USER         A real username.
+ USER              A fallback username.
 
 Files:
  /etc/${base%ldap-*}ldap-login.defs      LDAP shadow suite configuration.

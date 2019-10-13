@@ -51,25 +51,28 @@ Options:
      --dry-run               Dump LDIF and exit.
 
 Operands:
- USER             The username (the user identifier defined by the uid
-                  attribute) of the LDAP POSIX user account which is to be
-                  modified using administrative privileges.
+ USER              The username (the user identifier defined by the uid
+                   attribute) of the LDAP POSIX user account which is to be
+                   modified using administrative privileges.
 
 Environment:
- LDAPBINDDN       A distinguished name (DN) to be used for binding to an LDAP
-                  server. The default is to search for a distinguished name
-                  (DN) based on the current real username.
- LDAPBINDPW       A password for the distinguished name (DN) to be used for
-                  binding to an LDAP server. The default is to prompt for
-                  a password.
- LDAPCONF         A system LDAP configuration file.
- LDAPRC           A user LDAP configuration file.
- LDAPURI          An URI of an LDAP server or a list of URIs of LDAP servers.
- LDAPMODIFY_OPTS  Options for ldapmodify(1).
- LDAPSEARCH_OPTS  Options for ldapsearch(1).
- LOGNAME          A username.
- SUDO_USER        A real username.
- USER             A fallback username.
+ LDAPBINDDN        A distinguished name (DN) to be used for binding to an LDAP
+                   server. The default is to search for a distinguished name
+                   (DN) based on the current real username.
+ LDAPBINDPW        A password for the distinguished name (DN) to be used for
+                   binding to an LDAP server. The default is to prompt for
+                   a password.
+ LDAPCONF          A system LDAP configuration file.
+ LDAPRC            A user LDAP configuration file.
+ LDAPURI           An URI of an LDAP server or a list of URIs of LDAP servers.
+ LDAPDEFAULT_OPTS  Default options for ldapmodify(1), ldapsearch(1) and
+                   ldapwhoami(1).
+ LDAPMODIFY_OPTS   Options for ldapmodify(1).
+ LDAPSEARCH_OPTS   Options for ldapsearch(1).
+ LDAPWHOAMI_OPTS   Options for ldapwhoami(1).
+ LOGNAME           A username.
+ SUDO_USER         A real username.
+ USER              A fallback username.
 
 Files:
  /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
