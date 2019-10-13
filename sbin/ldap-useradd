@@ -73,7 +73,7 @@ Configuration variables:
                    The default is to search for an organizationalUnit LDAP
                    entry containing posixGroup LDAP entries.
  GROUP_BASE_RDN    A relative distinguished name (RDN) of an LDAP entry to be
-                   used as a search base for POSIX groups. The GROUP_BASE_RDN
+                   used as a search base for POSIX groups. The GROUP_BASE_DN
                    variable takes precedence over this one.
  GROUP_OU_RDN      A relative distinguished name (RDN) of an organizationalUnit
                    LDAP subentry under the POSIX group search base. A new POSIX
@@ -94,7 +94,7 @@ Configuration variables:
                    entry containing posixAccount LDAP entries.
  USER_BASE_RDN     A relative distinguished name (RDN) of an LDAP entry to be
                    used as a search base for POSIX user accounts.
-                   The USER_BASE_RDN variable takes precedence over this one.
+                   The USER_BASE_DN variable takes precedence over this one.
  USER_OU_RDN       A relative distinguished name (RDN) of an organizationalUnit
                    LDAP subentry under the POSIX user account search base.
                    A new POSIX user account will be created under this

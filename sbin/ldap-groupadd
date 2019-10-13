@@ -61,7 +61,7 @@ Configuration variables:
                    The default is to search for an organizationalUnit LDAP
                    entry containing posixGroup LDAP entries.
  GROUP_BASE_RDN    A relative distinguished name (RDN) of an LDAP entry to be
-                   used as a search base for POSIX groups. The GROUP_BASE_RDN
+                   used as a search base for POSIX groups. The GROUP_BASE_DN
                    variable takes precedence over this one.
  GROUP_OU_RDN      A relative distinguished name (RDN) of an organization unit
                    LDAP subentry under the POSIX group search base. A new POSIX
