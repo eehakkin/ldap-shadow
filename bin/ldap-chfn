@@ -119,18 +119,32 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
 	case -${OPT}${OPTARG+=} in
+	--*-attribute= | -[ADM]* )
+		case ${OPTARG} in
+		*=* )
+			ATTRIBUTE_NAME=${OPTARG%%=*}
+			ATTRIBUTE_VALUE=${OPTARG#*=}
+			;;
+		* )
+			ATTRIBUTE_NAME=${OPTARG}
+			unset ATTRIBUTE_VALUE
+			;;
+		esac
+		;;
+	esac
+	case -${OPT}${OPTARG+=} in
 	--add-attribute=     | -A* ) USER_LDIF="${USER_LDIF}
-add: ${OPTARG%%=*}
-${OPTARG%%=*}: ${OPTARG#*=}
+add: ${ATTRIBUTE_NAME}${ATTRIBUTE_VALUE+
+${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 -" ;;
 	--binddn=            | -b* ) BINDDN_ROLE=${OPTARG} ;;
-	--delete-attribute=  | -D* ) x=${OPTARG#"${OPTARG%%=*}"}; USER_LDIF="${USER_LDIF}
-delete: ${OPTARG%%=*}${x:+
-${OPTARG%%=*}: ${OPTARG#*=}}
+	--delete-attribute=  | -D* ) USER_LDIF="${USER_LDIF}
+delete: ${ATTRIBUTE_NAME}${ATTRIBUTE_VALUE+
+${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 -" ;;
-	--replace-attribute= | -M* ) x=${OPTARG#"${OPTARG%%=*}"}; USER_LDIF="${USER_LDIF}
-replace: ${OPTARG%%=*}${x:+
-${OPTARG%%=*}: ${OPTARG#*=}}
+	--replace-attribute= | -M* ) USER_LDIF="${USER_LDIF}
+replace: ${ATTRIBUTE_NAME}${ATTRIBUTE_VALUE+
+${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 -" ;;
 	--full-name=         | -f* ) USER_COMMENT=${OPTARG} ;;
 	--help               | -u* | \
