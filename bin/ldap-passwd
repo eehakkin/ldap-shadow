@@ -135,6 +135,25 @@ __USAGE__
 	esac
 	exit
 	;;
+--mode=binddn-master )
+	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-$(
+		exec "${wrapper}" --mode=opts-search
+		)}
+	LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
+	export LDAPSEARCH_OPTS LOGNAME
+	USER_DN=${USER_DN-$( exec "${wrapper}" --mode=user-dn )}
+	case ${USER_DN} in
+	*,uid="${LOGNAME}",* )
+		# Master user DN.
+		printf '%s\n' "uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}"
+		;;
+	* )
+		# Administrator user DN.
+		exec "${wrapper}" --mode=binddn-admin
+		;;
+	esac
+	exit
+	;;
 --mode=binddn-user )
 	exec "${wrapper}" --mode=user-dn
 	;;
