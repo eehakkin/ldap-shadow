@@ -349,6 +349,47 @@ __LDIF__
 	esac
 	exit
 	;;
+--mode=ldap-conf )
+	shift
+	case ${#} in
+	0 ) set -- cat ;;
+	esac
+	{
+		case ${LDAPNOINIT++} in
+		+ ) exit ;;
+		esac
+		set --
+		for rc in \
+			/etc/ldap/ldap.conf		\
+			~/ldaprc ~/.ldaprc ldaprc	\
+			${LDAPCONF+ "${LDAPCONF}" }	\
+			${LDAPRC+ ~/"${LDAPRC}" ~/".${LDAPRC}" "${LDAPRC}" }
+		do
+			[ ! -s "${rc}" ] || set -- "${@}" "${rc}"
+		done
+		exec awk -v OFS='\t' -- '
+# Ignore comments and empty lines.
+! /^[^#]/ { next }
+# Ignore user only options in system configuration files.
+( \
+	FILENAME == "/etc/ldap/ldap.conf" ||	\
+	FILENAME == ENVIRON["LDAPCONF"]		\
+) && $1 ~ /^(BINDDN|SASL_AUTH[CZ]ID|TLS_(CERT|KEY))$/ { next }
+# Record options in configuration files
+match( $0, /[\t ]+/ ) { conf[$1] = substr( $0, RSTART + RLENGTH ) }
+END {
+	# Record options in environment variables.
+	for ( i in ENVIRON ) {
+		if ( ( i ~ /^LDAP./ ) && ( i !~ /^LDAP(CONF|RC)$/ ) )
+			conf[substr( i, 5 )] = ENVIRON[i]
+	}
+	# Print options.
+	for ( i in conf )
+		print i, conf[i]
+}' "${@}"
+	} | exec "${@}"
+	exit
+	;;
 --mode=opts-modify )
 	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-$( "${wrapper}" --mode=opts-search )}
 	case ${LDAPSEARCH_OPTS} in
