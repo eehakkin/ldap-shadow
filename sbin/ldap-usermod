@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-usermod 1.0
 #
-# Copyright (C) 2012 - 2015 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2019 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -147,7 +147,7 @@ ${OPTARG%%=*}: ${OPTARG#*=}}
 	--gid=               | -g* ) USER_GID=${OPTARG} ;;
 	--groups=            | -G* ) USER_GROUPS=${OPTARG} ;;
 	--help               | -h* | \
-	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
 	--home=              | \
 	--home-dir=          | -d* ) USER_HOME_DIR=${OPTARG} ;;
 	--inactive=          | -f* ) USER_INACTIVE=${OPTARG} ;;
@@ -158,8 +158,8 @@ ${OPTARG%%=*}: ${OPTARG#*=}}
 	--root=              | -R* ) ;;
 	--shell=             | -s* ) USER_SHELL=${OPTARG} ;;
 	--uid=               | -u* ) USER_UID=${OPTARG} ;;
-	--version            | -V* ) exec "${0}" --version >&3 ;;
-	--dry-run            ) exec >&3 ;;
+	--version            | -V* ) exec "${0}" --version 3>&- ;;
+	--dry-run            ) exec 3>&1 ;;
 	--*                  ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                    ) exit 1 ;;
 	esac
@@ -171,7 +171,7 @@ USER=${1-}
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
 case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" ;;
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
 esac
 
 ###########################################################################
@@ -239,7 +239,7 @@ esac
 ###########################################################################
 # USER_COMMENT, USER_GID, USER_HOME_DIR, USER_SHELL, USER_EXPIRE, USER_INACTIVE, USER_UID, USER_LDIF.
 case ${USER_COMMENT++}${USER_GID++}${USER_HOME_DIR++}${USER_SHELL++}${USER_EXPIRE++}${USER_INACTIVE++}${USER_UID++}${USER_LDIF:++} in
-+* ) cat << __LDIF__ ;;
++* ) cat << __LDIF__ >&3 ;;
 ${USER_DN_SPEC}
 changetype: modify${USER_COMMENT+
 replace: cn
@@ -294,7 +294,7 @@ case ${NEW_USER++}${USER_GROUPS++} in
 changetype: modify\\
 delete: memberUid\\
 memberUid: ${USER}\\
--"
+-" >&3
 		;;
 	*,,+ | +,+,+ ) # [-a [-G GROUPS]] -l NEW_USER
 		# Remove USER from other groups
@@ -306,7 +306,7 @@ memberUid: ${USER}\\
 changetype: modify\\
 delete: memberUid\\
 memberUid: ${USER}\\
--"
+-" >&3
 		# Add NEW_USER to and remove USER from other groups
 		# if NEW_USER is not a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
@@ -319,7 +319,7 @@ memberUid: ${NEW_USER}\\
 -\\
 delete: memberUid\\
 memberUid: ${USER}\\
--"
+-" >&3
 		;;
 	esac
 	case ${FILTERS:++},${NEW_USER++} in
@@ -332,7 +332,7 @@ memberUid: ${USER}\\
 changetype: modify\\
 add: memberUid\\
 memberUid: ${USER}\\
--"
+-" >&3
 		;;
 	+,+ ) # [-a] -GROUPS -l NEW_USER
 		# Remove USER from the groups
@@ -344,7 +344,7 @@ memberUid: ${USER}\\
 changetype: modify\\
 delete: memberUid\\
 memberUid: ${USER}\\
--"
+-" >&3
 		# Add NEW_USER to and remove USER from the groups
 		# if NEW_USER is not a member of them but USER is.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
@@ -357,7 +357,7 @@ memberUid: ${NEW_USER}\\
 -\\
 delete: memberUid\\
 memberUid: ${USER}\\
--"
+-" >&3
 		# Add NEW_USER to the groups
 		# if NEW_USER is not a member of them and neither is USER.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
@@ -367,7 +367,7 @@ memberUid: ${USER}\\
 changetype: modify\\
 add: memberUid\\
 memberUid: ${NEW_USER}\\
--"
+-" >&3
 		;;
 	esac
 	;;
@@ -398,7 +398,7 @@ case ${NEW_SUPERIOR_DN++}${NEW_USER++} in
 changetype: modify\\
 delete: ${DN_ATTRIBUTE}\\
 ${DN_ATTRIBUTE}: ${USER_DN}\\
--"
+-" >&3
 		# Add NEW_USER_DN to and remove USER_DN from the groups
 		# if NEW_USER_DN is not a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
@@ -411,9 +411,9 @@ ${DN_ATTRIBUTE}: ${NEW_USER_DN}\\
 -\\
 delete: ${DN_ATTRIBUTE}\\
 ${DN_ATTRIBUTE}: ${USER_DN}\\
--"
+-" >&3
 	done
-	cat << __LDIF__
+	cat << __LDIF__ >&3
 ${USER_DN_SPEC}
 changetype: modrdn
 newrdn: uid=${NEW_USER-${USER}}

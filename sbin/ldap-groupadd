@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-groupadd 1.0
 #
-# Copyright (C) 2012 - 2015 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2019 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -123,13 +123,13 @@ do
 	--force      | -f* ) FORCE=+ ;;
 	--gid=       | -g* ) GROUP_GID=${OPTARG} ;;
 	--help       | -h* | \
-	--help=      ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--help=      ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
 	--key=       | -K* ) eval "${OPTARG%%=*}"='${OPTARG#*=}' ;;
 	--non-unique | -o* ) ;;
 	--root=      | -R* ) ;;
 	--system     | -r* ) NORMAL= SYSTEM=+ ;;
-	--version    | -V* ) exec "${0}" --version >&3 ;;
-	--dry-run    ) exec >&3 ;;
+	--version    | -V* ) exec "${0}" --version 3>&- ;;
+	--dry-run    ) exec 3>&1 ;;
 	--*          ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*            ) exit 1 ;;
 	esac
@@ -141,7 +141,7 @@ GROUP=${1-}
 # LDAPBINDDN.
 LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
 case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" ;;
++ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
 esac
 
 ###########################################################################
@@ -265,7 +265,7 @@ case ${GROUP} in
 				)" ;;
 			* ) DN_SPEC="dn: ${DN}" ;;
 			esac
-			cat << __LDIF__
+			cat << __LDIF__ >&3
 ${DN_SPEC}
 changetype: add
 objectClass: organizationalUnit
@@ -310,7 +310,7 @@ esac
 #
 ###########################################################################
 # GROUP.
-cat << __LDIF__
+cat << __LDIF__ >&3
 ${GROUP_DN_SPEC}
 changetype: add
 objectClass: posixGroup

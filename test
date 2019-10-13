@@ -50,7 +50,7 @@ do
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS}
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER}"
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-help,h}			\
 	-{-root{=,' '},R{,' '}}optarg	\
@@ -60,7 +60,7 @@ do
 	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS}
 	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS} "${USER}"
 	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS} "${USER_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-delete,d}					\
 	-{-expire,e}					\
@@ -81,7 +81,7 @@ do
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER_DN}"
 	case ${opts} in --service[=\ ]* | -s* ) continue ;; esac
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${ADMIN_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-force,f}				\
 	-{-gid{=,' '},g{,' '}}optarg		\
@@ -94,7 +94,7 @@ for opts in \
 do
 	spawn ./sbin/ldap-groupadd --dry-run ${opts} ${OPTS} "${GROUP}"
 	spawn ./sbin/ldap-groupadd --dry-run ${opts} ${OPTS} "${GROUP_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-help,h}				\
 	-{-key{=,' '},K{,' '}}KEY=VALUE		\
@@ -103,7 +103,7 @@ for opts in \
 do
 	spawn ./sbin/ldap-groupdel --dry-run ${opts} ${OPTS} "${GROUP}"
 	spawn ./sbin/ldap-groupdel --dry-run ${opts} ${OPTS} "${GROUP_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-add{=,' '},a{,' '}}optarg		\
 	-{-delete{=,' '},d{,' '}}optarg		\
@@ -119,7 +119,7 @@ for opts in \
 do
 	spawn ./sbin/ldap-groupmod --dry-run ${opts} ${OPTS} "${GROUP}"
 	spawn ./sbin/ldap-groupmod --dry-run ${opts} ${OPTS} "${GROUP_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-base-dir{=,' '},b{,' '}}optarg	\
 	-{-comment{=,' '},c{,' '}}optarg	\
@@ -143,7 +143,7 @@ for opts in \
 do
 	spawn ./sbin/ldap-useradd --dry-run ${opts} ${OPTS} "${USER}"
 	spawn ./sbin/ldap-useradd --dry-run ${opts} ${OPTS} --gid=12345 "${USER_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-help,h}				\
 	-{-key{=,' '},K{,' '}}KEY=VALUE		\
@@ -152,7 +152,7 @@ for opts in \
 do
 	spawn ./sbin/ldap-userdel --dry-run ${opts} ${OPTS} "${USER}"
 	spawn ./sbin/ldap-userdel --dry-run ${opts} ${OPTS} "${USER_DN}"
-done 3> /dev/null
+done > /dev/null
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
 	-{-delete-attribute{=,' '},D{,' '}}ATTR{,=VALUE}	\
@@ -176,4 +176,4 @@ for opts in \
 do
 	spawn ./sbin/ldap-usermod --dry-run ${opts} ${OPTS} "${USER}"
 	spawn ./sbin/ldap-usermod --dry-run ${opts} ${OPTS} "${USER_DN}"
-done 3> /dev/null
+done > /dev/null

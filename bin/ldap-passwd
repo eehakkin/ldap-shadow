@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-passwd 1.0
 #
-# Copyright (C) 2012 - 2017 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2019 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -389,7 +389,7 @@ do
 	--delete      | -d* ) DELETE=+ ;;
 	--expire      | -e* ) EXPIRE=+ ;;
 	--help        | -h* | \
-	--help=       ) exec "${0}" --help"${OPTARG+=${OPTARG}}" >&3 ;;
+	--help=       ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
 	--inactive=   | -i* ) USER_INACTIVE=${OPTARG} ;;
 	--maxdays=    | -x* ) USER_MAX_DAYS=${OPTARG} ;;
 	--mindays=    | -n* ) USER_MIN_DAYS=${OPTARG} ;;
@@ -397,9 +397,9 @@ do
 	--repository= | -r* ) ;;
 	--root=       | -R* ) ;;
 	--service=    | -s* ) SERVICE=${OPTARG} ;;
-	--version     | -V* ) exec "${0}" --version >&3 ;;
+	--version     | -V* ) exec "${0}" --version 3>&- ;;
 	--warndays=   | -w* ) USER_WARN_DAYS=${OPTARG} ;;
-	--dry-run     ) exec >&3 ;;
+	--dry-run     ) exec 3>&1 ;;
 	--*           ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*             ) exit 1 ;;
 	esac
@@ -471,7 +471,7 @@ case ${1++}:${USER_DN} in
 esac
 case ${LDAPBINDDN:++} in
 + ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' \
-	"LDAPBINDDN=${LDAPBINDDN}" "USER_DN=${USER_DN}" ;;
+	"LDAPBINDDN=${LDAPBINDDN}" "USER_DN=${USER_DN}" >&3 ;;
 esac
 
 case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS++}${USER_WARN_DAYS++} in
@@ -499,7 +499,7 @@ shadowLastChange: 0" ;;
 		esac
 		;;
 	esac
-	cat << __LDIF__
+	cat << __LDIF__ >&3
 ${USER_DN_SPEC}
 changetype: modify${USER_INACTIVE+
 replace: shadowInactive${USER_INACTIVE:+
@@ -527,7 +527,7 @@ __LDIF__
 	# Password change.
 	#
 	###################################################################
-	exec >&3
+	exec 3>&-
 	# Password options.
 	LDAPPASSWD_OPTS=${LDAPPASSWD_OPTS-$(
 		exec "${wrapper}" --mode=opts-modify
