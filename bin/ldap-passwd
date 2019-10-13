@@ -239,32 +239,44 @@ __USAGE__
 	case ${LDIF:++} in + )
 		# Modify options.
 		export LDAPDEFAULT_OPTS LDAPMODIFY_OPTS
-		LDAPMODIFY_OPTS=${LDAPMODIFY_OPTS-${LDAPDEFAULT_OPTS=$(
+		opts=${LDAPMODIFY_OPTS-${LDAPDEFAULT_OPTS=$(
 			exec "${wrapper}" --mode=opts
 			)}}
-		# Prompt for the LDAP password.
-		LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
-		# Determine the URI of the master LDAP server.
+		LDAPBINDPW=$( exec "${wrapper}" --mode=getpass-simple-modify )
+		case ${LDAPBINDPW:++},${opts} in
+		,*  | *,*' -y /dev/fd/4' ) LDAPMODIFY_OPTS=${opts} ;;
+		+,* ) LDAPMODIFY_OPTS="${opts} -y /dev/fd/4" ;;
+		esac
+		# Whoami options.
+		export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
+		opts=${LDAPWHOAMI_OPTS-${LDAPDEFAULT_OPTS=$(
+			exec "${wrapper}" --mode=opts
+			)}}
+		case ${LDAPBINDPW:++},${opts} in
+		,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
+		+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
+		esac
+		# Master LDAP URI.
+		export LDAPURI
 		LDAPURI=${LDAPURI-$(
-			exec "${wrapper}" --mode=uri << __PASS__
+			{ exec tr -d -- '\n' <&4 \
+			| exec "${wrapper}" \
+				--mode=uri \
+				4<&0 0<&5 5<&-; } \
+				4<< __PASS__ 5<&0
 ${LDAPBINDPW}
 __PASS__
 			)}
-		export LDAPURI
 		# Modify LDAP entries.
-		error_msg=$(
-			tr -d -- '\n' \
-			| ldapmodify -M ${LDAPMODIFY_OPTS} -f /dev/fd/3 -y /dev/stdin 2>&1
-			) << __PASS__ 3<< __LDIF__ || error=${?}
+		{ exec tr -d -- '\n' <&4 \
+		| exec ldapmodify -M ${LDAPMODIFY_OPTS} \
+			-f /dev/fd/3 \
+			4<&0 0<&5 5<&-; } \
+			4<< __PASS__ 3<< __LDIF__ 5<&0 || error=${?}
 ${LDAPBINDPW}
 __PASS__
 ${LDIF}
 __LDIF__
-		# Report errors.
-		error_msg=${error_msg#"Enter LDAP Password: "}
-		case ${error_msg:++} in
-		+ ) printf '%s\n' "${error_msg}" >&2 ;;
-		esac
 		case ${1##*[\\/]} in *group* | *user* )
 			# Invalidate name service caches.
 			if nscd=$( exec which -- 'nscd' )
@@ -276,6 +288,47 @@ __LDIF__
 		;;
 	esac
 	exit "${error}"
+	;;
+--mode=getpass-simple-modify | \
+--mode=getpass-simple-passwd | \
+--mode=getpass-simple-whoami )
+	# Options.
+	unset OPTS
+	case ${1##*-} in
+	modify ) export PATH ${LDAPMODIFY_OPTS+ OPTS="${LDAPMODIFY_OPTS}" } ;;
+	passwd ) export PATH ${LDAPPASSWD_OPTS+ OPTS="${LDAPPASSWD_OPTS}" } ;;
+	whoami ) export PATH ${LDAPWHOAMI_OPTS+ OPTS="${LDAPWHOAMI_OPTS}" } ;;
+	esac
+	opts=${OPTS-${LDAPDEFAULT_OPTS=$(
+		exec "${wrapper}" --mode=opts
+		)}}
+	# Parse simple authentication options.
+	unset W x y
+	while getopts :E:e:O:o:P:p:Wxy:Z OPT ${opts}
+	do
+		case ${OPT} in
+		W   ) W=+ ;;
+		x   ) x=+ ;;
+		y   ) y=${OPTARG} ;;
+		[?] ) exit 0 ;; # No simple authentication.
+		esac
+	done
+	case ${x+-x} in
+	'' ) exit 0 ;; # No simple authentication.
+	esac
+	case ${y+-${y}} in
+	-y/dev/fd/* ) exec cat -- "${y}" ;; # Password file descriptor.
+	-y* ) exit 0 ;; # Reusable password file.
+	esac
+	case ${W+-W},${OPTS++} in
+	,+ ) exit ;; # No password options in non-default options.
+	esac
+	case ${LDAPBINDPW++} in
+	+ ) exec tr -d -- '\n' << __PASS__ ;; # Password environment variable.
+${LDAPBINDPW}
+__PASS__
+	esac
+	exec "${wrapper}" --mode=askpass # Password prompt.
 	;;
 --mode=group-dn      | \
 --mode=group-dn-spec | \
@@ -676,18 +729,34 @@ __LDIF__
 	exec 3>&-
 	# Password options.
 	export LDAPDEFAULT_OPTS LDAPPASSWD_OPTS
-	LDAPPASSWD_OPTS=${LDAPPASSWD_OPTS-${LDAPDEFAULT_OPTS=$(
+	opts=${LDAPPASSWD_OPTS-${LDAPDEFAULT_OPTS=$(
 		exec "${wrapper}" --mode=opts
 		)}}
-	# Prompt for the LDAP password.
-	LDAPBINDPW=${LDAPBINDPW-$( exec "${wrapper}" --mode=askpass )}
-	# Determine the URI of the master LDAP server.
+	LDAPBINDPW=$( exec "${wrapper}" --mode=getpass-simple-passwd )
+	case ${LDAPBINDPW:++},${opts} in
+	,*  | *,*' -y /dev/fd/4' ) LDAPPASSWD_OPTS=${opts} ;;
+	+,* ) LDAPPASSWD_OPTS="${opts} -y /dev/fd/4" ;;
+	esac
+	# Whoami options.
+	export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
+	opts=${LDAPWHOAMI_OPTS-${LDAPDEFAULT_OPTS=$(
+		exec "${wrapper}" --mode=opts
+		)}}
+	case ${LDAPBINDPW:++},${opts} in
+	,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
+	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
+	esac
+	# Master LDAP URI.
+	export LDAPURI
 	LDAPURI=${LDAPURI-$(
-		exec "${wrapper}" --mode=uri << __PASS__
+		{ exec tr -d -- '\n' <&4 \
+		| exec "${wrapper}" \
+			--mode=uri \
+			4<&0 0<&5 5<&-; } \
+			4<< __PASS__ 5<&0
 ${LDAPBINDPW}
 __PASS__
 		)}
-	export LDAPURI
 
 	###################################################################
 	#
@@ -958,16 +1027,16 @@ __PASS__
 	# Passwords must never be passed as command-line arguments (using
 	# the -s and -w options or such) due to security and privacy reasons
 	# thus use a here-document.
-	{
-		tr -d -- '\n' \
-		| { tr -d -- '\n' <&3 \
-		| ldappasswd ${LDAPPASSWD_OPTS} \
-			-T /dev/fd/4 \
-			-y /dev/stdin \
-			-- "${USER_DN}"; } 4<&0
-	} << __NEWPASS__ 3<< __PASS__
+	{ exec tr -d -- '\n' <&3 \
+	| { exec tr -d -- '\n' <&4 \
+	| exec ldappasswd ${LDAPPASSWD_OPTS} \
+		-T /dev/fd/3 \
+		-- "${USER_DN}" \
+		4<&0 0<&5 5<&-; } \
+		3<&0; } \
+		3<< __NEW_PASS__ 4<< __PASS__ 5<&0
 ${new_pass}
-__NEWPASS__
+__NEW_PASS__
 ${LDAPBINDPW}
 __PASS__
 	${QUIET:+:} printf '%s\n' 'LDAP Password updated successfully.' >&2
