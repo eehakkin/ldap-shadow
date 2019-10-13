@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-me=$( which -- "${0}" || ls -d -- "${0}" )
+me=$( which -- "${0}" || exec ls -d -- "${0}" )
 dir=$( exec dirname -- "${me}" )
 base=$( exec basename -- "${me}" )
 wrapper=${dir}/../bin/${base%ldap-*}ldap-passwd
@@ -177,10 +177,10 @@ esac
 
 # GROUP_GID.
 GROUP_GID=${GROUP_GID:-$(
-	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 		-o ldif-wrap=no \
 		-- "(objectClass=posixGroup)" gidNumber \
-	| awk \
+	| exec awk \
 		-F ': ' \
 		-v min="${NORMAL:+${GID_MIN:?}}${SYSTEM:+${SYS_GID_MIN:?}}" \
 		-v max="${NORMAL:+${GID_MAX:?}}${SYSTEM:+${SYS_GID_MAX:?}}" '
@@ -201,16 +201,16 @@ case ${GROUP} in
 	+,* ) ;;
 	*,+ )
 		BASE_DN_SPEC=$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-o ldif-wrap=no \
 				-s base \
 				-- "(objectClass=*)" 1.1 \
-			| sed -e '/^dn:/!d' -e 'q'
+			| exec sed -e '/^dn:/!d' -e 'q'
 			)
 		case ${BASE_DN_SPEC} in
 		'dn:: '* ) BASE_DN=$(
 			echo "${BASE_DN_SPEC#"dn:: "}" \
-			| base64 -d
+			| exec base64 -d
 			) ;;
 		'dn: '*  ) BASE_DN=${BASE_DN_SPEC#"dn: "} ;;
 		*        ) BASE_DN= ;;
@@ -219,17 +219,17 @@ case ${GROUP} in
 		;;
 	*,* )
 		GROUP_DN_SPEC=$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-o ldif-wrap=no \
 				-z 1 \
 				-- "(objectClass=posixGroup)" 1.1 \
 				2> /dev/null \
-			| sed -e '/^dn:/!d' -e 'q'
+			| exec sed -e '/^dn:/!d' -e 'q'
 			)
 		case ${GROUP_DN_SPEC} in
 		'dn:: '* ) GROUP_DN=$(
 			echo "${GROUP_DN_SPEC#"dn:: "}" \
-			| base64 -d
+			| exec base64 -d
 			) ;;
 		'dn: '*  ) GROUP_DN=${GROUP_DN_SPEC#"dn: "} ;;
 		*        ) GROUP_DN= ;;
@@ -245,8 +245,9 @@ case ${GROUP} in
 	case ${GROUP} in
 	*[![:alnum:]_\\@.-]* ) GROUP_RDN=cn=$(
 		printf '%s' "${GROUP}" \
-		| perl -pw \
-			-e 's/([^[:alnum:]_\\@.-])/sprintf("\\%02X",ord($1))/ge'
+		| exec od -A n -t x1 \
+		| exec tr -d -- '\n' \
+		| exec tr -- ' ' '\\'
 		) ;;
 	* ) GROUP_RDN=cn=${GROUP} ;;
 	esac
@@ -273,7 +274,7 @@ case ${GROUP} in
 			case ${DN} in
 			*[![:alnum:]_\\@=.,-]* ) DN_SPEC="dn:: $(
 				printf '%s' "${DN}" \
-				| base64 -w 0
+				| exec base64 -w 0
 				)" ;;
 			* ) DN_SPEC="dn: ${DN}" ;;
 			esac
@@ -310,7 +311,7 @@ esac
 case ${GROUP_DN} in
 *[![:alnum:]_\\@=.,-]* ) GROUP_DN_SPEC="dn:: $(
 	printf '%s' "${GROUP_DN}" \
-	| base64 -w 0
+	| exec base64 -w 0
 	)" ;;
 * ) GROUP_DN_SPEC="dn: ${GROUP_DN}" ;;
 esac

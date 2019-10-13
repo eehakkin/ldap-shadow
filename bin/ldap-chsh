@@ -127,10 +127,16 @@ USER_DN=$( exec "${wrapper}" --mode=user-dn )
 # USER_SHELL.
 case ${USER_SHELL++} in
 '' )
-	printf "$( exec gettext -d shadow -- 'Changing the login shell for %s
-' )\\n" "${USER}" >&2
-	gettext -d shadow -s -- 'Enter the new value, or press ENTER for the default' >&2
-	value=$( getent -- passwd "${USER}" | cut -d : -f 7 )
+	printf "$(
+		exec gettext -d shadow -- 'Changing the login shell for %s
+'
+		)\\n" "${USER}" >&2
+	gettext \
+		-d shadow \
+		-s \
+		-- 'Enter the new value, or press ENTER for the default' \
+		>&2
+	value=$( exec getent -- passwd "${USER}" | exec cut -d : -f 7 )
 	printf '\t%s [%s]: ' \
 		"$( exec gettext -d shadow -- 'Login Shell' )" \
 		"${value}" \

@@ -21,6 +21,7 @@ ldap-shadow (1.0.20191013) unstable; urgency=medium
   * Fixed password quality messages.
   * Fixed handling of relative DNs in ldap-useradd.
   * Fixed handling of additional groups in ldap-useradd.
+  * Optimised using more exec.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 13 Oct 2019 09:13:38 +0300
 

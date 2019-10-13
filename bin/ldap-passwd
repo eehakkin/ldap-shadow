@@ -132,13 +132,13 @@ __USAGE__
 			"&(uid=${SUDO_USER-${LOGNAME}})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
 			'cn=admin' \
 			"uid=${SUDO_USER-${LOGNAME}}" \
-		| ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		| exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-f - \
 			-o ldif-wrap=no \
 			-z 1 \
 			-- '(&(%s)(|(objectClass=posixAccount)(objectClass=simpleSecurityObject)))' 1.1 \
 			2> /dev/null \
-		| sed -e '/^dn:/!d' -e 'q'
+		| exec sed -e '/^dn:/!d' -e 'q'
 		)
 	case ${DN_SPEC} in
 	'dn:: '* ) echo "${DN_SPEC#"dn:: "}" | base64 -d && echo ;;
@@ -191,7 +191,7 @@ __USAGE__
 	case ${1} in *add | *sh )
 		names=$(
 			set \
-			| sed -n \
+			| exec sed -n \
 				-e '/^[[:upper:]_]*=/!d'	\
 				-e 's/=.*$//'			\
 				-e '/^BASE_/p'			\
@@ -377,19 +377,19 @@ __PASS__
 		GROUP=${GROUP-$( exec id -gn )}
 		case ${GROUP:?} in
 		*=* ) DN_SPEC=${GROUP_DN_SPEC-$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${GROUP}" \
 				-o ldif-wrap=no \
 				-s base \
 				-- '(objectClass=posixGroup)' 1.1 \
-			| sed -e '/^dn:/!d' -e 'q'
+			| exec sed -e '/^dn:/!d' -e 'q'
 			)} ;;
 		* ) DN_SPEC=${GROUP_DN_SPEC-$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-o ldif-wrap=no \
 				-z 1 \
 				-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
-			| sed -e '/^dn:/!d' -e 'q'
+			| exec sed -e '/^dn:/!d' -e 'q'
 			)} ;;
 		esac
 		NAME=${GROUP:?}
@@ -399,19 +399,19 @@ __PASS__
 		USER=${USER-${LOGNAME-${USER-$( exec id -un )}}}
 		case ${USER:?} in
 		*=* ) DN_SPEC=${USER_DN_SPEC-$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${USER}" \
 				-o ldif-wrap=no \
 				-s base \
 				-- '(|(objectClass=inetOrgPerson)(objectClass=organizationalRole)(objectClass=posixAccount))' 1.1 \
-			| sed -e '/^dn:/!d' -e 'q'
+			| exec sed -e '/^dn:/!d' -e 'q'
 			)} ;;
 		* ) DN_SPEC=${USER_DN_SPEC-$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-o ldif-wrap=no \
 				-z 1 \
 				-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
-			| sed -e '/^dn:/!d' -e 'q'
+			| exec sed -e '/^dn:/!d' -e 'q'
 			)} ;;
 		esac
 		NAME=${USER:?}
@@ -682,25 +682,28 @@ case ${SERVICE++} in
 + )
 	case ${SERVICE} in
 	*=* ) USER_DN_SPEC=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-b "${SERVICE},${USER_DN}" \
 			-o ldif-wrap=no \
 			-s base \
 			-- "(&(objectClass=organizationalRole)(roleOccupant=${USER_DN:?}))" 1.1 \
 			2> /dev/null \
-		| sed -e '/^dn:/!d' -e 'q'
+		| exec sed -e '/^dn:/!d' -e 'q'
 		) ;;
 	* ) USER_DN_SPEC=$(
-		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 			-o ldif-wrap=no \
 			-z 1 \
 			-- "(&(objectClass=organizationalRole)(|(dc:dn:=${SERVICE})(dc:dn:=${SERVICE}s)(ou:dn:=${SERVICE})(ou:dn:=${SERVICE}s))(roleOccupant=${USER_DN:?}))" 1.1 \
 			2> /dev/null \
-		| sed -e '/^dn:/!d' -e 'q'
+		| exec sed -e '/^dn:/!d' -e 'q'
 		) ;;
 	esac
 	case ${USER_DN_SPEC} in
-	'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+	'dn:: '* ) USER_DN=$(
+		echo "${USER_DN_SPEC#"dn:: "}" \
+		| exec base64 -d
+		) ;;
 	'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
 	*        ) USER_DN= ;;
 	esac
@@ -854,27 +857,27 @@ __PASS__
 		IFS=,; set -- ${min}; unset IFS
 		# Apply password policy if applicable.
 		PWD_POLICY_DN_SPEC=$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${USER_DN}" \
 				-o ldif-wrap=no \
 				-s base \
 				-- '(objectClass=*)' pwdPolicySubentry \
-			| sed -e '/^pwdPolicySubentry: */!d' -e 'q'
+			| exec sed -e '/^pwdPolicySubentry: */!d' -e 'q'
 			)
 		case ${PWD_POLICY_DN_SPEC} in
 		'pwdPolicySubentry:: '* ) PWD_POLICY_DN=$(
 			echo "${PWD_POLICY_DN_SPEC#"pwdPolicySubentry:: "}" \
-			| base64 -d
+			| exec base64 -d
 			) ;;
 		* ) PWD_POLICY_DN=${PWD_POLICY_DN_SPEC#"pwdPolicySubentry: "} ;;
 		esac
 		min=${PWD_POLICY_DN:+$(
-			ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${PWD_POLICY_DN}" \
 				-o ldif-wrap=no \
 				-s base \
 				-- '(objectClass=*)' pwdMinLength \
-			| sed -e '/^pwdMinLength: */!d' -e 's///' -e 'q'
+			| exec sed -e '/^pwdMinLength: */!d' -e 's///' -e 'q'
 			)}
 		case ${min:++} in + )
 			n4=${5:-7}
@@ -1058,11 +1061,12 @@ __EOT__
 			pwqcheck -2 \
 				config="${config}" \
 				min="${min}" \
-				passphrase="${passphrase}"
-			) << __PASS__
+				passphrase="${passphrase}" \
+				<< __PASS__
 ${new_pass}
 ${LDAPBINDPW}
 __PASS__
+			)
 		then
 			new_pass2=$(
 				exec "${wrapper}" --mode=askpass \
