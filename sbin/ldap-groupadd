@@ -111,6 +111,7 @@ export GROUP GROUP_DN GROUP_DN_SPEC
 GID_MIN=${GID_MIN:-10000} SYS_GID_MIN=${SYS_GID_MIN:-50000}
 GID_MAX=${GID_MAX:-60000} SYS_GID_MAX=${SYS_GID_MAX:-60000}
 FORCE= NORMAL=+ SYSTEM=
+unset GROUP_GID
 
 ###########################################################################
 #

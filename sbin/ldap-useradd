@@ -151,7 +151,7 @@ UID_MIN=${UID_MIN:-10000} SYS_UID_MIN=${SYS_UID_MIN:-50000}
 UID_MAX=${UID_MAX:-60000} SYS_UID_MAX=${SYS_UID_MAX:-60000}
 USER_SHELL=${USER_SHELL-/bin/bash}
 USERGROUPS_ENAB=${USERGROUPS_ENAB-yes}
-unset USER_COMMENT USER_GROUPS USER_HOME_DIR
+unset USER_COMMENT USER_GROUPS USER_HOME_DIR USER_UID
 NORMAL=+ SYSTEM=
 
 ###########################################################################
@@ -438,5 +438,8 @@ __LDIF__
 
 # USER_GROUPS.
 case ${USER_GROUPS:++} in
-+ ) set -- -a -G "${USER_GROUPS}" -- "${USER}"; . "${0%ldap-*}ldap-usermod" ;;
++ )
+	set -- -a -G "${USER_GROUPS}" -- "${USER}"
+	. "${0%ldap-*}ldap-usermod"
+	;;
 esac

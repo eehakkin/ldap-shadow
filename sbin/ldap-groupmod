@@ -82,6 +82,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 #
 ###########################################################################
 export GROUP GROUP_DN GROUP_DN_SPEC
+unset GROUP_GID
 unset GROUP_USERS GROUP_USERS_ADD GROUP_USERS_DELETE
 unset NEW_GROUP NEW_SUPERIOR_DN
 
