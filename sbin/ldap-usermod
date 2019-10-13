@@ -184,6 +184,7 @@ case ${LDAPBINDDN++} in '' )
 	export LDAPBINDDN
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 esac
+echo >&3
 
 # USER_COMMENT.
 case ${USER_COMMENT++} in

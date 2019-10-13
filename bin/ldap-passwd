@@ -183,7 +183,7 @@ __USAGE__
 		exec "${wrapper}" --mode=opts
 		)}}
 	# Defaults.
-	case ${1} in *add )
+	case ${1} in *add | *sh )
 		names=$(
 			set \
 			| sed -n \
@@ -215,80 +215,101 @@ __USAGE__
 			done < "${file}"
 		done
 	esac
-	unset GROUP_DN GROUP_GID USER_DN USER_UID
-	# LDIF.
-	{ LDIF=$( LDAP_HAS_FRONTEND=+ exec "${@}" ); } 3>&1
-	error=0
-	case ${LDIF:++} in + )
-		# Extract connection parameters.
-		while :
-		do
-			case ${LDIF} in
-			'# ,,,[LDAPBINDDN='*'],,,'* | \
-			'# ,,,[USER_DN='*'],,,'*    )
-				LDIF=${LDIF#"# ,,,["}
-				export "${LDIF%%"],,,"*}"
-				LDIF=${LDIF#*=*"],,,"}
-				LDIF=${LDIF#"
-"}
-				;;
-			* ) break ;;
+	exec 5<&0 6>&1
+	unset GROUP_DN GROUP_DN_SPEC GROUP_GID USER_DN USER_DN_SPEC USER_UID
+	backend_error=$(
+		set -e
+		exec 7>&1
+		{
+			{
+				exec 3>&1 0<&5 1>&6 5<&- 6>&- 7>&-
+				LDAP_HAS_FRONTEND=+ exec "${@}"
+			} &
+			exec 0<&- 1>&- 5<&- 6>&-
+			wait "${!}" && echo '0' >&7 || echo "${?}" >&7
+		} | {
+			exec 3<&0 0<&5 1>&6 5<&- 6>&- 7>&-
+			while :
+			do
+				IFS= read -r line <&3 || exit 0
+				case ${line} in
+				'' ) break ;;
+				esac
+				while :
+				do
+					case ${line} in
+					'# ,,,[LDAPBINDDN='*'],,,' | \
+					'# ,,,[USER_DN='*'],,,'    )
+						name_and_value=${line#"# ,,,["}
+						name_and_value=${name_and_value%"],,,"}
+						export "${name_and_value}"
+						continue 2
+						;;
+					'# ,,,['*=* )
+						if IFS= read -r line2 <&3
+						then
+							line=${line}${IFS#??}${line2}
+							continue
+						fi
+						;;
+					esac
+					printf 'error: %s\n' "${line}" >&2
+					exit 1
+				done
+			done
+			# Modify options.
+			export LDAPDEFAULT_OPTS LDAPMODIFY_OPTS
+			opts=${LDAPMODIFY_OPTS-${LDAPDEFAULT_OPTS=$(
+				exec "${wrapper}" --mode=opts
+				)}}
+			LDAPBINDPW=$(
+				exec "${wrapper}" --mode=getpass-simple-modify
+				)
+			case ${LDAPBINDPW:++},${opts} in
+			,*  | *,*' -y /dev/fd/4' ) LDAPMODIFY_OPTS=${opts} ;;
+			+,* ) LDAPMODIFY_OPTS="${opts} -y /dev/fd/4" ;;
 			esac
-		done
-		;;
-	esac
-	case ${LDIF:++} in + )
-		# Modify options.
-		export LDAPDEFAULT_OPTS LDAPMODIFY_OPTS
-		opts=${LDAPMODIFY_OPTS-${LDAPDEFAULT_OPTS=$(
-			exec "${wrapper}" --mode=opts
-			)}}
-		LDAPBINDPW=$( exec "${wrapper}" --mode=getpass-simple-modify )
-		case ${LDAPBINDPW:++},${opts} in
-		,*  | *,*' -y /dev/fd/4' ) LDAPMODIFY_OPTS=${opts} ;;
-		+,* ) LDAPMODIFY_OPTS="${opts} -y /dev/fd/4" ;;
-		esac
-		# Whoami options.
-		export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
-		opts=${LDAPWHOAMI_OPTS-${LDAPDEFAULT_OPTS=$(
-			exec "${wrapper}" --mode=opts
-			)}}
-		case ${LDAPBINDPW:++},${opts} in
-		,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
-		+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
-		esac
-		# Master LDAP URI.
-		export LDAPURI
-		LDAPURI=$(
+			# Whoami options.
+			export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
+			opts=${LDAPWHOAMI_OPTS-${LDAPDEFAULT_OPTS=$(
+				exec "${wrapper}" --mode=opts
+				)}}
+			case ${LDAPBINDPW:++},${opts} in
+			,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
+			+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
+			esac
+			# Master LDAP URI.
+			export LDAPURI
+			LDAPURI=$(
+				{ exec tr -d -- '\n' <&4 \
+				| exec "${wrapper}" \
+					--mode=uri-master \
+					4<&0 0<&5 5<&-; } \
+					4<< __PASS__ 5<&0
+${LDAPBINDPW}
+__PASS__
+				)
+			# Modify LDAP entries.
 			{ exec tr -d -- '\n' <&4 \
-			| exec "${wrapper}" \
-				--mode=uri-master \
+			| exec ldapmodify -M ${LDAPMODIFY_OPTS} \
+				-f /dev/fd/3 \
 				4<&0 0<&5 5<&-; } \
-				4<< __PASS__ 5<&0
+				4<< __PASS__ 5<&0 &&
 ${LDAPBINDPW}
 __PASS__
-			)
-		# Modify LDAP entries.
-		{ exec tr -d -- '\n' <&4 \
-		| exec ldapmodify -M ${LDAPMODIFY_OPTS} \
-			-f /dev/fd/3 \
-			4<&0 0<&5 5<&-; } \
-			4<< __PASS__ 3<< __LDIF__ 5<&0 || error=${?}
-${LDAPBINDPW}
-__PASS__
-${LDIF}
-__LDIF__
-		case ${1##*[\\/]} in *group* | *user* )
-			# Invalidate name service caches.
-			if nscd=$( exec which -- 'nscd' )
-			then
-				"${nscd}" -i 'group'  &&
-				"${nscd}" -i 'passwd' || :
-			fi
-		esac
-		;;
-	esac
-	exit "${error}"
+			modify_error=0 || modify_error=${?}
+			case ${1##*[\\/]} in *group* | *user* )
+				# Invalidate name service caches.
+				if nscd=$( exec which -- 'nscd' )
+				then
+					"${nscd}" -i 'group'  &&
+					"${nscd}" -i 'passwd' || :
+				fi
+			esac
+			exit "${modify_error}"
+		}
+		)
+	exit "${backend_error:-1}"
 	;;
 --mode=getpass-simple-modify | \
 --mode=getpass-simple-passwd | \
@@ -698,6 +719,7 @@ case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS
 		export LDAPBINDDN
 		printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 	esac
+	echo >&3
 
 	case ${EXPIRE:++} in
 	+ )

@@ -227,11 +227,11 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMB
 			| while IFS=':' read attribute value
 			do
 				case ${value} in
-				( ': '* ) value=$(
+				': '* ) value=$(
 					echo "${value#": "}" \
 					| base64 -d
 					) ;;
-				( ' '* ) value=${value#" "} ;;
+				' '* ) value=${value#" "} ;;
 				esac
 				printf '%s\n' "${value}"
 			done
@@ -268,6 +268,7 @@ case ${LDAPBINDDN++} in '' )
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 esac
 printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&3
+echo >&3
 
 # USER_COMMENT.
 case ${USER_COMMENT++} in

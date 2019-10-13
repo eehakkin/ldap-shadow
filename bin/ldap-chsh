@@ -154,6 +154,7 @@ case ${LDAPBINDDN++} in '' )
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 esac
 printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&3
+echo >&3
 
 # USER_SHELL.
 case ${USER_SHELL++} in

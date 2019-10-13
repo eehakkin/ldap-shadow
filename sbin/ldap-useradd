@@ -225,6 +225,7 @@ case ${LDAPBINDDN++} in '' )
 	export LDAPBINDDN
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 esac
+echo >&3
 
 # USER_GID.
 case ${USERGROUPS_ENAB},${USER_GID-},${USER_GID++} in
