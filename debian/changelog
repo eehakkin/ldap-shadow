@@ -3,6 +3,7 @@ ldap-shadow (1.0.20191013) unstable; urgency=medium
   * Increased debhelper compatibility level.
   * Swapped usage of file descriptors 1 and 3.
   * Implemented wrapper modes for group and user DNs and DN specs.
+  * Simplified the user bind DN wrapper mode.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 13 Oct 2019 09:13:38 +0300
 
