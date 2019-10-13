@@ -353,7 +353,7 @@ case ${USER} in
 			-- '(objectClass=*)' 1.1 \
 			1> /dev/null \
 			2>&1 ||
-		case ${USER},${USER_OU_RDN++},${RDN++} in
+		case ${USER_RDN},${USER_OU_RDN++},${RDN++} in
 		*,*,       | \
 		*,+,+      | \
 		uid=*-*,,+ )
