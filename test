@@ -49,6 +49,7 @@ esac
 ADMIN_DN=$( exec "${wrapper}" --mode=binddn-admin )
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
+	-{-binddn{=,' '},b{,' '}}master				\
 	-{-delete-attribute{=,' '},D{,' '}}ATTR{,=VALUE}	\
 	-{-replace-attribute{=,' '},M{,' '}}ATTR{,=VALUE}	\
 	-{-full-name{=,' '},f{,' '}}optarg			\
@@ -70,6 +71,7 @@ do
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${SERVICE_DN}"
 done > /dev/null
 for opts in \
+	-{-binddn{=,' '},b{,' '}}master	\
 	-{-help,h}			\
 	-{-root{=,' '},R{,' '}}optarg	\
 	-{-shell{=,' '},s{,' '}}optarg	\
@@ -80,6 +82,7 @@ do
 	spawn ./bin/ldap-chsh --dry-run --shell=optarg ${opts} ${OPTS} "${USER_DN}"
 done > /dev/null
 for opts in \
+	-{-binddn{=,' '},b{,' '}}master			\
 	-{-delete,d}					\
 	-{-expire,e}					\
 	-{-help,h}					\

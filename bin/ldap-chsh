@@ -29,6 +29,7 @@ without administrative privileges depends on access control configuration on
 the LDAP server being used.
 
 Options:
+ -b, --binddn=ROLE      Bind using ROLE role.
  -h, --help[=FORMAT]    Show this help message and exit.
  -R, --root CHROOT_DIR  (ignored)
  -s, --shell SHELL      Change the login shell of the account.
@@ -77,6 +78,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 ###########################################################################
 export LOGNAME USER USER_DN USER_DN_SPEC
 LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
+unset BINDDN_ROLE
 unset USER_SHELL
 
 ###########################################################################
@@ -84,10 +86,10 @@ unset USER_SHELL
 # Options.
 #
 ###########################################################################
-while getopts hR:s:V-: OPT "${@}"
+while getopts b:hR:s:V-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--root | --shell )
+	--binddn | --root | --shell )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -96,6 +98,7 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
 	case -${OPT}${OPTARG+=} in
+	--binddn= | -b* ) BINDDN_ROLE=${OPTARG} ;;
 	--help    | -h* | \
 	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
 	--root=   | -R* ) ;;
@@ -143,7 +146,10 @@ esac
 # LDAPBINDDN.
 case ${LDAPBINDDN++} in '' )
 	MASTER=${1+master}
-	LDAPBINDDN=$( exec "${wrapper}" --mode="binddn-${MASTER:-user}" )
+	LDAPBINDDN=$(
+		exec "${wrapper}" \
+			--mode="binddn-${BINDDN_ROLE-${MASTER:-user}}"
+		)
 	export LDAPBINDDN
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 esac

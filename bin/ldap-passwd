@@ -26,6 +26,7 @@ Usage: ${0##*[\\/]} [OPTION]... [USER]
 Change the password of an LDAP user account on an LDAP server.
 
 Options:
+ -b, --binddn=ROLE            Bind using ROLE role.
  -d, --delete                 Delete the password.
  -e, --expire                 Expire the password.
  -h, --help[=FORMAT]          Show this help message and exit.
@@ -599,7 +600,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 export LOGNAME USER USER_DN USER_DN_SPEC
 LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 DELETE= EXPIRE= QUIET=
-unset SERVICE
+unset BINDDN_ROLE SERVICE
 unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
 
 ###########################################################################
@@ -607,9 +608,10 @@ unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
 # Options.
 #
 ###########################################################################
-while getopts dehi:n:qR:r:s:Vw:x:-: OPT "${@}"
+while getopts b:dehi:n:qR:r:s:Vw:x:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
+	--binddn     | \
 	--inactive   | \
 	--maxdays    | \
 	--mindays    | \
@@ -625,6 +627,7 @@ do
 	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
 	esac
 	case -${OPT}${OPTARG+=} in
+	--binddn=     | -b* ) BINDDN_ROLE=${OPTARG} ;;
 	--delete      | -d* ) DELETE=+ ;;
 	--expire      | -e* ) EXPIRE=+ ;;
 	--help        | -h* | \
@@ -746,7 +749,10 @@ __LDIF__
 	# LDAPBINDDN.
 	case ${LDAPBINDDN++} in '' )
 		MASTER=${1+master}
-		LDAPBINDDN=$( exec "${wrapper}" --mode="binddn-${MASTER:-user}" )
+		LDAPBINDDN=$(
+			exec "${wrapper}" \
+				--mode="binddn-${BINDDN_ROLE-${MASTER:-user}}"
+			)
 		export LDAPBINDDN
 	esac
 	# Password options.

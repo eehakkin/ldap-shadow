@@ -31,6 +31,7 @@ server being used.
 
 Options:
  -A, --add-attribute ATTR=VALUE        Add an LDAP attribute.
+ -b, --binddn=ROLE          Bind using ROLE role.
  -D, --delete-attribute ATTR[=VALUE]   Delete an LDAP attribute.
  -M, --replace-attribute ATTR[=VALUE]  Replace an LDAP attribute.
  -f, --full-name COMMENT    Change the full name of the account.
@@ -87,7 +88,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 export LOGNAME USER USER_DN USER_DN_SPEC
 LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 USER_LDIF=
-unset SERVICE
+unset BINDDN_ROLE SERVICE
 unset USER_COMMENT
 unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
 
@@ -96,10 +97,11 @@ unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
 # Options.
 #
 ###########################################################################
-while getopts A:D:M:f:h:m:R:r:s:uVw:-: OPT "${@}"
+while getopts A:b:D:M:f:h:m:R:r:s:uVw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--add-attribute     | \
+	--binddn            | \
 	--delete-attribute  | \
 	--replace-attribute | \
 	--full-name         | \
@@ -121,6 +123,7 @@ do
 add: ${OPTARG%%=*}
 ${OPTARG%%=*}: ${OPTARG#*=}
 -" ;;
+	--binddn=            | -b* ) BINDDN_ROLE=${OPTARG} ;;
 	--delete-attribute=  | -D* ) x=${OPTARG#"${OPTARG%%=*}"}; USER_LDIF="${USER_LDIF}
 delete: ${OPTARG%%=*}${x:+
 ${OPTARG%%=*}: ${OPTARG#*=}}
@@ -257,7 +260,10 @@ esac
 # LDAPBINDDN.
 case ${LDAPBINDDN++} in '' )
 	MASTER=${1+master}
-	LDAPBINDDN=$( exec "${wrapper}" --mode="binddn-${MASTER:-user}" )
+	LDAPBINDDN=$(
+		exec "${wrapper}" \
+			--mode="binddn-${BINDDN_ROLE-${MASTER:-user}}"
+		)
 	export LDAPBINDDN
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 esac
