@@ -116,16 +116,6 @@ USER_DN=$( exec "${wrapper}" --mode=user-dn )
 # Values.
 #
 ###########################################################################
-# LDAPBINDDN.
-case ${1++} in
-+ ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )} ;;
-* ) LDAPBINDDN=${USER_DN} ;;
-esac
-case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' \
-	"LDAPBINDDN=${LDAPBINDDN}" "USER_DN=${USER_DN}" >&3 ;;
-esac
-
 # USER_SHELL.
 case ${USER_SHELL++} in
 '' )
@@ -150,6 +140,15 @@ esac
 # LDIF.
 #
 ###########################################################################
+# LDAPBINDDN.
+case ${LDAPBINDDN++} in '' )
+	MASTER=${1+master}
+	LDAPBINDDN=$( exec "${wrapper}" --mode="binddn-${MASTER:-user}" )
+	export LDAPBINDDN
+	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
+esac
+printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&3
+
 # USER_SHELL.
 case ${USER_SHELL++} in
 +* ) cat << __LDIF__ >&3 ;;

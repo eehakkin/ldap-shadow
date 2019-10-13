@@ -670,19 +670,6 @@ esac
 # Values.
 #
 ###########################################################################
-# LDAPBINDDN.
-case ${1++}:${USER_DN} in
-+:*,uid="${LOGNAME}",* )
-	LDAPBINDDN=uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}
-	;;
-+:* ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )} ;;
-*:* ) LDAPBINDDN=${USER_DN} ;;
-esac
-case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' \
-	"LDAPBINDDN=${LDAPBINDDN}" "USER_DN=${USER_DN}" >&3 ;;
-esac
-
 case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS++}${USER_WARN_DAYS++} in
 +* )
 	###################################################################
@@ -690,6 +677,13 @@ case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS
 	# LDIF.
 	#
 	###################################################################
+	# LDAPBINDDN.
+	case ${LDAPBINDDN++} in '' )
+		LDAPBINDDN=$( exec "${wrapper}" --mode=binddn-admin )
+		export LDAPBINDDN
+		printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
+	esac
+
 	case ${EXPIRE:++} in
 	+ )
 		PPOLICY=$(
@@ -737,6 +731,12 @@ __LDIF__
 	#
 	###################################################################
 	exec 3>&-
+	# LDAPBINDDN.
+	case ${LDAPBINDDN++} in '' )
+		MASTER=${1+master}
+		LDAPBINDDN=$( exec "${wrapper}" --mode="binddn-${MASTER:-user}" )
+		export LDAPBINDDN
+	esac
 	# Password options.
 	export LDAPDEFAULT_OPTS LDAPPASSWD_OPTS
 	opts=${LDAPPASSWD_OPTS-${LDAPDEFAULT_OPTS=$(

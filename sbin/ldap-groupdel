@@ -108,9 +108,10 @@ GROUP_DN_SPEC=$( exec "${wrapper}" --mode=group-dn-spec )
 #
 ###########################################################################
 # LDAPBINDDN.
-LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )}
-case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3 ;;
+case ${LDAPBINDDN++} in '' )
+	LDAPBINDDN=$( exec "${wrapper}" --mode=binddn-admin )
+	export LDAPBINDDN
+	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
 esac
 
 ###########################################################################

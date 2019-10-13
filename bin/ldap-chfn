@@ -150,16 +150,6 @@ USER_DN=$( exec "${wrapper}" --mode=user-dn )
 # Values.
 #
 ###########################################################################
-# LDAPBINDDN.
-case ${1++} in
-+ ) LDAPBINDDN=${LDAPBINDDN-$( exec "${wrapper}" --mode=binddn-admin )} ;;
-* ) LDAPBINDDN=${USER_DN} ;;
-esac
-case ${LDAPBINDDN:++} in
-+ ) export LDAPBINDDN; printf '# ,,,[%s],,,\n' \
-	"LDAPBINDDN=${LDAPBINDDN}" "USER_DN=${USER_DN}" >&3 ;;
-esac
-
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
 case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
 '' )
@@ -231,6 +221,15 @@ esac
 # LDIF.
 #
 ###########################################################################
+# LDAPBINDDN.
+case ${LDAPBINDDN++} in '' )
+	MASTER=${1+master}
+	LDAPBINDDN=$( exec "${wrapper}" --mode="binddn-${MASTER:-user}" )
+	export LDAPBINDDN
+	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
+esac
+printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&3
+
 # USER_COMMENT.
 case ${USER_COMMENT++} in
 + ) NORMAL=$(
