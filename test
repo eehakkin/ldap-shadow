@@ -33,6 +33,19 @@ case ${USER_DN_SPEC} in
 'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
 *        ) USER_DN= ;;
 esac
+SERVICE_DN_SPEC=${SERVICE+$(
+	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-b "${USER_DN}" \
+		-o ldif-wrap=no \
+		-z 1 \
+		-- "(&(objectClass=organizationalRole)(ou:dn:=${SERVICE})(roleOccupant=${USER_DN}))" 1.1 \
+	| sed -e '/^dn:/!d' -e 'q'
+	)}
+case ${SERVICE_DN_SPEC} in
+'dn:: '* ) SERVICE_DN=$( echo "${SERVICE_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+'dn: '*  ) SERVICE_DN=${SERVICE_DN_SPEC#"dn: "} ;;
+*        ) SERVICE_DN= ;;
+esac
 ADMIN_DN=$( exec "${wrapper}" --mode=binddn-admin )
 for opts in \
 	-{-add-attribute{=,' '},A{,' '}}ATTR=VALUE		\
@@ -44,12 +57,17 @@ for opts in \
 	-{-mobile-phone{=,' '},m{,' '}}optarg			\
 	-{-room-number{=,' '},r{,' '}}optarg			\
 	-{-root{=,' '},R{,' '}}optarg				\
+	-{-service{=,' '},s{,' '}}"${SERVICE:-SKIP}"		\
 	-{-version,V}						\
 	-{-work-phone{=,' '},w{,' '}}optarg
 do
+	case ${opts} in *SKIP ) continue ;; esac
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS}
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER}"
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER_DN}"
+	case ${opts} in --service[=\ ]* | -s* ) continue ;; esac
+	case ${SERVICE_DN:++} in '' ) continue ;; esac
+	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${SERVICE_DN}"
 done > /dev/null
 for opts in \
 	-{-help,h}			\
@@ -81,6 +99,8 @@ do
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER_DN}"
 	case ${opts} in --service[=\ ]* | -s* ) continue ;; esac
 	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${ADMIN_DN}"
+	case ${SERVICE_DN:++} in '' ) continue ;; esac
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${SERVICE_DN}"
 done > /dev/null
 for opts in \
 	-{-force,f}				\
