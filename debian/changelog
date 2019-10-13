@@ -15,6 +15,7 @@ ldap-shadow (1.0.20191013) unstable; urgency=medium
   * Implemented the --binddn option.
   * Implemented parallel LDIF handling.
   * Simplfied LDAP attribute handling.
+  * Switched manual UTF-8 locale from en_US to C.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 13 Oct 2019 09:13:38 +0300
 
