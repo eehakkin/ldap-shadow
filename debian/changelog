@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20200807) unstable; urgency=medium
+
+  * Improved the --service option.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Fri, 07 Aug 2020 03:44:39 +0300
+
 ldap-shadow (1.0.20191013) unstable; urgency=medium
 
   * Increased debhelper compatibility level.
