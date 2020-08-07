@@ -1,6 +1,7 @@
 ldap-shadow (1.0.20200807) unstable; urgency=medium
 
   * Improved the --service option.
+  * Added support for separate master and POSIX user accounts.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Fri, 07 Aug 2020 03:44:39 +0300
 

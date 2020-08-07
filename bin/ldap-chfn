@@ -173,39 +173,66 @@ USER_DN=$( exec "${wrapper}" --mode=user-dn )
 case ${SERVICE++} in
 + )
 	case ${SERVICE} in
-	*=* ) USER_DN_SPEC=$(
-		exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-b "${SERVICE},${USER_DN:?}" \
-			-o ldif-wrap=no \
-			-s base \
-			-- "(&(objectClass=organizationalRole)(roleOccupant=${USER_DN:?}))" 1.1 \
-			2> /dev/null \
-		| exec sed -e '/^dn:/!d' -e 'q'
-		) ;;
-	*-* ) USER_DN_SPEC=$(
-		exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-z 1 \
-			-- "(&(objectClass=organizationalRole)(|(dc:dn:=${SERVICE})(dc:dn:=${SERVICE}s)(ou:dn:=${SERVICE})(ou:dn:=${SERVICE}s)(&(|(dc:dn:=${SERVICE%%-*})(dc:dn:=${SERVICE%%-*}s)(ou:dn:=${SERVICE%%-*})(ou:dn:=${SERVICE%%-*}s))(|(dc:dn:=${SERVICE#*-})(dc:dn:=${SERVICE#*-}s)(ou:dn:=${SERVICE#*-})(ou:dn:=${SERVICE#*-}s))))(roleOccupant=${USER_DN:?}))" 1.1 \
-			2> /dev/null \
-		| exec sed -e '/^dn:/!d' -e 'q'
-		) ;;
-	* ) USER_DN_SPEC=$(
-		exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-o ldif-wrap=no \
-			-z 1 \
-			-- "(&(objectClass=organizationalRole)(|(dc:dn:=${SERVICE})(dc:dn:=${SERVICE}s)(ou:dn:=${SERVICE})(ou:dn:=${SERVICE}s))(roleOccupant=${USER_DN:?}))" 1.1 \
-			2> /dev/null \
-		| exec sed -e '/^dn:/!d' -e 'q'
-		) ;;
-	esac
-	case ${USER_DN_SPEC} in
-	'dn:: '* ) USER_DN=$(
-		echo "${USER_DN_SPEC#"dn:: "}" \
-		| exec base64 -d
-		) ;;
-	'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
-	*        ) USER_DN= ;;
+	[Mm]aster )
+		case ${USER_DN} in
+		*,uid="${LOGNAME}",* )
+			# Master user DN.
+			USER_DN=uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}
+			USER_DN_SPEC=$(
+				exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+					-b "${USER_DN:?}" \
+					-o ldif-wrap=no \
+					-s base \
+					-- 1.1 \
+					2> /dev/null \
+				| exec sed -e '/^dn:/!d' -e 'q'
+				)
+			;;
+		esac
+		;;
+	* )
+		case ${USER_DN} in
+		*,uid="${LOGNAME}",* )
+			# Master user DN.
+			USER_DN=uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}
+			;;
+		esac
+		case ${SERVICE} in
+		*=* ) USER_DN_SPEC=$(
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-b "${SERVICE},${USER_DN:?}" \
+				-o ldif-wrap=no \
+				-s base \
+				-- "(&(objectClass=organizationalRole)(roleOccupant=${USER_DN:?}))" 1.1 \
+				2> /dev/null \
+			| exec sed -e '/^dn:/!d' -e 'q'
+			) ;;
+		*-* ) USER_DN_SPEC=$(
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-o ldif-wrap=no \
+				-z 1 \
+				-- "(&(objectClass=organizationalRole)(|(dc:dn:=${SERVICE})(dc:dn:=${SERVICE}s)(ou:dn:=${SERVICE})(ou:dn:=${SERVICE}s)(&(|(dc:dn:=${SERVICE%%-*})(dc:dn:=${SERVICE%%-*}s)(ou:dn:=${SERVICE%%-*})(ou:dn:=${SERVICE%%-*}s))(|(dc:dn:=${SERVICE#*-})(dc:dn:=${SERVICE#*-}s)(ou:dn:=${SERVICE#*-})(ou:dn:=${SERVICE#*-}s))))(roleOccupant=${USER_DN:?}))" 1.1 \
+				2> /dev/null \
+			| exec sed -e '/^dn:/!d' -e 'q'
+			) ;;
+		* ) USER_DN_SPEC=$(
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-o ldif-wrap=no \
+				-z 1 \
+				-- "(&(objectClass=organizationalRole)(|(dc:dn:=${SERVICE})(dc:dn:=${SERVICE}s)(ou:dn:=${SERVICE})(ou:dn:=${SERVICE}s))(roleOccupant=${USER_DN:?}))" 1.1 \
+				2> /dev/null \
+			| exec sed -e '/^dn:/!d' -e 'q'
+			) ;;
+		esac
+		case ${USER_DN_SPEC} in
+		'dn:: '* ) USER_DN=$(
+			echo "${USER_DN_SPEC#"dn:: "}" \
+			| exec base64 -d
+			) ;;
+		'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
+		*        ) USER_DN= ;;
+		esac
+		;;
 	esac
 	: "${USER_DN:?}" "${USER_DN_SPEC:?}"
 	;;
