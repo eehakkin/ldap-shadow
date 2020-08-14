@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20200814) unstable; urgency=medium
+
+  * Improved the user DN wrapper mode.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Fri, 14 Aug 2020 16:27:42 +0300
+
 ldap-shadow (1.0.20200807) unstable; urgency=medium
 
   * Improved the --service option.
