@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20200901) unstable; urgency=medium
+
+  * Improved password policy checks.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 01 Sep 2020 23:17:39 +0300
+
 ldap-shadow (1.0.20200814) unstable; urgency=medium
 
   * Improved the user DN wrapper mode.

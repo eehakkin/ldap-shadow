@@ -79,7 +79,26 @@ Environment:
  USER              A fallback username.
 
 Files:
- /etc/ldap/ldap.conf  LDAP configuration. See also ldap.conf(5).
+ /etc/ldap/ldap.conf                  LDAP configuration.
+                                      See also ldap.conf(5).
+ /etc/passwdqc-ldap/POLICY-NAME.conf  Password quality check configuration for
+                                      LDAP user accounts which have
+                                      a pwdPolicySubentry attribute which
+                                      refers to a pwdPolicy subentry. Its
+                                      relative distinguished name (RDN) without
+                                      a type is normalized (transformed to
+                                      lowercase) and made file system safe
+                                      (non-alphanumeric characters are replaced
+                                      with dashes “-”) and used as a policy
+                                      name.
+                                      See also passwdqc.conf(5).
+ /etc/passwdqc-ldap.conf              Password quality check configuration for
+                                      LDAP user accounts which do not have
+                                      a pwdPolicySubentry attribute or
+                                      a corresponding policy specific
+                                      configuration.
+                                      See also passwdqc.conf(5).
+ /etc/passwdqc.conf                   Ditto.
 
 __USAGE__
 --mode=askpass )
@@ -896,82 +915,124 @@ __PASS__
 	# Password quality check configuration.
 	#
 	###################################################################
-	config=/etc/passwdqc.conf
-	for config in "${config%.conf}-ldap.conf" "${config}"
-	do
-		for config in "${config%.conf}-site.conf" "${config}"
-		do
-			[ -f "${config}" ] && break 2
-		done
-	done
+	unset config max min passphrase random passwd_entry
 	retry=3
-	if [ -f "${config}" ]
+	if pwqgen > /dev/null 2>&1
 	then
-		min=disabled,24,11,8,7 max=40 passphrase=3 random=47
-		read_config() {
-			while read -r line
-			do
-				case ${line} in
-				config=*     )
-					read_config < "${line#*=}"
-					;;
-				max=*        | \
-				min=*        | \
-				passphrase=* | \
-				random=*     | \
-				retry=*      )
-					eval "${line%%=*}"='${line#*=}'
-					;;
-				esac
-			done
-		}
-		read_config < "${config}"
-		# Split ${min}.
-		IFS=,; set -- ${min}; unset IFS
-		# Apply password policy if applicable.
-		PWD_POLICY_DN_SPEC=$(
+		# Try to find out user password file fields and a user password
+		# policy DN.
+		unset USER_COMMENT USER_GECOS USER_HOME_DIR USER_SHELL USER_USER
+		unset USER_PWD_POLICY_DN
+		USER_LDIF=$(
 			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-b "${USER_DN}" \
 				-o ldif-wrap=no \
 				-s base \
-				-- '(objectClass=*)' pwdPolicySubentry \
-			| exec sed -e '/^pwdPolicySubentry: */!d' -e 'q'
+				-z 1 \
+				-- '(objectClass=*)' cn gecos homeDirectory loginShell pwdPolicySubentry uid
 			)
-		case ${PWD_POLICY_DN_SPEC} in
-		'pwdPolicySubentry:: '* ) PWD_POLICY_DN=$(
-			echo "${PWD_POLICY_DN_SPEC#"pwdPolicySubentry:: "}" \
-			| exec base64 -d
-			) ;;
-		* ) PWD_POLICY_DN=${PWD_POLICY_DN_SPEC#"pwdPolicySubentry: "} ;;
-		esac
-		min=${PWD_POLICY_DN:+$(
+		while IFS=':' read -r attribute value
+		do
+			case ${value} in
+			': '* ) value=$(
+				echo "${value#": "}" \
+				| exec base64 -d
+				) ;;
+			' '* ) value=${value#" "} ;;
+			esac
+			case ${attribute} in
+			cn                ) USER_COMMENT=${value%%[:${IFS#??}]*} ;;
+			gecos             ) USER_GECOS=${value%%[:${IFS#??}]*} ;;
+			homeDirectory     ) USER_HOME_DIR=${value%%[:${IFS#??}]*} ;;
+			loginShell        ) USER_SHELL=${value%%[:${IFS#??}]*} ;;
+			pwdPolicySubentry ) USER_PWD_POLICY_DN=${value} ;;
+			uid               ) USER_NAME=${value%%[:${IFS#??}]*} ;;
+			esac
+		done << __LDIF__
+${USER_LDIF#*"${IFS#??}"}
+__LDIF__
+		USER_NAME=${USER_NAME-${USER%%[:${IFS#??}]*}}
+		# Construct a user password file entry and a user password
+		# policy name.
+		passwd_entry=${USER_NAME}::::${USER_GECOS-${USER_COMMENT-${USER_NAME}}}:${USER_HOME_DIR-/home/${USER_NAME}}:${USER_SHELL-/bin/bash}
+		policy_name=${USER_PWD_POLICY_DN:+$(
+			printf '%s' "${USER_PWD_POLICY_DN}" \
+			| tr -- '[:upper:]' '[:lower:]' \
+			| sed \
+				-e ': in' \
+				-e '$!{N;b in;}' \
+				-e 's|\\.|-|g' \
+				-e 's|,.*||' \
+				-e 's|^[^=]*=||' \
+				-e 's|[+][^=]*=| + |g' \
+				-e 's|[^[:alnum:]+]|-|g'
+			)}
+		# Use the defaults.
+		min=disabled,24,11,8,7 max=40 passphrase=3 random=47
+		# Try to find out a configuration file and parse it.
+		for config in \
+			${USER_PWD_POLICY_DN:+ "/etc/passwdqc-ldap/${policy_name}.conf" } \
+			'/etc/passwdqc-ldap.conf' \
+			'/etc/passwdqc.conf'
+		do
+			[ ! -f "${config}" ] || {
+				read_config() {
+					while read -r line
+					do
+						case ${line} in
+						config=*     )
+							read_config < "${line#*=}"
+							;;
+						max=*        | \
+						min=*        | \
+						passphrase=* | \
+						random=*     | \
+						retry=*      )
+							eval "${line%%=*}"='${line#*=}'
+							;;
+						esac
+					done
+				}
+				read_config < "${config}"
+				break
+			}
+			unset config
+		done
+		# Split ${min}.
+		IFS=,; set -- ${min}; unset IFS
+		min=${USER_PWD_POLICY_DN:+$(
 			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-				-b "${PWD_POLICY_DN}" \
+				-b "${USER_PWD_POLICY_DN}" \
 				-o ldif-wrap=no \
 				-s base \
 				-- '(objectClass=*)' pwdMinLength \
 			| exec sed -e '/^pwdMinLength: */!d' -e 's///' -e 'q'
 			)}
 		case ${min:++} in + )
+			# Try to apply the password policy based password
+			# minimum length.
 			n4=${5:-7}
-			case ${n4} in
-			disabled ) coefficient=100 ;;
-			*        ) coefficient=$(( 100 * ${min} / ${n4} )) ;;
+			case ${4} in
+			"${min}" | disabled )
+				;;
+			* )
+				coefficient=$(( 100 * ${min} / ${n4} ))
+				for n
+				do
+					case ${n} in
+					disabled ) ;;
+					* )
+						n=$(( ( ${coefficient} * ${n} + 50 ) / 100 ))
+						[ "${n}" -ge "${min}" ] || n=${min}
+						;;
+					esac
+					set -- "${@}" "${n}"
+					shift
+				done
+				passphrase=$(( ( ${coefficient} * ${passphrase} + 50 ) / 100 ))
+				[ ${coefficient} -lt 100 ] || random=$(( ( ${coefficient} * ${random%%,*} + 50 ) / 100 ))
+				;;
 			esac
-			for n
-			do
-				case ${n} in
-				disabled ) ;;
-				* )
-					n=$(( ( ${coefficient} * ${n} + 50 ) / 100 ))
-					[ "${n}" -ge "${min}" ] || n=${min}
-					;;
-				esac
-				set -- "${@}" "${n}"
-				shift
-			done
-			passphrase=$(( ( ${coefficient} * ${passphrase} + 50 ) / 100 ))
-			[ ${coefficient} -lt 100 ] || random=$(( ( ${coefficient} * ${random%%,*} + 50 ) / 100 ))
 		esac
 		# Merge ${min}.
 		n0=${1:-disabled} n1=${2:-24} n2=${3:-11} n3=${4:-8} n4=${5:-7}
@@ -1044,9 +1105,14 @@ A passphrase should be of at least %d words, %d to %d characters
 long, and contain enough different characters.
 ' "${passphrase}" "${n2}" "${max}" >&2
 			fi
+			# Work-a-round passwdqc random range limit of [24, 85].
+			if [ "$(( 12 * ${passphrase} ))" -gt 85 ] && [ "${random%%,*}" -eq 0 ]
+			then
+				random=$(( 12 * ${passphrase} ))
+			fi
 			if [ "${random%%,*}" -gt 0 ]
 			then
-				for random_step in 13 12 1
+				for random_step in 12 13 1
 				do
 					[ "$(( ${random%%,*} % ${random_step} ))" -eq 0 ] && break
 				done
@@ -1089,15 +1155,16 @@ long, and contain enough different characters.
 					done
 					# Passwords must never be passed as
 					# command-line arguments due to
-					# security and  privacy reasons thus
+					# security and privacy reasons thus
 					# use a here-document.
-					if pwqcheck -2 \
-						config="${config}" \
+					if pwqcheck \
+						${config+ config="${config}" } \
 						min="${min}" \
 						passphrase="${passphrase}" \
 						<< __PASS__ > /dev/null
 ${random_pass}
 ${LDAPBINDPW}
+${passwd_entry}
 __PASS__
 					then
 						# MESSAGE_RANDOM
@@ -1115,6 +1182,7 @@ __EOT__
 		fi
 	else
 		pwqcheck() { :; }
+		passwd_entry=
 	fi
 
 	###################################################################
@@ -1131,13 +1199,14 @@ __EOT__
 		# Passwords must never be passed as command-line arguments
 		# due to security and privacy reasons thus use a here-document.
 		if error_msg=$(
-			pwqcheck -2 \
-				config="${config}" \
-				min="${min}" \
-				passphrase="${passphrase}" \
+			pwqcheck \
+				${config+	config="${config}" } \
+				${min+		min="${min}" } \
+				${passphrase+	passphrase="${passphrase}" } \
 				<< __PASS__
 ${new_pass}
 ${LDAPBINDPW}
+${passwd_entry}
 __PASS__
 			)
 		then
