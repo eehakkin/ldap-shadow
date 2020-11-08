@@ -1134,9 +1134,11 @@ pick this as your password: "${random_pass}".
 __EOT__
 					break
 				fi
-				for random_step in 12 13 1
+				for random_step in 12 13 16 17 1
 				do
-					[ "$(( ${random%%,*} % ${random_step} ))" -eq 0 ] && break
+					case $(( ${random%%,*} % ${random_step} ))%${random_step} in
+					0%* | 12%16 | 13%17 ) break ;;
+					esac
 				done
 				random=$(( ${random} + ${random_step} ))
 			done

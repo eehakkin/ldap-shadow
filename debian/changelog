@@ -1,6 +1,7 @@
 ldap-shadow (1.0.20201108) unstable; urgency=medium
 
   * Moved passphrase generation logic to a new ldap-pwqgen utility.
+  * Added support for random password generation.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 08 Nov 2020 10:37:17 +0200
 

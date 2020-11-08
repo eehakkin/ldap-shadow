@@ -101,9 +101,11 @@ then
 	random=$(( 12 * ${passphrase} ))
 fi
 # Prefer passphrases over passwords.
-for random_step in 12 13 1
+for random_step in 12 13 16 17 1
 do
-	[ "$(( ${random%%,*} % ${random_step} ))" -eq 0 ] && break
+	case $(( ${random%%,*} % ${random_step} ))%${random_step} in
+	0%* | 12%16 | 13%17 ) break ;;
+	esac
 done
 exec 4>&1
 random_missing=${random%%,*}
@@ -133,7 +135,10 @@ do
 		then
 			break
 		fi
-		random_bits=$(( 3 * ( 13 + 4 ) ))
+		case ${random_step} in
+		1 ) random_bits=$(( 3 * ( 13 + 4 ) )) ;;
+		* ) random_bits=$(( 3 * ${random_step} )) ;;
+		esac
 		ps=$(
 			exec 3>&1 1>&4 4>&-
 			{ pwqgen random="${random_bits}" "${@}" && echo '<0>' >&3; } \
