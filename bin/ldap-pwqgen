@@ -1,0 +1,147 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-pwqgen 1.0
+#
+# Copyright (C) 2012 - 2020 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+default_random=47
+case ${1-} in
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man \
+	-L 'C.UTF-8' \
+	-N \
+	-n 'change the password of an LDAP user account' \
+	-s 1 \
+	-- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
+Usage: ${0##*[\\/]} [OPTION]... [OPERAND]...
+
+Change the password of an LDAP user account on an LDAP server.
+
+Options:
+ -h, --help[=FORMAT]  Show this help message and exit.
+ -V, --version        Show version information and exit.
+
+Operands:
+ config=FILE   Load config FILE in the passwdqc.conf format.  This file may
+               define any options described in passwdqc.conf(5), but only the
+               random and config options are honored.
+ random=N      The size of randomly-generated passphrase in bits (minimum 24,
+               default ${default_random}).
+
+Files:
+ /etc/passwdqc-ldap.conf  Password quality check configuration.
+                          See also passwdqc.conf(5).
+ /etc/passwdqc.conf       Ditto.
+
+__USAGE__
+--version ) exec "${0%-*}-passwd" --mode=frontend "${0}" "${@}" ;;
+esac
+while getopts hV-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
+	esac
+	case -${OPT}${OPTARG+=} in
+	--help    | -h* | \
+	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
+	--version | -V* ) exec "${0}" --version 3>&- ;;
+	--*       ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*         ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+unset config passphrase random
+read_config() {
+	while read -r line
+	do
+		case ${line} in
+		config=*     ) read_config < "${line#*=}" ;;
+		passphrase=* ) passphrase=${line#*=} ;;
+		random=*     ) random=${line#*=} ;;
+		esac
+	done
+}
+for arg
+do
+	case ${arg} in
+	config=*     ) config=${arg#*=}; read_config < "${config}" ;;
+	passphrase=* ) passphrase=${arg#*=} ;;
+	random=*     ) random=${arg#*=} ;;
+	*            ) set -- "${@}" "${arg}" ;;
+	esac
+	shift
+done
+case ${config++}${random++} in '' )
+	for config in '/etc/passwdqc-ldap.conf' '/etc/passwdqc.conf'
+	do
+		[ ! -f "${config}" ] || {
+			read_config < "${config}"
+			break
+		}
+	done
+esac
+random=${random-${default_random}}
+# Work-a-round passwdqc random range limit of [24, 85].
+if [ "$(( 12 * ${passphrase-0} ))" -gt 85 ] && [ "${random%%,*}" -eq 0 ]
+then
+	random=$(( 12 * ${passphrase} ))
+fi
+# Prefer passphrases over passwords.
+for random_step in 12 13 1
+do
+	[ "$(( ${random%%,*} % ${random_step} ))" -eq 0 ] && break
+done
+exec 4>&1
+random_missing=${random%%,*}
+while :
+do
+	case ${random_step} in
+	12 | 13 )
+		random_words=$(( ${random_missing} / ${random_step} ))
+		case ${random_step},${random_words} in
+		12,[123]  | \
+		13,[1234] ) break ;;
+		12,4      ) random_words=2 ;;
+		12,*      ) random_words=3 ;;
+		13,5      ) random_words=3 ;;
+		13,*      ) random_words=4 ;;
+		esac
+		random_bits=$(( ${random_step} * ${random_words} ))
+		ps=$(
+			exec 3>&1 1>&4 4>&-
+			{ pwqgen random="${random_bits}" "${@}" && echo '<0>' >&3; } \
+			| tr -- '\n' '-'
+			)
+		[ "${ps}" = '<0>' ]
+		;;
+	* )
+		if [ "${random_missing}" -le 85 ]
+		then
+			break
+		fi
+		random_bits=$(( 3 * ( 13 + 4 ) ))
+		ps=$(
+			exec 3>&1 1>&4 4>&-
+			{ pwqgen random="${random_bits}" "${@}" && echo '<0>' >&3; } \
+			| tr -d -- '\n'
+			)
+		[ "${ps}" = '<0>' ]
+		;;
+	esac
+	random_missing=$(( ${random_missing} - ${random_bits} ))
+done
+exec pwqgen random="${random_missing}" "${@}"

@@ -1110,74 +1110,36 @@ long, and contain enough different characters.
 			then
 				random=$(( 12 * ${passphrase} ))
 			fi
-			if [ "${random%%,*}" -gt 0 ]
-			then
-				for random_step in 12 13 1
-				do
-					[ "$(( ${random%%,*} % ${random_step} ))" -eq 0 ] && break
-				done
-				while :
-				do
-					random_pass=
-					random_missing=${random%%,*}
-					while [ "${random_missing}" -gt 0 ]
-					do
-						# Prefer passphrases over passwords.
-						case ${random_step} in
-						12 | 13 )
-							random_words=$(( ${random_missing} / ${random_step} ))
-							case ${random_step},${random_words} in
-							12,[123]  ) ;;
-							12,4      ) random_words=2 ;;
-							12,*      ) random_words=3 ;;
-							13,[1234] ) ;;
-							13,5      ) random_words=3 ;;
-							13,*      ) random_words=4 ;;
-							esac
-							random_pass=${random_pass:+${random_pass}-}$(
-								exec pwqgen random="$(( ${random_step} * ${random_words} ))"
-								)
-							random_missing=$(( ${random_missing} - ${random_step} * ${random_words} ))
-							;;
-						* )
-							if [ "${random_missing}" -le 85 ]
-							then
-								random_bits=${random_missing}
-							else
-								random_bits=$(( 3 * ( 13 + 4 ) ))
-							fi
-							random_pass=${random_pass}$(
-								exec pwqgen random="${random_bits}"
-								)
-							random_missing=$(( ${random_missing} - ${random_bits} ))
-							;;
-						esac
-					done
-					# Passwords must never be passed as
-					# command-line arguments due to
-					# security and privacy reasons thus
-					# use a here-document.
-					if pwqcheck \
-						${config+ config="${config}" } \
-						min="${min}" \
-						passphrase="${passphrase}" \
-						<< __PASS__ > /dev/null
+			while [ "${random%%,*}" -gt 0 ]
+			do
+				random_pass=$( "${0%-*}-pwqgen" -- random="${random}" )
+				# Passwords must never be passed as
+				# command-line arguments due to security and
+				# privacy reasons thus use a here-document.
+				if pwqcheck \
+					${config+ config="${config}" } \
+					min="${min}" \
+					passphrase="${passphrase}" \
+					<< __PASS__ > /dev/null
 ${random_pass}
 ${LDAPBINDPW}
 ${passwd_entry}
 __PASS__
-					then
-						# MESSAGE_RANDOM
-						cat << __EOT__ >&2
+				then
+					# MESSAGE_RANDOM
+					cat << __EOT__ >&2
 
 Alternatively, if no one else can see your terminal now, you can
 pick this as your password: "${random_pass}".
 __EOT__
-						break
-					fi
-					random=$(( ${random} + ${random_step} ))
+					break
+				fi
+				for random_step in 12 13 1
+				do
+					[ "$(( ${random%%,*} % ${random_step} ))" -eq 0 ] && break
 				done
-			fi
+				random=$(( ${random} + ${random_step} ))
+			done
 			echo >&2
 		fi
 	else
