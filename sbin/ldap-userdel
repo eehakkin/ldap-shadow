@@ -128,6 +128,7 @@ echo >&3
 ###########################################################################
 # USER_GROUPS.
 ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+	-a always \
 	-o ldif-wrap=no \
 	-- "(&(objectClass=posixGroup)(memberUid=${USER}))" 1.1 \
 | sed -e '/^dn:/a\
@@ -145,6 +146,7 @@ __LDIF__
 
 # GROUP.
 ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+	-a always \
 	-o ldif-wrap=no \
 	-- "(&(objectClass=posixGroup)(cn=${USER}))" memberUid \
 | sed -n \

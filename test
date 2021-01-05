@@ -11,6 +11,7 @@ SERVICE=${SERVICE-Mail}
 USER=${USER-$( id -un )}
 GROUP_DN_SPEC=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-a always \
 		-o ldif-wrap=no \
 		-z 1 \
 		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
@@ -23,6 +24,7 @@ case ${GROUP_DN_SPEC} in
 esac
 USER_DN_SPEC=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-a always \
 		-o ldif-wrap=no \
 		-z 1 \
 		-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \

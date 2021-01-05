@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20210105) unstable; urgency=low
+
+  * Changed to always dereference LDAP aliases.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Tue, 05 Jan 2021 22:01:24 +0200
+
 ldap-shadow (1.0.20201108) unstable; urgency=medium
 
   * Moved passphrase generation logic to a new ldap-pwqgen utility.

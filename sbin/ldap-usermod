@@ -284,6 +284,7 @@ case ${NEW_USER++}${USER_GROUPS++} in
 	,+,* ) # -G GROUPS [-l NEW_USER]
 		# Remove USER from other groups.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER}))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -296,6 +297,7 @@ memberUid: ${USER}\\
 		# Remove USER from other groups
 		# if NEW_USER is a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER})(memberUid=${NEW_USER}))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -306,6 +308,7 @@ memberUid: ${USER}\\
 		# Add NEW_USER to and remove USER from other groups
 		# if NEW_USER is not a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(objectClass=posixGroup)${FILTERS:+(!(|${FILTERS}))}(memberUid=${USER})(!(memberUid=${NEW_USER})))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -322,6 +325,7 @@ memberUid: ${USER}\\
 	+, ) # [-a] -G GROUPS
 		# Add USER to the groups if USER is not a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(objectClass=posixGroup)(|${FILTERS})(!(memberUid=${USER})))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -334,6 +338,7 @@ memberUid: ${USER}\\
 		# Remove USER from the groups
 		# if NEW_USER is a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(objectClass=posixGroup)(|${FILTERS})(memberUid=${USER})(memberUid=${NEW_USER}))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -344,6 +349,7 @@ memberUid: ${USER}\\
 		# Add NEW_USER to and remove USER from the groups
 		# if NEW_USER is not a member of them but USER is.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(objectClass=posixGroup)(|${FILTERS})(memberUid=${USER})(!(memberUid=${NEW_USER})))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -357,6 +363,7 @@ memberUid: ${USER}\\
 		# Add NEW_USER to the groups
 		# if NEW_USER is not a member of them and neither is USER.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(objectClass=posixGroup)(|${FILTERS})(!(memberUid=${USER}))(!(memberUid=${NEW_USER})))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -388,6 +395,7 @@ case ${NEW_SUPERIOR_DN++}${NEW_USER++} in
 		# Remove USER_DN from the groups
 		# if NEW_USER_DN is a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(${DN_ATTRIBUTE}=${USER_DN})(${DN_ATTRIBUTE}=${NEW_USER_DN}))" 1.1 \
 		| sed -e "/^dn:/a\\
@@ -398,6 +406,7 @@ ${DN_ATTRIBUTE}: ${USER_DN}\\
 		# Add NEW_USER_DN to and remove USER_DN from the groups
 		# if NEW_USER_DN is not a member of them.
 		ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-o ldif-wrap=no \
 			-- "(&(${DN_ATTRIBUTE}=${USER_DN})(!(${DN_ATTRIBUTE}=${NEW_USER_DN})))" 1.1 \
 		| sed -e "/^dn:/a\\

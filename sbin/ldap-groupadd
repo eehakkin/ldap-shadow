@@ -165,12 +165,14 @@ echo >&3
 case ${FORCE:++} in
 + ) LDIF=$(
 	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-a always \
 		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1
 	); case ${LDIF:++} in + ) exit 0 ;; esac
 esac
 case ${FORCE:++},${GROUP_GID++} in
 +,+ ) LDIF=$(
 	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-a always \
 		-- "(&(objectClass=posixGroup)(gidNumber=${GROUP_GID}))" 1.1
 	); case ${LDIF:++} in + ) unset GROUP_GID ;; esac ;;
 esac
@@ -178,6 +180,7 @@ esac
 # GROUP_GID.
 GROUP_GID=${GROUP_GID:-$(
 	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-a always \
 		-o ldif-wrap=no \
 		-- "(objectClass=posixGroup)" gidNumber \
 	| exec awk \
@@ -220,6 +223,7 @@ case ${GROUP} in
 	*,* )
 		GROUP_DN_SPEC=$(
 			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-a always \
 				-o ldif-wrap=no \
 				-z 1 \
 				-- "(objectClass=posixGroup)" 1.1 \

@@ -148,10 +148,12 @@ __USAGE__
 	LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 	DN_SPEC=$(
 		printf '%s\n' \
+			"&(uid=${SUDO_USER-${LOGNAME}})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))(!(dc:dn:=${SUDO_USER-${LOGNAME}}))" \
 			"&(uid=${SUDO_USER-${LOGNAME}})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
 			'cn=admin' \
 			"uid=${SUDO_USER-${LOGNAME}}" \
 		| exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+			-a always \
 			-f - \
 			-o ldif-wrap=no \
 			-z 1 \
@@ -425,6 +427,7 @@ __PASS__
 			* )
 				DN_SPEC=$(
 					exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+						-a always \
 						-o ldif-wrap=no \
 						-z 1 \
 						-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
@@ -459,6 +462,7 @@ __PASS__
 			* )
 				DN_SPEC=$(
 					exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+						-a always \
 						-o ldif-wrap=no \
 						-z 1 \
 						-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
@@ -519,6 +523,7 @@ __PASS__
 				*-* )
 					DN_SPEC=$(
 						exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+							-a always \
 							-o ldif-wrap=no \
 							-z 1 \
 							-- "(&(objectClass=organizationalRole)(|(dc:dn:=${USER_SERVICE})(dc:dn:=${USER_SERVICE}s)(ou:dn:=${USER_SERVICE})(ou:dn:=${USER_SERVICE}s)(&(|(dc:dn:=${USER_SERVICE%%-*})(dc:dn:=${USER_SERVICE%%-*}s)(ou:dn:=${USER_SERVICE%%-*})(ou:dn:=${USER_SERVICE%%-*}s))(|(dc:dn:=${USER_SERVICE#*-})(dc:dn:=${USER_SERVICE#*-}s)(ou:dn:=${USER_SERVICE#*-})(ou:dn:=${USER_SERVICE#*-}s))))(roleOccupant=${DN:?}))" 1.1 \
@@ -530,6 +535,7 @@ __PASS__
 				* )
 					DN_SPEC=$(
 						exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+							-a always \
 							-o ldif-wrap=no \
 							-z 1 \
 							-- "(&(objectClass=organizationalRole)(|(dc:dn:=${USER_SERVICE})(dc:dn:=${USER_SERVICE}s)(ou:dn:=${USER_SERVICE})(ou:dn:=${USER_SERVICE}s))(roleOccupant=${DN:?}))" 1.1 \
