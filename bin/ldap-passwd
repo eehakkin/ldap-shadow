@@ -316,12 +316,12 @@ __USAGE__
 			,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
 			+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
 			esac
-			# Master LDAP URI.
+			# Primary LDAP URI.
 			export LDAPURI
 			LDAPURI=$(
 				{ exec tr -d -- '\n' <&4 \
 				| exec "${wrapper}" \
-					--mode=uri-master \
+					--mode=uri-primary \
 					4<&0 0<&5 5<&-; } \
 					4<< __PASS__ 5<&0
 ${LDAPBINDPW}
@@ -661,7 +661,7 @@ END {
 	}
 	exit
 	;;
---mode=uri-master )
+--mode=uri-primary )
 	# Search options.
 	export LDAPDEFAULT_OPTS LDAPSEARCH_OPTS
 	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-${LDAPDEFAULT_OPTS=$(
@@ -685,8 +685,8 @@ END {
 		esac
 		: "${LDAPBASE:?}"
 	esac
-	# Determine the URIs of the master LDAP servers.
-	master_uri=$(
+	# Determine the URIs of the primary LDAP servers.
+	primary_uri=$(
 		printf '%s\n' \
 			"${LDAPBASE}"		\
 			"${LDAPBASE#*,}"	\
@@ -703,8 +703,8 @@ END {
 			-e 's/^olcUpdateRef: *//p' \
 			-e '/^$/q'
 		)
-	case ${master_uri:++} in
-	+ ) printf '%s\n' "${master_uri}"; exit ;;
+	case ${primary_uri:++} in
+	+ ) printf '%s\n' "${primary_uri}"; exit ;;
 	esac
 	# Determine the URIs of all the candidate LDAP servers.
 	LDAPURI=${LDAPURI-$(
@@ -904,12 +904,12 @@ __LDIF__
 	,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
 	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
 	esac
-	# Master LDAP URI.
+	# Primary LDAP URI.
 	export LDAPURI
 	LDAPURI=$(
 		{ exec tr -d -- '\n' <&4 \
 		| exec "${wrapper}" \
-			--mode=uri-master \
+			--mode=uri-primary \
 			4<&0 0<&5 5<&-; } \
 			4<< __PASS__ 5<&0
 ${LDAPBINDPW}
