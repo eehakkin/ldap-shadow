@@ -2,6 +2,7 @@ ldap-shadow (1.0.20210121) unstable; urgency=low
 
   * Renamed the master password to the primary password.
   * Renamed the master URI to the primary URI.
+  * Implemented the --verbose option in ldap-passwd.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Thu, 21 Jan 2021 22:12:45 +0200
 

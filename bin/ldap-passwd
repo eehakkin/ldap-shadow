@@ -44,6 +44,7 @@ Options:
  -r, --repository REPOSITORY  (ignored)
  -R, --root CHROOT_DIR        (ignored)
  -s, --service SERVICE        Change password for SERVICE service.
+ -v, --verbose                Be verbose.
  -V, --version                Show version information and exit.
  -w, --warndays WARN_DAYS     Set the password expiration warning days.
      --dry-run                Dump LDIF and exit.
@@ -757,7 +758,7 @@ ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
 ###########################################################################
 export LOGNAME USER USER_DN USER_DN_SPEC USER_SERVICE
 LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
-DELETE= EXPIRE= QUIET=
+DELETE= EXPIRE= QUIET= VERBOSE=
 unset BINDDN_ROLE
 unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
 
@@ -766,7 +767,8 @@ unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
 # Options.
 #
 ###########################################################################
-while getopts b:dehi:n:qR:r:s:Vw:x:-: OPT "${@}"
+exec 4> /dev/null
+while getopts b:dehi:n:qR:r:s:Vvw:x:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--binddn     | \
@@ -793,10 +795,11 @@ do
 	--inactive=   | -i* ) USER_INACTIVE=${OPTARG} ;;
 	--maxdays=    | -x* ) USER_MAX_DAYS=${OPTARG} ;;
 	--mindays=    | -n* ) USER_MIN_DAYS=${OPTARG} ;;
-	--quiet       | -q* ) QUIET=+ ;;
+	--quiet       | -q* ) QUIET=+ VERBOSE=; exec 4> /dev/null ;;
 	--repository= | -r* ) ;;
 	--root=       | -R* ) ;;
 	--service=    | -s* ) USER_SERVICE=${OPTARG} ;;
+	--verbose     | -v* ) QUIET= VERBOSE=+; exec 4>&2 ;;
 	--version     | -V* ) exec "${0}" --version 3>&- ;;
 	--warndays=   | -w* ) USER_WARN_DAYS=${OPTARG} ;;
 	--dry-run     ) exec 3>&1 ;;
@@ -808,6 +811,12 @@ shift $(( $OPTIND - 1 ))
 USER=${1-${LOGNAME}}
 USER_DN_SPEC=$( exec "${wrapper}" --mode=user-dn-spec )
 USER_DN=$( exec "${wrapper}" --mode=user-dn )
+printf '# %s=%s\n' \
+	LOGNAME		"${LOGNAME}" \
+	USER		"${USER}" \
+	USER_DN_SPEC	"${USER_DN_SPEC}" \
+	USER_DN		"${USER_DN}" \
+	>&4
 
 ###########################################################################
 #
@@ -884,6 +893,7 @@ __LDIF__
 				--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 			)
 		export LDAPBINDDN
+		printf '# %s=%s\n' LDAPBINDDN "${LDAPBINDDN}" >&4
 	esac
 	# Password options.
 	export LDAPDEFAULT_OPTS LDAPPASSWD_OPTS
@@ -895,6 +905,7 @@ __LDIF__
 	,*  | *,*' -y /dev/fd/4' ) LDAPPASSWD_OPTS=${opts} ;;
 	+,* ) LDAPPASSWD_OPTS="${opts} -y /dev/fd/4" ;;
 	esac
+	printf '# %s=%s\n' LDAPPASSWD_OPTS "${LDAPPASSWD_OPTS}" >&4
 	# Whoami options.
 	export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
 	opts=${LDAPWHOAMI_OPTS-${LDAPDEFAULT_OPTS=$(
@@ -904,6 +915,7 @@ __LDIF__
 	,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
 	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
 	esac
+	printf '# %s=%s\n' LDAPWHOAMI_OPTS "${LDAPWHOAMI_OPTS}" >&4
 	# Primary LDAP URI.
 	export LDAPURI
 	LDAPURI=$(
@@ -915,6 +927,7 @@ __LDIF__
 ${LDAPBINDPW}
 __PASS__
 		)
+	printf '# %s=%s\n' LDAPURI "${LDAPURI}" >&4
 
 	###################################################################
 	#
@@ -946,18 +959,23 @@ __PASS__
 				) ;;
 			' '* ) value=${value#" "} ;;
 			esac
+			safe_value=${value%%[:${IFS#??}]*}
 			case ${attribute} in
-			cn                ) USER_COMMENT=${value%%[:${IFS#??}]*} ;;
-			gecos             ) USER_GECOS=${value%%[:${IFS#??}]*} ;;
-			homeDirectory     ) USER_HOME_DIR=${value%%[:${IFS#??}]*} ;;
-			loginShell        ) USER_SHELL=${value%%[:${IFS#??}]*} ;;
-			pwdPolicySubentry ) USER_PWD_POLICY_DN=${value} ;;
-			uid               ) USER_NAME=${value%%[:${IFS#??}]*} ;;
+			cn                ) name=USER_COMMENT ;;
+			gecos             ) name=USER_GECOS ;;
+			homeDirectory     ) name=USER_HOME_DIR ;;
+			loginShell        ) name=USER_SHELL ;;
+			pwdPolicySubentry ) name=USER_PWD_POLICY_DN safe_value=${value} ;;
+			uid               ) name=USER_NAME ;;
+			*                 ) continue ;;
 			esac
+			eval "${name}"='${safe_value}'
+			printf '# %s=%s\n' "${name}" "${safe_value}" >&4
 		done << __LDIF__
 ${USER_LDIF#*"${IFS#??}"}
 __LDIF__
 		USER_NAME=${USER_NAME-${USER%%[:${IFS#??}]*}}
+		printf '# %s=%s\n' USER_NAME "${USER_NAME}" >&4
 		# Construct a user password file entry and a user password
 		# policy name.
 		passwd_entry=${USER_NAME}::::${USER_GECOS-${USER_COMMENT-${USER_NAME}}}:${USER_HOME_DIR-/home/${USER_NAME}}:${USER_SHELL-/bin/bash}
@@ -987,6 +1005,7 @@ __LDIF__
 					do
 						case ${line} in
 						config=*     )
+							printf '# %s\n' "${line}" >&4
 							read_config < "${line#*=}"
 							;;
 						max=*        | \
@@ -999,7 +1018,15 @@ __LDIF__
 						esac
 					done
 				}
+				printf '# %s=%s\n' config "${config}" >&4
 				read_config < "${config}"
+				printf '# %s=%s\n' \
+					${max+ max "${max}" } \
+					${min+ min "${min}" } \
+					${passphrase+ passphrase "${passphrase}" } \
+					${random+ random "${random}" } \
+					${retry+ retry "${retry}" } \
+					>&4
 				break
 			}
 			unset config
@@ -1036,13 +1063,18 @@ __LDIF__
 					shift
 				done
 				passphrase=$(( ( ${coefficient} * ${passphrase} + 50 ) / 100 ))
-				[ ${coefficient} -lt 100 ] || random=$(( ( ${coefficient} * ${random%%,*} + 50 ) / 100 ))
+				printf '# %s=%s\n' passphrase "${passphrase}" >&4
+				[ ${coefficient} -lt 100 ] || {
+					random=$(( ( ${coefficient} * ${random%%,*} + 50 ) / 100 ))
+					printf '# %s=%s\n' random "${random}" >&4
+				}
 				;;
 			esac
 		esac
 		# Merge ${min}.
 		n0=${1:-disabled} n1=${2:-24} n2=${3:-11} n3=${4:-8} n4=${5:-7}
 		min=${n0},${n1},${n2},${n3},${n4}
+		printf '# %s=%s\n' min "${min}" >&4
 		# Explain password quality checks.
 		if [ -t 0 ]
 		then

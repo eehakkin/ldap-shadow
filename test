@@ -7,8 +7,9 @@ spawn() { ( set -x && exec "${@}" ); }
 cd -- "${dir}"
 GROUP=${GROUP-$( id -gn )}
 OPTS=${OPTS-}
-SERVICE=${SERVICE-Mail}
+SERVICE=${SERVICE-WebSSO}
 USER=${USER-$( id -un )}
+LOGNAME=${LOGNAME-${USER}}
 GROUP_DN_SPEC=$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 		-a always \
@@ -35,18 +36,22 @@ case ${USER_DN_SPEC} in
 'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
 *        ) USER_DN= ;;
 esac
-SERVICE_DN_SPEC=${SERVICE+$(
+case ${USER_DN} in
+*,uid="${LOGNAME}",* ) PRIMARY_USER_DN=uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",} ;;
+*                    ) PRIMARY_USER_DN ;;
+esac
+SERVICE_USER_DN_SPEC=${SERVICE+$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		-b "${USER_DN}" \
+		-b "${PRIMARY_USER_DN:-${USER_DN}}" \
 		-o ldif-wrap=no \
 		-z 1 \
-		-- "(&(objectClass=organizationalRole)(ou:dn:=${SERVICE})(roleOccupant=${USER_DN}))" 1.1 \
+		-- "(&(objectClass=organizationalRole)(ou:dn:=${SERVICE})(roleOccupant=${PRIMARY_USER_DN:-${USER_DN}}))" 1.1 \
 	| sed -e '/^dn:/!d' -e 'q'
 	)}
-case ${SERVICE_DN_SPEC} in
-'dn:: '* ) SERVICE_DN=$( echo "${SERVICE_DN_SPEC#"dn:: "}" | base64 -d ) ;;
-'dn: '*  ) SERVICE_DN=${SERVICE_DN_SPEC#"dn: "} ;;
-*        ) SERVICE_DN= ;;
+case ${SERVICE_USER_DN_SPEC} in
+'dn:: '* ) SERVICE_USER_DN=$( echo "${SERVICE_USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
+'dn: '*  ) SERVICE_USER_DN=${SERVICE_USER_DN_SPEC#"dn: "} ;;
+*        ) SERVICE_USER_DN= ;;
 esac
 ADMIN_DN=$( exec "${wrapper}" --mode=binddn-admin )
 for opts in \
@@ -68,9 +73,13 @@ do
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS}
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER}"
 	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${USER_DN}"
+	case ${PRIMARY_USER_DN:++} in
+	+ ) spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${PRIMARY_USER_DN}" ;;
+	esac
 	case ${opts} in --service[=\ ]* | -s* ) continue ;; esac
-	case ${SERVICE_DN:++} in '' ) continue ;; esac
-	spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${SERVICE_DN}"
+	case ${SERVICE_USER_DN:++} in
+	+ ) spawn ./bin/ldap-chfn --dry-run --full-name=optarg ${opts} ${OPTS} "${SERVICE_USER_DN}" ;;
+	esac
 done > /dev/null
 for opts in \
 	-{-binddn{=,' '},b{,' '}}primary	\
@@ -95,17 +104,22 @@ for opts in \
 	-{-repository{=,' '},r{,' '}}optarg		\
 	-{-root{=,' '},R{,' '}}optarg			\
 	-{-service{=,' '},s{,' '}}"${SERVICE:-SKIP}"	\
+	-{-verbose,v}					\
 	-{-version,V}					\
 	-{-warndays{=,' '},w{,' '}}optarg
 do
 	case ${opts} in *SKIP ) continue ;; esac
-	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS}
-	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER}"
-	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${USER_DN}"
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} --quiet ${OPTS}
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} --quiet ${OPTS} "${USER}"
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} --quiet ${OPTS} "${USER_DN}"
+	case ${PRIMARY_USER_DN:++} in
+	+ ) spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} --quiet ${OPTS} "${PRIMARY_USER_DN}" ;;
+	esac
 	case ${opts} in --service[=\ ]* | -s* ) continue ;; esac
-	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${ADMIN_DN}"
-	case ${SERVICE_DN:++} in '' ) continue ;; esac
-	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} ${OPTS} "${SERVICE_DN}"
+	case ${SERVICE_USER_DN:++} in
+	+ ) spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} --quiet ${OPTS} "${SERVICE_USER_DN}" ;;
+	esac
+	spawn ./bin/ldap-passwd --dry-run --maxdays=optarg ${opts} --quiet ${OPTS} "${ADMIN_DN}"
 done > /dev/null
 for opts in \
 	-{-force,f}				\
