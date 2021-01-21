@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20210121) unstable; urgency=low
+
+  * Renamed the master password to the primary password.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Thu, 21 Jan 2021 22:12:45 +0200
+
 ldap-shadow (1.0.20210105) unstable; urgency=low
 
   * Changed to always dereference LDAP aliases.

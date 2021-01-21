@@ -52,7 +52,7 @@ Operands:
  USER              The username (the user identifier defined by the uid
                    attribute) or the distinguished name (DN) of the LDAP user
                    account whose password is to be changed using administrative
-                   privileges and either a master password (if USER is
+                   privileges and either a primary password (if USER is
                    the current user and a service password is to be changed) or
                    an administrator password (otherwise).
                    The default is to change the password for the LDAP POSIX
@@ -112,7 +112,7 @@ __USAGE__
 		###########################################################
 		case ${USER_DN++},${USER_DN-} in
 		+,"${LDAPBINDDN}"   ) set -- 'Enter LDAP Password: ' ;;
-		+,*,"${LDAPBINDDN}" ) set -- 'Enter LDAP Master Password: ' ;;
+		+,*,"${LDAPBINDDN}" ) set -- 'Enter Primary LDAP Password: ' ;;
 		*,*                 ) set -- \
 			'Enter LDAP Administrator Password: ' ;;
 		esac
@@ -168,7 +168,7 @@ __USAGE__
 	esac
 	exit
 	;;
---mode=binddn-master )
+--mode=binddn-primary )
 	# Search options.
 	export LDAPDEFAULT_OPTS LDAPSEARCH_OPTS
 	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-${LDAPDEFAULT_OPTS=$(
@@ -182,7 +182,7 @@ __USAGE__
 		)}
 	case ${USER_DN} in
 	*,uid="${LOGNAME}",* )
-		# Master user DN.
+		# Primary user DN.
 		printf '%s\n' "uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}"
 		;;
 	* )
@@ -482,10 +482,10 @@ __PASS__
 				;;
 			esac
 			case ${USER_SERVICE++},${USER_SERVICE-} in
-			+,[Mm]aster )
+			+,[Pp]rimary )
 				case ${DN:?} in
 				*,uid="${LOGNAME}",* )
-					# Master user DN.
+					# Primary user DN.
 					DN=uid=${LOGNAME},${DN#*,uid="${LOGNAME}",}
 					DN_SPEC=$(
 						exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
@@ -503,7 +503,7 @@ __PASS__
 				unset DN_SPEC
 				case ${DN:?} in
 				*,uid="${LOGNAME}",* )
-					# Master user DN.
+					# Primary user DN.
 					DN=uid=${LOGNAME},${DN#*,uid="${LOGNAME}",}
 					;;
 				esac
@@ -878,10 +878,10 @@ __LDIF__
 	exec 3>&-
 	# LDAPBINDDN.
 	case ${LDAPBINDDN++} in '' )
-		MASTER=${1+master}
+		PRIMARY=${1+primary}
 		LDAPBINDDN=$(
 			exec "${wrapper}" \
-				--mode="binddn-${BINDDN_ROLE-${MASTER:-user}}"
+				--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 			)
 		export LDAPBINDDN
 	esac

@@ -260,10 +260,10 @@ esac
 ###########################################################################
 # LDAPBINDDN.
 case ${LDAPBINDDN++} in '' )
-	MASTER=${1+master}
+	PRIMARY=${1+primary}
 	LDAPBINDDN=$(
 		exec "${wrapper}" \
-			--mode="binddn-${BINDDN_ROLE-${MASTER:-user}}"
+			--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 		)
 	export LDAPBINDDN
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
