@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-pwqgen 1.0
 #
-# Copyright (C) 2012 - 2020 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2020 - 2021 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -22,13 +22,13 @@ case ${1-} in
 --help=troff      ) exec help2man \
 	-L 'C.UTF-8' \
 	-N \
-	-n 'change the password of an LDAP user account' \
+	-n 'generate a quality controllable random passphrase' \
 	-s 1 \
 	-- "${0}" ;;
 --help=* | --help ) exec cat << __USAGE__ ;;
 Usage: ${0##*[\\/]} [OPTION]... [OPERAND]...
 
-Change the password of an LDAP user account on an LDAP server.
+Generate a quality controllable random passphrase for an LDAP user account.
 
 Options:
  -h, --help[=FORMAT]  Show this help message and exit.

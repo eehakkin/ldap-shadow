@@ -26,6 +26,9 @@ User commands
                     server.
  * **ldap-passwd**: Change the password of an LDAP user account on an LDAP
                     server.
+ * **ldap-pwqgen**: Generate a quality controllable random passphrase for
+                    an LDAP user account.
+
 
 Administrative commands
 -----------------------
