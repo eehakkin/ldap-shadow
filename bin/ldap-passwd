@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-passwd 1.0
 #
-# Copyright (C) 2012 - 2020 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2021 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -936,7 +936,7 @@ __PASS__
 	###################################################################
 	unset config max min passphrase random passwd_entry
 	retry=3
-	if pwqgen > /dev/null 2>&1
+	if pwqcheck --version > /dev/null 2>&1
 	then
 		# Try to find out user password file fields and a user password
 		# policy DN.

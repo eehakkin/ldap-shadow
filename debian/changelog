@@ -1,6 +1,7 @@
 ldap-shadow (1.0.20210524) unstable; urgency=low
 
   * Created ldap-pwqcheck.
+  * Improved availability checks in ldap-passwd.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Mon, 24 May 2021 07:34:55 +0300
 
