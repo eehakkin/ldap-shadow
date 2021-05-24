@@ -1,4 +1,5 @@
-bin/ldap-*	usr/bin/
-etc/ldap-*	etc/
-man		usr/share/
-sbin/ldap-*	usr/sbin/
+bin/ldap-??[!q]*	usr/bin/
+etc/ldap-*		etc/
+man/man1/ldap-??[!q]*	usr/share/man/man1/
+man/man8		usr/share/man/
+sbin/ldap-*		usr/sbin/
