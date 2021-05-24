@@ -19,15 +19,16 @@ Dependencies
 User commands
 -------------
 
- * **ldap-chfn**:   Change the full name, the home, mobile and work phone
-                    numbers and the room number of an LDAP user account on
-                    an LDAP server.
- * **ldap-chsh**:   Change the login shell of an LDAP user account on an LDAP
-                    server.
- * **ldap-passwd**: Change the password of an LDAP user account on an LDAP
-                    server.
- * **ldap-pwqgen**: Generate a quality controllable random passphrase for
-                    an LDAP user account.
+ * **ldap-chfn**:     Change the full name, the home, mobile and work phone
+                      numbers and the room number of an LDAP user account on
+                      an LDAP server.
+ * **ldap-chsh**:     Change the login shell of an LDAP user account on an LDAP
+                      server.
+ * **ldap-passwd**:   Change the password of an LDAP user account on an LDAP
+                      server.
+ * **ldap-pwqcheck**: Check the password quality for an LDAP user account.
+ * **ldap-pwqgen**:   Generate a quality controllable random passphrase for
+                      an LDAP user account.
 
 
 Administrative commands

@@ -1,0 +1,103 @@
+#! /bin/sh -Cefu
+###########################################################################
+# ldap-pwqcheck 1.0
+#
+# Copyright (C) 2021 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3
+# as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+case ${1-} in
+--help=man        ) exec "${0}" --help=troff | exec man -l -- -; exit ;;
+--help=troff      ) exec help2man \
+	-L 'C.UTF-8' \
+	-N \
+	-n 'check password quality' \
+	-s 1 \
+	-- "${0}" ;;
+--help=* | --help ) exec cat << __USAGE__ ;;
+Usage: ${0##*[\\/]} [OPTION]... [OPERAND]...
+
+Check the password quality for an LDAP user account.
+By default, three lines are read from the standard input:
+the new password,
+the old password and
+an account name or a passwd(5) entry.
+
+Options:
+ -1                   Read only 1 line (the new passphrase).
+ -2                   Read only 2 lines (the new and the old passphrases).
+ -h, --help[=FORMAT]  Show this help message and exit.
+     --multi          Read multiple passphrases until the end of the file.
+ -V, --version        Show version information and exit.
+
+Operands:
+ config=FILE          Load config FILE in the passwdqc.conf format. This file
+                      may define any options described in passwdqc.conf(5).
+ match=N              The length of common substring required to conclude that
+                      a password is at least partially based on information
+                      found in a character string, or 0 to disable
+                      the substring search.
+                      For details, see passwdqc.conf(5).
+ max=N                The maximum allowed password length.
+                      For details, see passwdqc.conf(5).
+ min=N0,N1,N2,N3,N4   The minimum allowed password lengths for different kind
+                      of passwords. A length can be also a keyword disabled to
+                      disable passwords of the given kind.
+                      For details, see passwdqc.conf(5).
+ passphrase=N         The number of words required for a passphrase, or 0 to
+                      disable the support for user-chosen passphrases.
+                      For details, see passwdqc.conf(5).
+ similar=permit|deny  Whether the new password is allowed to be similar to
+                      the old one.
+                      For details, see passwdqc.conf(5).
+
+Files:
+ /etc/passwdqc-ldap.conf  Password quality check configuration.
+                          See also passwdqc.conf(5).
+ /etc/passwdqc.conf       Ditto.
+
+__USAGE__
+--version ) exec "${0%-*}-passwd" --mode=frontend "${0}" "${@}" ;;
+esac
+opts=
+while getopts 12hV-: OPT "${@}"
+do
+	case -${OPT}${OPTARG-} in
+	--*=* ) OPT=${OPT}${OPTARG%%=*} OPTARG=${OPTARG#*=} ;;
+	--*   ) OPT=${OPT}${OPTARG%%=*}; unset OPTARG ;;
+	esac
+	case -${OPT}${OPTARG+=} in
+	-[12]*    ) opts="${opts} -${OPT}" ;;
+	--help    | -h* | \
+	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
+	--multi   ) opts="${opts} -${OPT}" ;;
+	--version | -V* ) exec "${0}" --version 3>&- ;;
+	--*       ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
+	*         ) exit 1 ;;
+	esac
+done
+shift $(( $OPTIND - 1 ))
+for config in '/etc/passwdqc-ldap.conf'
+do
+	[ ! -f "${config}" ] || {
+		for arg
+		do
+			case ${arg} in
+			config=* ) break 2 ;;
+			esac
+		done
+		set -- config="${config}" "${@}"
+		break
+	}
+done
+exec pwqcheck ${opts} "${@}"
