@@ -101,10 +101,19 @@ then
 	random=$(( 12 * ${passphrase} ))
 fi
 # Prefer passphrases over passwords.
+# | random_step | passphrase words | word casing      | separators      |
+# +-------------+------------------+------------------+-----------------+
+# | 12          | random (12 bits) | default (0 bits) | dash (0 bits)   |
+# | 13          | random (12 bits) | random (1 bit)   | dash (0 bits)   |
+# | 16          | random (12 bits) | default (0 bits) | random (4 bits) |
+# | 17          | random (12 bits) | random (1 bit)   | random (4 bits) |
+# | 1           | random (12 bits) | random (1 bit)   | random (4 bits) |
 for random_step in 12 13 16 17 1
 do
 	case $(( ${random%%,*} % ${random_step} ))%${random_step} in
-	0%* | 12%16 | 13%17 ) break ;;
+	0%*   ) break ;; # Divisible.
+	12%16 | \
+	13%17 ) break ;; # No trailing separator.
 	esac
 done
 exec 4>&1
@@ -136,7 +145,7 @@ do
 			break
 		fi
 		case ${random_step} in
-		1 ) random_bits=$(( 3 * ( 13 + 4 ) )) ;;
+		1 ) random_bits=$(( 3 * ( 12 + 1 + 4 ) )) ;;
 		* ) random_bits=$(( 3 * ${random_step} )) ;;
 		esac
 		ps=$(
