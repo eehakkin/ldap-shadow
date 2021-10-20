@@ -158,7 +158,7 @@ __USAGE__
 			-f - \
 			-o ldif-wrap=no \
 			-z 1 \
-			-- '(&(%s)(|(objectClass=posixAccount)(objectClass=simpleSecurityObject)))' 1.1 \
+			-- '(&(|(objectClass=posixAccount)(objectClass=simpleSecurityObject))(%s))' 1.1 \
 			2> /dev/null \
 		| exec sed -e '/^dn:/!d' -e 'q'
 		)
@@ -535,11 +535,15 @@ __PASS__
 					;;
 				* )
 					DN_SPEC=$(
-						exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+						printf '%s\n' \
+							"(!(dc:dn:=${SUDO_USER-${LOGNAME}}))" \
+							"" \
+						| exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 							-a always \
+							-f - \
 							-o ldif-wrap=no \
 							-z 1 \
-							-- "(&(objectClass=organizationalRole)(|(dc:dn:=${USER_SERVICE})(dc:dn:=${USER_SERVICE}s)(ou:dn:=${USER_SERVICE})(ou:dn:=${USER_SERVICE}s))(roleOccupant=${DN:?}))" 1.1 \
+							-- "(&(objectClass=organizationalRole)(|(dc:dn:=${USER_SERVICE})(dc:dn:=${USER_SERVICE}s)(ou:dn:=${USER_SERVICE})(ou:dn:=${USER_SERVICE}s))(roleOccupant=${DN:?})%s)" 1.1 \
 							2> /dev/null \
 						| exec sed -e '/^dn:/!d' -e 'q'
 						)
