@@ -2,6 +2,7 @@ ldap-shadow (1.0.20211020) unstable; urgency=medium
 
   * Fixed ldap-pwqgen to handle random=0.
   * Made administrator searches to be more strict.
+  * Added an extra password check to catch errors early.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Wed, 20 Oct 2021 07:31:37 +0300
 

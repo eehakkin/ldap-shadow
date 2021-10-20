@@ -932,6 +932,16 @@ ${LDAPBINDPW}
 __PASS__
 		)
 	printf '# %s=%s\n' LDAPURI "${LDAPURI}" >&4
+	# Password check.
+	# Passwords must never be passed as command-line arguments
+	# (using the -w option or such) due to security and privacy
+	# reasons thus use a here-document.
+	{ exec tr -d -- '\n' <&4 \
+	| exec ldapwhoami ${LDAPWHOAMI_OPTS} \
+		4<&0 0<&5 1> /dev/null 5<&-; } \
+		4<< __PASS__ 5<&0
+${LDAPBINDPW}
+__PASS__
 
 	###################################################################
 	#
