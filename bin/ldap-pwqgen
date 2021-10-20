@@ -115,12 +115,12 @@ do
 	12 | 13 )
 		random_words=$(( ${random_missing} / ${random_step} ))
 		case ${random_step},${random_words} in
-		12,[123]  | \
-		13,[1234] ) break ;;
-		12,4      ) random_words=2 ;;
-		12,*      ) random_words=3 ;;
-		13,5      ) random_words=3 ;;
-		13,*      ) random_words=4 ;;
+		12,[0123]  | \
+		13,[01234] ) break ;;
+		12,4       ) random_words=2 ;;
+		12,*       ) random_words=3 ;;
+		13,5       ) random_words=3 ;;
+		13,*       ) random_words=4 ;;
 		esac
 		random_bits=$(( ${random_step} * ${random_words} ))
 		ps=$(

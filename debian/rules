@@ -1,6 +1,7 @@
 #! /usr/bin/make -f
 %: ; dh '$@'
 
+build: build-indep ;
 build-indep:
 	mkdir -p man/man1 man/man8
 	set -e && for f in  bin/ldap-*[!~]; do "./$${f}" --help=troff > "man/man1/$${f##*/}.1"; done
