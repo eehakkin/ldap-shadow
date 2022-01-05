@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-useradd 1.0
 #
-# Copyright (C) 2012 - 2019 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2022 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -196,7 +196,7 @@ do
 	--gid=           | -g* ) USER_GID=${OPTARG} GROUP_GID=${OPTARG} ;;
 	--groups=        | -G* ) USER_GROUPS=${OPTARG} ;;
 	--help           | -h* | \
-	--help=          ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
+	--help=          ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
 	--home=          | \
 	--home-dir=      | -d* ) USER_HOME_DIR=${OPTARG} ;;
 	--inactive=      | -f* ) USER_INACTIVE=${OPTARG} ;;
@@ -210,8 +210,8 @@ do
 	--system         | -r* ) NORMAL= SYSTEM=+ ;;
 	--uid=           | -u* ) USER_UID=${OPTARG} ;;
 	--user-group     | -U* ) USERGROUPS_ENAB=yes ;;
-	--version        | -V* ) exec "${0}" --version 3>&- ;;
-	--dry-run        ) exec 3>&1 ;;
+	--version        | -V* ) exec "${0}" --version 3>&- 4>&- ;;
+	--dry-run        ) exec 3>&1 4>&1 ;;
 	--*              ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                ) exit 1 ;;
 	esac
@@ -229,9 +229,9 @@ USER=${1-}
 case ${LDAPBINDDN++} in '' )
 	LDAPBINDDN=$( exec "${wrapper}" --mode=binddn-admin )
 	export LDAPBINDDN
-	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
+	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
 esac
-echo >&3
+echo >&4
 
 # USER_GID.
 case ${USERGROUPS_ENAB},${USER_GID-},${USER_GID++} in
@@ -249,7 +249,7 @@ yes,, )
 	*=*,* ) ;;
 	*,    )
 		set -- ${SYSTEM:+ --system } -- "${USER}"
-		. "${0%-*}-groupadd"
+		. "${0%-*}-groupadd" 4> /dev/null
 		USER_GID=${GROUP_GID:?}
 		;;
 	esac
@@ -444,6 +444,6 @@ __LDIF__
 case ${USER_GROUPS:++} in
 + )
 	set -- -a -G "${USER_GROUPS}" -- "${USER}"
-	. "${0%-*}-usermod"
+	. "${0%-*}-usermod" 4> /dev/null
 	;;
 esac

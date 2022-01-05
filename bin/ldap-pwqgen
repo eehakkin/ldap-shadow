@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-pwqgen 1.0
 #
-# Copyright (C) 2020 - 2021 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2020 - 2022 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -57,8 +57,8 @@ do
 	esac
 	case -${OPT}${OPTARG+=} in
 	--help    | -h* | \
-	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
-	--version | -V* ) exec "${0}" --version 3>&- ;;
+	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
+	--version | -V* ) exec "${0}" --version 3>&- 4>&- ;;
 	--*       ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*         ) exit 1 ;;
 	esac

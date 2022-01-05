@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-chsh 1.0
 #
-# Copyright (C) 2012 - 2019 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2022 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -105,11 +105,11 @@ do
 	case -${OPT}${OPTARG+=} in
 	--binddn= | -b* ) BINDDN_ROLE=${OPTARG} ;;
 	--help    | -h* | \
-	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
+	--help=   ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
 	--root=   | -R* ) ;;
 	--shell=  | -s* ) USER_SHELL=${OPTARG} ;;
-	--version | -V* ) exec "${0}" --version 3>&- ;;
-	--dry-run ) exec 3>&1 ;;
+	--version | -V* ) exec "${0}" --version 3>&- 4>&- ;;
+	--dry-run ) exec 3>&1 4>&1 ;;
 	--*       ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*         ) exit 1 ;;
 	esac
@@ -162,10 +162,10 @@ case ${LDAPBINDDN++} in '' )
 			--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 		)
 	export LDAPBINDDN
-	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
+	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
 esac
-printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&3
-echo >&3
+printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
+echo >&4
 
 # USER_SHELL.
 case ${USER_SHELL++} in

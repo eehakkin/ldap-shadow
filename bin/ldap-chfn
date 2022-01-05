@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-chfn 1.0
 #
-# Copyright (C) 2012 - 2020 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2022 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -153,15 +153,15 @@ ${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 -" ;;
 	--full-name=         | -f* ) USER_COMMENT=${OPTARG} ;;
 	--help               | -u* | \
-	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
+	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
 	--home-phone=        | -h* ) USER_HOME_PHONE=${OPTARG} ;;
 	--mobile-phone=      | -m* ) USER_MOBILE_PHONE=${OPTARG} ;;
 	--room-number=       | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
 	--root=              | -R* ) ;;
 	--service=           | -s* ) USER_SERVICE=${OPTARG} ;;
-	--version            | -V* ) exec "${0}" --version 3>&- ;;
+	--version            | -V* ) exec "${0}" --version 3>&- 4>&- ;;
 	--work-phone=        | -w* ) USER_WORK_PHONE=${OPTARG} ;;
-	--dry-run            ) exec 3>&1 ;;
+	--dry-run            ) exec 3>&1 4>&1 ;;
 	--*                  ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*                    ) exit 1 ;;
 	esac
@@ -266,10 +266,10 @@ case ${LDAPBINDDN++} in '' )
 			--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 		)
 	export LDAPBINDDN
-	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
+	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
 esac
-printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&3
-echo >&3
+printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
+echo >&4
 
 # USER_COMMENT.
 case ${USER_COMMENT++} in

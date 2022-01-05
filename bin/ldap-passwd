@@ -261,16 +261,16 @@ __USAGE__
 		exec 8>&1
 		{
 			{
-				exec 3>&1 0<&6 1>&7 6<&- 7>&- 8>&-
+				exec 3>&1 4>&1 0<&6 1>&7 6<&- 7>&- 8>&-
 				LDAP_HAS_FRONTEND=+ exec "${@}"
 			} &
 			exec 0<&- 1>&- 6<&- 7>&-
 			wait "${!}" && echo '0' >&8 || echo "${?}" >&8
 		} | {
-			exec 3<&0 0<&6 1>&7 6<&- 7>&- 8>&-
+			exec 3<&0 4<&0 0<&6 1>&7 6<&- 7>&- 8>&-
 			while :
 			do
-				IFS= read -r line <&3 || exit 0
+				IFS= read -r line <&4 || exit 0
 				case ${line} in
 				'' ) break ;;
 				esac
@@ -285,7 +285,7 @@ __USAGE__
 						continue 2
 						;;
 					'# ,,,['*=* )
-						if IFS= read -r line2 <&3
+						if IFS= read -r line2 <&4
 						then
 							line=${line}${IFS#??}${line2}
 							continue
@@ -296,6 +296,7 @@ __USAGE__
 					exit 1
 				done
 			done
+			exec 4<&-
 			# Modify options.
 			export LDAPDEFAULT_OPTS LDAPMODIFY_OPTS
 			opts=${LDAPMODIFY_OPTS-${LDAPDEFAULT_OPTS=$(
@@ -356,9 +357,15 @@ __PASS__
 	# Options.
 	unset OPTS
 	case ${1##*-} in
-	modify ) export PATH ${LDAPMODIFY_OPTS+ OPTS="${LDAPMODIFY_OPTS}" } ;;
-	passwd ) export PATH ${LDAPPASSWD_OPTS+ OPTS="${LDAPPASSWD_OPTS}" } ;;
-	whoami ) export PATH ${LDAPWHOAMI_OPTS+ OPTS="${LDAPWHOAMI_OPTS}" } ;;
+	modify )
+		export PATH ${LDAPMODIFY_OPTS+ OPTS="${LDAPMODIFY_OPTS}" }
+		;;
+	passwd )
+		export PATH ${LDAPPASSWD_OPTS+ OPTS="${LDAPPASSWD_OPTS}" }
+		;;
+	whoami )
+		export PATH ${LDAPWHOAMI_OPTS+ OPTS="${LDAPWHOAMI_OPTS}" }
+		;;
 	esac
 	opts=${OPTS-${LDAPDEFAULT_OPTS=$(
 		exec "${wrapper}" --mode=opts
@@ -795,7 +802,7 @@ do
 	--delete      | -d* ) DELETE=+ ;;
 	--expire      | -e* ) EXPIRE=+ ;;
 	--help        | -h* | \
-	--help=       ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- ;;
+	--help=       ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
 	--inactive=   | -i* ) USER_INACTIVE=${OPTARG} ;;
 	--maxdays=    | -x* ) USER_MAX_DAYS=${OPTARG} ;;
 	--mindays=    | -n* ) USER_MIN_DAYS=${OPTARG} ;;
@@ -804,9 +811,9 @@ do
 	--root=       | -R* ) ;;
 	--service=    | -s* ) USER_SERVICE=${OPTARG} ;;
 	--verbose     | -v* ) QUIET= VERBOSE=+; exec 6>&2 ;;
-	--version     | -V* ) exec "${0}" --version 3>&- ;;
+	--version     | -V* ) exec "${0}" --version 3>&- 4>&- ;;
 	--warndays=   | -w* ) USER_WARN_DAYS=${OPTARG} ;;
-	--dry-run     ) exec 3>&1 ;;
+	--dry-run     ) exec 3>&1 4>&1 ;;
 	--*           ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
 	*             ) exit 1 ;;
 	esac
@@ -838,9 +845,9 @@ case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS
 	case ${LDAPBINDDN++} in '' )
 		LDAPBINDDN=$( exec "${wrapper}" --mode=binddn-admin )
 		export LDAPBINDDN
-		printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&3
+		printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
 	esac
-	echo >&3
+	echo >&4
 
 	case ${EXPIRE:++} in
 	+ )
@@ -888,7 +895,7 @@ __LDIF__
 	# Password change.
 	#
 	###################################################################
-	exec 3>&-
+	exec 3>&- 4>&-
 	# LDAPBINDDN.
 	case ${LDAPBINDDN++} in '' )
 		PRIMARY=${1+primary}
