@@ -3,6 +3,7 @@ ldap-shadow (1.0.20220105) unstable; urgency=medium
   * Changed password file descriptor from 4 to 5.
   * Changed LDIF header file descriptor from 3 to 4.
   * Improved configuration variable filtering.
+  * Used command -v instead of which.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Wed, 05 Jan 2022 07:18:00 +0200
 

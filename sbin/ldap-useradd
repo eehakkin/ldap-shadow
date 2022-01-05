@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-me=$( which -- "${0}" || exec ls -d -- "${0}" )
+me=$( command -v -- "${0}" || exec ls -d -- "${0}" )
 dir=$( exec dirname -- "${me}" )
 base=$( exec basename -- "${me}" )
 wrapper=${dir}/../bin/${base%-*}-passwd

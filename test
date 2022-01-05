@@ -2,7 +2,7 @@
 ###########################################################################
 # test 1.0
 #
-# Copyright (C) 2013 - 2021 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2013 - 2022 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
-me=$( which -- "${0}" || ls -d -- "${0}" )
+me=$( command -v -- "${0}" || ls -d -- "${0}" )
 dir=$( dirname -- "${me}" )
 wrapper=${dir}/bin/ldap-passwd
 ${LDAP_HAS_FRONTEND:+:} exec "${wrapper}" --mode=frontend "${0}" "${@}"
@@ -55,7 +55,7 @@ case ${USER_DN_SPEC} in
 esac
 case ${USER_DN} in
 *,uid="${LOGNAME}",* ) PRIMARY_USER_DN=uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",} ;;
-*                    ) PRIMARY_USER_DN ;;
+*                    ) PRIMARY_USER_DN= ;;
 esac
 SERVICE_USER_DN_SPEC=${SERVICE+$(
 	ldapsearch -LLLM ${LDAPSEARCH_OPTS} \

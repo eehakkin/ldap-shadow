@@ -200,7 +200,7 @@ __USAGE__
 	shift
 	case ${2-} in --version )
 		base=$( exec basename -- "${0}" )
-		script=$( which -- "${1}" || exec ls -d -- "${1}" )
+		script=$( command -v -- "${1}" || exec ls -d -- "${1}" )
 		exec sed \
 			-n \
 			-e '/^[^#]/q' \
@@ -233,7 +233,7 @@ __USAGE__
 				-e '/^USERGROUPS_/p'
 			)
 		unset names ${names}
-		me=$( which -- "${0}" || exec ls -d -- "${0}" )
+		me=$( command -v -- "${0}" || exec ls -d -- "${0}" )
 		base=$( exec basename -- "${me}" )
 		dir=$( exec dirname -- "${me}" )
 		for dir in /etc "${dir}/../etc"
@@ -341,7 +341,7 @@ __PASS__
 			modify_error=0 || modify_error=${?}
 			case ${1##*[\\/]} in *group* | *user* )
 				# Invalidate name service caches.
-				if nscd=$( exec which -- 'nscd' )
+				if nscd=$( command -v -- 'nscd' )
 				then
 					"${nscd}" -i 'group'  &&
 					"${nscd}" -i 'passwd' || :
