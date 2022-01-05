@@ -2,7 +2,7 @@
 ###########################################################################
 # ldap-passwd 1.0
 #
-# Copyright (C) 2012 - 2021 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
+# Copyright (C) 2012 - 2022 Eero Häkkinen <Eero+ldap-shadow@Häkkinen.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 3
@@ -253,21 +253,21 @@ __USAGE__
 			done < "${file}"
 		done
 	esac
-	exec 5<&0 6>&1
+	exec 6<&0 7>&1
 	unset GROUP_DN GROUP_DN_SPEC GROUP_GID
 	unset USER_DN USER_DN_SPEC USER_SERVICE USER_UID
 	backend_error=$(
 		set -e
-		exec 7>&1
+		exec 8>&1
 		{
 			{
-				exec 3>&1 0<&5 1>&6 5<&- 6>&- 7>&-
+				exec 3>&1 0<&6 1>&7 6<&- 7>&- 8>&-
 				LDAP_HAS_FRONTEND=+ exec "${@}"
 			} &
-			exec 0<&- 1>&- 5<&- 6>&-
-			wait "${!}" && echo '0' >&7 || echo "${?}" >&7
+			exec 0<&- 1>&- 6<&- 7>&-
+			wait "${!}" && echo '0' >&8 || echo "${?}" >&8
 		} | {
-			exec 3<&0 0<&5 1>&6 5<&- 6>&- 7>&-
+			exec 3<&0 0<&6 1>&7 6<&- 7>&- 8>&-
 			while :
 			do
 				IFS= read -r line <&3 || exit 0
@@ -305,8 +305,8 @@ __USAGE__
 				exec "${wrapper}" --mode=getpass-simple-modify
 				)
 			case ${LDAPBINDPW:++},${opts} in
-			,*  | *,*' -y /dev/fd/4' ) LDAPMODIFY_OPTS=${opts} ;;
-			+,* ) LDAPMODIFY_OPTS="${opts} -y /dev/fd/4" ;;
+			,*  | *,*' -y /dev/fd/5' ) LDAPMODIFY_OPTS=${opts} ;;
+			+,* ) LDAPMODIFY_OPTS="${opts} -y /dev/fd/5" ;;
 			esac
 			# Whoami options.
 			export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
@@ -314,26 +314,26 @@ __USAGE__
 				exec "${wrapper}" --mode=opts
 				)}}
 			case ${LDAPBINDPW:++},${opts} in
-			,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
-			+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
+			,*  | *,*' -y /dev/fd/5' ) LDAPWHOAMI_OPTS=${opts} ;;
+			+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/5" ;;
 			esac
 			# Primary LDAP URI.
 			export LDAPURI
 			LDAPURI=$(
-				{ exec tr -d -- '\n' <&4 \
+				{ exec tr -d -- '\n' <&5 \
 				| exec "${wrapper}" \
 					--mode=uri-primary \
-					4<&0 0<&5 5<&-; } \
-					4<< __PASS__ 5<&0
+					5<&0 0<&4 4<&-; } \
+					4<&0 5<< __PASS__
 ${LDAPBINDPW}
 __PASS__
 				)
 			# Modify LDAP entries.
-			{ exec tr -d -- '\n' <&4 \
+			{ exec tr -d -- '\n' <&5 \
 			| exec ldapmodify -M ${LDAPMODIFY_OPTS} \
 				-f /dev/fd/3 \
-				4<&0 0<&5 5<&-; } \
-				4<< __PASS__ 5<&0 &&
+				5<&0 0<&4 4<&-; } \
+				4<&0 5<< __PASS__ &&
 ${LDAPBINDPW}
 __PASS__
 			modify_error=0 || modify_error=${?}
@@ -730,8 +730,8 @@ END {
 		)}}
 	LDAPBINDPW=$( exec "${wrapper}" --mode=getpass-simple-whoami )
 	case ${LDAPBINDPW:++},${opts} in
-	,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
-	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
+	,*  | *,*' -y /dev/fd/5' ) LDAPWHOAMI_OPTS=${opts} ;;
+	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/5" ;;
 	esac
 	# Loop over the candidate LDAP servers in order to handle partial
 	# replication (userPassword attributes are not always replicated).
@@ -740,11 +740,11 @@ END {
 		# Passwords must never be passed as command-line arguments
 		# (using the -w option or such) due to security and privacy
 		# reasons thus use a here-document.
-		{ exec tr -d -- '\n' <&4 \
+		{ exec tr -d -- '\n' <&5 \
 		| exec ldapwhoami ${LDAPWHOAMI_OPTS} \
 			-H "${uri}" \
-			4<&0 0<&5 1> /dev/null 5<&-; } \
-			4<< __PASS__ 5<&0 &&
+			5<&0 0<&4 1> /dev/null 4<&-; } \
+			4<&0 5<< __PASS__ &&
 ${LDAPBINDPW}
 __PASS__
 		{ printf '%s\n' "${uri}" && exit; } || error=${?}
@@ -771,7 +771,7 @@ unset USER_INACTIVE USER_MAX_DAYS USER_MIN_DAYS USER_WARN_DAYS
 # Options.
 #
 ###########################################################################
-exec 4> /dev/null
+exec 6> /dev/null
 while getopts b:dehi:n:qR:r:s:Vvw:x:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
@@ -799,11 +799,11 @@ do
 	--inactive=   | -i* ) USER_INACTIVE=${OPTARG} ;;
 	--maxdays=    | -x* ) USER_MAX_DAYS=${OPTARG} ;;
 	--mindays=    | -n* ) USER_MIN_DAYS=${OPTARG} ;;
-	--quiet       | -q* ) QUIET=+ VERBOSE=; exec 4> /dev/null ;;
+	--quiet       | -q* ) QUIET=+ VERBOSE=; exec 6> /dev/null ;;
 	--repository= | -r* ) ;;
 	--root=       | -R* ) ;;
 	--service=    | -s* ) USER_SERVICE=${OPTARG} ;;
-	--verbose     | -v* ) QUIET= VERBOSE=+; exec 4>&2 ;;
+	--verbose     | -v* ) QUIET= VERBOSE=+; exec 6>&2 ;;
 	--version     | -V* ) exec "${0}" --version 3>&- ;;
 	--warndays=   | -w* ) USER_WARN_DAYS=${OPTARG} ;;
 	--dry-run     ) exec 3>&1 ;;
@@ -820,7 +820,7 @@ printf '# %s=%s\n' \
 	USER		"${USER}" \
 	USER_DN_SPEC	"${USER_DN_SPEC}" \
 	USER_DN		"${USER_DN}" \
-	>&4
+	>&6
 
 ###########################################################################
 #
@@ -897,7 +897,7 @@ __LDIF__
 				--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 			)
 		export LDAPBINDDN
-		printf '# %s=%s\n' LDAPBINDDN "${LDAPBINDDN}" >&4
+		printf '# %s=%s\n' LDAPBINDDN "${LDAPBINDDN}" >&6
 	esac
 	# Password options.
 	export LDAPDEFAULT_OPTS LDAPPASSWD_OPTS
@@ -906,40 +906,40 @@ __LDIF__
 		)}}
 	LDAPBINDPW=$( exec "${wrapper}" --mode=getpass-simple-passwd )
 	case ${LDAPBINDPW:++},${opts} in
-	,*  | *,*' -y /dev/fd/4' ) LDAPPASSWD_OPTS=${opts} ;;
-	+,* ) LDAPPASSWD_OPTS="${opts} -y /dev/fd/4" ;;
+	,*  | *,*' -y /dev/fd/5' ) LDAPPASSWD_OPTS=${opts} ;;
+	+,* ) LDAPPASSWD_OPTS="${opts} -y /dev/fd/5" ;;
 	esac
-	printf '# %s=%s\n' LDAPPASSWD_OPTS "${LDAPPASSWD_OPTS}" >&4
+	printf '# %s=%s\n' LDAPPASSWD_OPTS "${LDAPPASSWD_OPTS}" >&6
 	# Whoami options.
 	export LDAPDEFAULT_OPTS LDAPWHOAMI_OPTS
 	opts=${LDAPWHOAMI_OPTS-${LDAPDEFAULT_OPTS=$(
 		exec "${wrapper}" --mode=opts
 		)}}
 	case ${LDAPBINDPW:++},${opts} in
-	,*  | *,*' -y /dev/fd/4' ) LDAPWHOAMI_OPTS=${opts} ;;
-	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/4" ;;
+	,*  | *,*' -y /dev/fd/5' ) LDAPWHOAMI_OPTS=${opts} ;;
+	+,* ) LDAPWHOAMI_OPTS="${opts} -y /dev/fd/5" ;;
 	esac
-	printf '# %s=%s\n' LDAPWHOAMI_OPTS "${LDAPWHOAMI_OPTS}" >&4
+	printf '# %s=%s\n' LDAPWHOAMI_OPTS "${LDAPWHOAMI_OPTS}" >&6
 	# Primary LDAP URI.
 	export LDAPURI
 	LDAPURI=$(
-		{ exec tr -d -- '\n' <&4 \
+		{ exec tr -d -- '\n' <&5 \
 		| exec "${wrapper}" \
 			--mode=uri-primary \
-			4<&0 0<&5 5<&-; } \
-			4<< __PASS__ 5<&0
+			5<&0 0<&4 4<&-; } \
+			4<&0 5<< __PASS__
 ${LDAPBINDPW}
 __PASS__
 		)
-	printf '# %s=%s\n' LDAPURI "${LDAPURI}" >&4
+	printf '# %s=%s\n' LDAPURI "${LDAPURI}" >&6
 	# Password check.
 	# Passwords must never be passed as command-line arguments
 	# (using the -w option or such) due to security and privacy
 	# reasons thus use a here-document.
-	{ exec tr -d -- '\n' <&4 \
+	{ exec tr -d -- '\n' <&5 \
 	| exec ldapwhoami ${LDAPWHOAMI_OPTS} \
-		4<&0 0<&5 1> /dev/null 5<&-; } \
-		4<< __PASS__ 5<&0
+		5<&0 0<&4 1> /dev/null 4<&-; } \
+		4<&0 5<< __PASS__
 ${LDAPBINDPW}
 __PASS__
 
@@ -984,12 +984,12 @@ __PASS__
 			*                 ) continue ;;
 			esac
 			eval "${name}"='${safe_value}'
-			printf '# %s=%s\n' "${name}" "${safe_value}" >&4
+			printf '# %s=%s\n' "${name}" "${safe_value}" >&6
 		done << __LDIF__
 ${USER_LDIF#*"${IFS#??}"}
 __LDIF__
 		USER_NAME=${USER_NAME-${USER%%[:${IFS#??}]*}}
-		printf '# %s=%s\n' USER_NAME "${USER_NAME}" >&4
+		printf '# %s=%s\n' USER_NAME "${USER_NAME}" >&6
 		# Construct a user password file entry and a user password
 		# policy name.
 		passwd_entry=${USER_NAME}::::${USER_GECOS-${USER_COMMENT-${USER_NAME}}}:${USER_HOME_DIR-/home/${USER_NAME}}:${USER_SHELL-/bin/bash}
@@ -1019,7 +1019,7 @@ __LDIF__
 					do
 						case ${line} in
 						config=*     )
-							printf '# %s\n' "${line}" >&4
+							printf '# %s\n' "${line}" >&6
 							read_config < "${line#*=}"
 							;;
 						max=*        | \
@@ -1032,7 +1032,7 @@ __LDIF__
 						esac
 					done
 				}
-				printf '# %s=%s\n' config "${config}" >&4
+				printf '# %s=%s\n' config "${config}" >&6
 				read_config < "${config}"
 				printf '# %s=%s\n' \
 					${max+ max "${max}" } \
@@ -1040,7 +1040,7 @@ __LDIF__
 					${passphrase+ passphrase "${passphrase}" } \
 					${random+ random "${random}" } \
 					${retry+ retry "${retry}" } \
-					>&4
+					>&6
 				break
 			}
 			unset config
@@ -1077,10 +1077,10 @@ __LDIF__
 					shift
 				done
 				passphrase=$(( ( ${coefficient} * ${passphrase} + 50 ) / 100 ))
-				printf '# %s=%s\n' passphrase "${passphrase}" >&4
+				printf '# %s=%s\n' passphrase "${passphrase}" >&6
 				[ ${coefficient} -lt 100 ] || {
 					random=$(( ( ${coefficient} * ${random%%,*} + 50 ) / 100 ))
-					printf '# %s=%s\n' random "${random}" >&4
+					printf '# %s=%s\n' random "${random}" >&6
 				}
 				;;
 			esac
@@ -1088,7 +1088,7 @@ __LDIF__
 		# Merge ${min}.
 		n0=${1:-disabled} n1=${2:-24} n2=${3:-11} n3=${4:-8} n4=${5:-7}
 		min=${n0},${n1},${n2},${n3},${n4}
-		printf '# %s=%s\n' min "${min}" >&4
+		printf '# %s=%s\n' min "${min}" >&6
 		# Explain password quality checks.
 		if [ -t 0 ]
 		then
@@ -1251,13 +1251,13 @@ __PASS__
 	# the -s and -w options or such) due to security and privacy reasons
 	# thus use a here-document.
 	{ exec tr -d -- '\n' <&3 \
-	| { exec tr -d -- '\n' <&4 \
+	| { exec tr -d -- '\n' <&5 \
 	| exec ldappasswd ${LDAPPASSWD_OPTS} \
 		-T /dev/fd/3 \
 		-- "${USER_DN}" \
-		4<&0 0<&5 5<&-; } \
+		5<&0 0<&4 4<&-; } \
 		3<&0; } \
-		3<< __NEW_PASS__ 4<< __PASS__ 5<&0
+		3<< __NEW_PASS__ 4<&0 5<< __PASS__
 ${new_pass}
 __NEW_PASS__
 ${LDAPBINDPW}
