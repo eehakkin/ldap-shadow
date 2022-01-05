@@ -243,12 +243,13 @@ __USAGE__
 			while read -r name value
 			do
 				case ${name} in
-				BASE_*       | \
-				[GU]ID_*     | \
-				GROUP_*      | \
-				SYS_[GU]ID_* | \
-				USER_*       | \
-				USERGROUPS_* ) export "${name}=${value}" ;;
+				*[![:upper:]_]* ) ;;
+				BASE_*          | \
+				[GU]ID_*        | \
+				GROUP_*         | \
+				SYS_[GU]ID_*    | \
+				USER_*          | \
+				USERGROUPS_*    ) export "${name}=${value}" ;;
 				esac
 			done < "${file}"
 		done
