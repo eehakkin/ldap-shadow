@@ -111,10 +111,18 @@ __USAGE__
 		# Generate a default prompt.
 		#
 		###########################################################
-		case ${USER_DN++},${USER_DN-} in
-		+,"${LDAPBINDDN}"   ) set -- 'Enter LDAP Password: ' ;;
-		+,*,"${LDAPBINDDN}" ) set -- 'Enter Primary LDAP Password: ' ;;
-		*,*                 ) set -- \
+		case ${USER_DN++}:${USER_SERVICE++}:${USER_DN-} in
+		+::"${LDAPBINDDN}"              ) set -- \
+			'Enter LDAP User Password: ' ;;
+		+:*:*,"${LDAPBINDDN}"            ) set -- \
+			'Enter LDAP Primary User Password: ' ;;
+		+:*:*,"uid=${LDAPBINDDN#*,uid=}" | \
+		+:+:"uid=${LDAPBINDDN#uid=}"     ) set -- \
+			"Enter LDAP ${USER_SERVICE:-$(
+				printf '%s' ",${LDAPBINDDN%%,uid=*}" \
+				| sed -e 's|,[[:alnum:]]*=| |g' -e 's|^ ||'
+				)} User Password: " ;;
+		*,*                            ) set -- \
 			'Enter LDAP Administrator Password: ' ;;
 		esac
 		;;
@@ -223,8 +231,8 @@ __USAGE__
 		names=$(
 			set \
 			| exec sed -n \
-				-e '/^[[:upper:]_]*=/!d'	\
-				-e 's/=.*$//'			\
+				-e '/^\([[:upper:]_]*\)=.*$/!d'	\
+				-e 's//\1/'			\
 				-e '/^BASE_/p'			\
 				-e '/^[GU]ID_/p'		\
 				-e '/^GROUP_/p'			\
@@ -278,8 +286,9 @@ __USAGE__
 				while :
 				do
 					case ${line} in
-					'# ,,,[LDAPBINDDN='*'],,,' | \
-					'# ,,,[USER_DN='*'],,,'    )
+					'# ,,,[LDAPBINDDN='*'],,,'   | \
+					'# ,,,[USER_DN='*'],,,'      | \
+					'# ,,,[USER_SERVICE='*'],,,' )
 						name_and_value=${line#"# ,,,["}
 						name_and_value=${name_and_value%"],,,"}
 						export "${name_and_value}"
@@ -846,7 +855,10 @@ case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS
 	case ${LDAPBINDDN++} in '' )
 		LDAPBINDDN=$( exec "${wrapper}" --mode=binddn-admin )
 		export LDAPBINDDN
-		printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
+		printf '# ,,,[%s],,,\n' \
+			"LDAPBINDDN=${LDAPBINDDN}" \
+			${USER_SERVICE+ "USER_SERVICE=${USER_SERVICE}" } \
+			>&4
 	esac
 	echo >&4
 

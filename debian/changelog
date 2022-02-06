@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20220206) unstable; urgency=low
+
+  * Changed password prompts to be more informative.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sun, 06 Feb 2022 11:15:46 +0200
+
 ldap-shadow (1.0.20220105) unstable; urgency=medium
 
   * Changed password file descriptor from 4 to 5.

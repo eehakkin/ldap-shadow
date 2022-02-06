@@ -266,7 +266,10 @@ case ${LDAPBINDDN++} in '' )
 			--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 		)
 	export LDAPBINDDN
-	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
+	printf '# ,,,[%s],,,\n' \
+		"LDAPBINDDN=${LDAPBINDDN}" \
+		${USER_SERVICE+ "USER_SERVICE=${USER_SERVICE}" } \
+		>&4
 esac
 printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
 echo >&4
