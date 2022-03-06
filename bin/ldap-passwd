@@ -921,9 +921,9 @@ __LDIF__
 	esac
 	# Password options.
 	export LDAPDEFAULT_OPTS LDAPPASSWD_OPTS
-	opts=${LDAPPASSWD_OPTS-${LDAPDEFAULT_OPTS=$(
+	opts=${LDAPPASSWD_OPTS-"${LDAPDEFAULT_OPTS=$(
 		exec "${wrapper}" --mode=opts
-		)}}
+		)} -e ppolicy"}
 	LDAPBINDPW=$( exec "${wrapper}" --mode=getpass-simple-passwd )
 	case ${LDAPBINDPW:++},${opts} in
 	,*  | *,*' -y /dev/fd/5' ) LDAPPASSWD_OPTS=${opts} ;;
