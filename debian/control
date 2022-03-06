@@ -12,7 +12,8 @@ Standards-Version: 4.5.1
 Package: ldap-passwd
 Architecture: all
 Depends:
-	ldap-utils
+	ldap-utils,
+	${misc:Depends}
 Recommends:
 	help2man,
 	ldap-passwdqc,
@@ -28,7 +29,8 @@ Description: change and administer password and group data for LDAP accounts
 Package: ldap-passwdqc
 Architecture: all
 Depends:
-	passwdqc
+	passwdqc,
+	${misc:Depends}
 Description: password strength checking and policy enforcement toolset
  This package provides ldap-pwqcheck and ldap-pwqgen, which are standalone
  password/passphrase strength checking and random passphrase generator

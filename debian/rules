@@ -1,5 +1,6 @@
 #! /usr/bin/make -f
-%: ; dh '$@'
+%:
+	dh '$@'
 
 build: build-indep ;
 build-indep:
