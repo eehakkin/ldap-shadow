@@ -94,6 +94,7 @@ export LOGNAME USER USER_DN USER_DN_SPEC USER_SERVICE
 LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 USER_LDIF=
 unset BINDDN_ROLE
+unset EXTENSIBLE NORMAL POSIX
 unset USER_COMMENT USER_ROOM_NUMBER
 unset USER_HOME_PHONE USER_MOBILE_PHONE USER_WORK_PHONE
 
@@ -173,6 +174,39 @@ USER=${1-${LOGNAME}}
 USER_DN_SPEC=$( exec "${wrapper}" --mode=user-dn-spec )
 USER_DN=$( exec "${wrapper}" --mode=user-dn )
 
+unset USER_COMMENT_OLD USER_ROOM_NUMBER_OLD
+unset USER_HOME_PHONE_OLD USER_WORK_PHONE_OLD
+USER_LDIF_OLD=$(
+	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+		-b "${USER_DN}" \
+		-o ldif-wrap=no \
+		-s base
+		-- '(objectClass=*)' cn homePhone objectClass mobilePhone roomNumber telephoneNumber
+	)
+while IFS=':' read attribute value
+do
+	case ${value} in
+	': '* ) value=$( echo "${value#': '}" | base64 -d ) ;;
+	' '*  ) value=${value#' '} ;;
+	esac
+	case ${attribute} in
+	cn              ) USER_COMMENT_OLD=${value} ;;
+	homePhone       ) USER_HOME_PHONE_OLD=${value} ;;
+	mobilePhone     ) USER_MOBILE_PHONE_OLD=${value} ;;
+	objectClass     )
+		case ${value} in
+		extensibleObject ) EXTENSIBLE=+ ;;
+		inetOrgPerson    ) NORMAL=+ ;;
+		posixAccount     ) POSIX=+ ;;
+		esac
+		;;
+	roomNumber      ) USER_ROOM_NUMBER_OLD=${value} ;;
+	telephoneNumber ) USER_WORK_PHONE_OLD=${value} ;;
+	esac
+done << __LDIF__
+${USER_LDIF_OLD}
+__LDIF__
+
 ###########################################################################
 #
 # Values.
@@ -214,45 +248,32 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMB
 		-s \
 		-- 'Enter the new value, or press ENTER for the default' \
 		>&2
-	while read variable attribute label <&4
+	while read variable opts label <&4
 	do
-		value=$(
-			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-				-b "${USER_DN}" \
-				-o ldif-wrap=no \
-				-s base \
-				-z 1 \
-				-- '(objectClass=*)' "${attribute}" \
-				2> /dev/null \
-			| exec sed -e '/^dn:/d' -e '/./!d' \
-			| while IFS=':' read attribute value
-			do
-				case ${value} in
-				': '* ) value=$(
-					echo "${value#": "}" \
-					| exec base64 -d
-					) ;;
-				' '* ) value=${value#" "} ;;
-				esac
-				printf '%s\n' "${value}"
-			done
-			)
+		eval 'old_value=${USER_'"${variable}"'_OLD-}'
+		case ${opts}${old_value:++}${EXTENSIBLE:++} in
+		: ) continue ;;
+		esac
 		printf '\t%s [%s]: ' "$(
 			gettext_fallback -d shadow -- "${label}"
-			)" "${value}" >&2
-		IFS= read -r REPLY
-		case ${REPLY} in
-		*[![:space:]]* ) eval "USER_${variable}"='${REPLY}' ;;
+			)" "${old_value}" >&2
+		IFS= read -r value
+		case ${value} in
+		*[![:space:]]* ) eval "USER_${variable}"='${value}' ;;
 		[[:space:]]*   ) eval "USER_${variable}"= ;;
 		esac
 	done 4<< __INFO__
-		COMMENT		cn		Full Name
-		ROOM_NUMBER	roomNumber	Room Number
-		WORK_PHONE	telephoneNumber	Work Phone
-		HOME_PHONE	homePhone	Home Phone
-		MOBILE_PHONE	mobile		Mobile Phone
+		COMMENT		:+		Full Name
+		ROOM_NUMBER	:${NORMAL:++}	Room Number
+		WORK_PHONE	:+		Work Phone
+		HOME_PHONE	:${NORMAL:++}	Home Phone
+		MOBILE_PHONE	:${NORMAL:++}	Mobile Phone
 __INFO__
 	;;
+esac
+# USER_COMMENT
+case ${USER_COMMENT++} in
++ ) USER_COMMENT=${USER_COMMENT:-${USER}} ;;
 esac
 
 ###########################################################################
@@ -275,16 +296,6 @@ case ${LDAPBINDDN++} in '' )
 esac
 printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
 echo >&4
-
-# USER_COMMENT.
-case ${USER_COMMENT++} in
-+ ) NORMAL=$(
-	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-		-b "${USER_DN}" \
-		-s base \
-		-- '(objectClass=inetOrgPerson)' 1.1
-	) USER_COMMENT=${USER_COMMENT:-${USER}} ;;
-esac
 
 # USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
 case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
