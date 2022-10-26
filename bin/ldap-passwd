@@ -437,8 +437,7 @@ __PASS__
 						-b "${GROUP}" \
 						-o ldif-wrap=no \
 						-s base \
-						-- '(objectClass=posixGroup)' 1.1 \
-					| exec sed -e '/^dn:/!d' -e 'q'
+						-- '(objectClass=posixGroup)' 1.1
 					)
 				DN=${DN_SPEC:+${GROUP:?}}
 				;;
@@ -448,8 +447,7 @@ __PASS__
 						-a always \
 						-o ldif-wrap=no \
 						-z 1 \
-						-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
-					| exec sed -e '/^dn:/!d' -e 'q'
+						-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1
 					)
 				;;
 			esac
@@ -472,8 +470,7 @@ __PASS__
 						-b "${USER}" \
 						-o ldif-wrap=no \
 						-s base \
-						-- '(|(objectClass=inetOrgPerson)(objectClass=organizationalRole)(objectClass=posixAccount))' 1.1 \
-					| exec sed -e '/^dn:/!d' -e 'q'
+						-- '(|(objectClass=inetOrgPerson)(objectClass=organizationalRole)(objectClass=posixAccount))' 1.1
 					)
 				DN=${DN_SPEC:+${USER:?}}
 				;;
@@ -483,8 +480,7 @@ __PASS__
 						-a always \
 						-o ldif-wrap=no \
 						-z 1 \
-						-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
-					| exec sed -e '/^dn:/!d' -e 'q'
+						-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1
 					)
 				case ${USER_SERVICE++} in
 				+ )
@@ -511,8 +507,7 @@ __PASS__
 							-o ldif-wrap=no \
 							-s base \
 							-- 1.1 \
-							2> /dev/null \
-						| exec sed -e '/^dn:/!d' -e 'q'
+							2> /dev/null
 						)
 					;;
 				esac
@@ -534,8 +529,7 @@ __PASS__
 							-o ldif-wrap=no \
 							-s base \
 							-- "(&(objectClass=organizationalRole)(roleOccupant=${DN:?}))" 1.1 \
-							2> /dev/null \
-						| exec sed -e '/^dn:/!d' -e 'q'
+							2> /dev/null
 						)
 					;;
 				*-* )
@@ -545,8 +539,7 @@ __PASS__
 							-o ldif-wrap=no \
 							-z 1 \
 							-- "(&(objectClass=organizationalRole)(|(dc:dn:=${USER_SERVICE})(dc:dn:=${USER_SERVICE}s)(ou:dn:=${USER_SERVICE})(ou:dn:=${USER_SERVICE}s)(&(|(dc:dn:=${USER_SERVICE%%-*})(dc:dn:=${USER_SERVICE%%-*}s)(ou:dn:=${USER_SERVICE%%-*})(ou:dn:=${USER_SERVICE%%-*}s))(|(dc:dn:=${USER_SERVICE#*-})(dc:dn:=${USER_SERVICE#*-}s)(ou:dn:=${USER_SERVICE#*-})(ou:dn:=${USER_SERVICE#*-}s))))(roleOccupant=${DN:?}))" 1.1 \
-							2> /dev/null \
-						| exec sed -e '/^dn:/!d' -e 'q'
+							2> /dev/null
 						)
 					unset DN
 					;;
@@ -695,8 +688,7 @@ END {
 			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-o ldif-wrap=no \
 				-s base \
-				-- 1.1 \
-			| exec sed -e '/^dn:/!d' -e 'q'
+				-- 1.1
 			)
 		case ${BASE_DN_SPEC} in
 		'dn:: '* ) LDAPBASE=$(

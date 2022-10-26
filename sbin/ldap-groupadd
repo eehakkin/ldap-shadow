@@ -207,14 +207,12 @@ case ${GROUP} in
 			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-o ldif-wrap=no \
 				-s base \
-				-- "(objectClass=*)" 1.1 \
-			| exec sed -e '/^dn:/!d' -e 'q'
+				-- "(objectClass=*)" 1.1
 			)
 		case ${BASE_DN_SPEC} in
-		'dn:: '* ) BASE_DN=$(
-			echo "${BASE_DN_SPEC#"dn:: "}" \
-			| exec base64 -d
-			) ;;
+		'dn:: '* ) BASE_DN=$( exec base64 -d ) << __EOT__ ;;
+${BASE_DN_SPEC#"dn:: "}
+__EOT__
 		'dn: '*  ) BASE_DN=${BASE_DN_SPEC#"dn: "} ;;
 		*        ) BASE_DN= ;;
 		esac
@@ -227,14 +225,12 @@ case ${GROUP} in
 				-o ldif-wrap=no \
 				-z 1 \
 				-- "(objectClass=posixGroup)" 1.1 \
-				2> /dev/null \
-			| exec sed -e '/^dn:/!d' -e 'q'
-			)
+				2> /dev/null
+			) || :
 		case ${GROUP_DN_SPEC} in
-		'dn:: '* ) GROUP_DN=$(
-			echo "${GROUP_DN_SPEC#"dn:: "}" \
-			| exec base64 -d
-			) ;;
+		'dn:: '* ) GROUP_DN=$( exec base64 -d ) << __EOT__ ;;
+${GROUP_DN_SPEC#"dn:: "}
+__EOT__
 		'dn: '*  ) GROUP_DN=${GROUP_DN_SPEC#"dn: "} ;;
 		*        ) GROUP_DN= ;;
 		esac

@@ -293,14 +293,12 @@ case ${USER} in
 			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 				-o ldif-wrap=no \
 				-s base \
-				-- "(objectClass=*)" 1.1 \
-			| exec sed -e '/^dn:/!d' -e 'q'
+				-- "(objectClass=*)" 1.1
 			)
 		case ${BASE_DN_SPEC} in
-		'dn:: '* ) BASE_DN=$(
-			echo "${BASE_DN_SPEC#"dn:: "}" \
-			| exec base64 -d
-			) ;;
+		'dn:: '* ) BASE_DN=$( exec base64 -d ) << __EOT__ ;;
+${BASE_DN_SPEC#"dn:: "}
+__EOT__
 		'dn: '*  ) BASE_DN=${BASE_DN_SPEC#"dn: "} ;;
 		*        ) BASE_DN= ;;
 		esac
@@ -313,14 +311,12 @@ case ${USER} in
 				-o ldif-wrap=no \
 				-z 1 \
 				-- "(objectClass=posixAccount)" 1.1 \
-				2> /dev/null \
-			| exec sed -e '/^dn:/!d' -e 'q'
-			)
+				2> /dev/null
+			) || :
 		case ${USER_DN_SPEC} in
-		'dn:: '* ) USER_DN=$(
-			echo "${USER_DN_SPEC#"dn:: "}" \
-			| exec base64 -d
-			) ;;
+		'dn:: '* ) USER_DN=$( exec base64 -d ) << __EOT__ ;;
+${USER_DN_SPEC#"dn:: "}
+__EOT__
 		'dn: '*  ) USER_DN=${USER_DN_SPEC#"dn: "} ;;
 		*        ) USER_DN= ;;
 		esac

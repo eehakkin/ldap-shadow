@@ -32,8 +32,7 @@ GROUP_DN_SPEC=$(
 		-a always \
 		-o ldif-wrap=no \
 		-z 1 \
-		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 \
-	| sed -e '/^dn:/!d' -e 'q'
+		-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1
 	)
 case ${GROUP_DN_SPEC} in
 'dn:: '* ) GROUP_DN=$( echo "${GROUP_DN_SPEC#"dn:: "}" | base64 -d ) ;;
@@ -45,8 +44,7 @@ USER_DN_SPEC=$(
 		-a always \
 		-o ldif-wrap=no \
 		-z 1 \
-		-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1 \
-	| sed -e '/^dn:/!d' -e 'q'
+		-- "(&(objectClass=posixAccount)(uid=${USER}))" 1.1
 	)
 case ${USER_DN_SPEC} in
 'dn:: '* ) USER_DN=$( echo "${USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
@@ -62,8 +60,7 @@ SERVICE_USER_DN_SPEC=${SERVICE+$(
 		-b "${PRIMARY_USER_DN:-${USER_DN}}" \
 		-o ldif-wrap=no \
 		-z 1 \
-		-- "(&(objectClass=organizationalRole)(ou:dn:=${SERVICE})(roleOccupant=${PRIMARY_USER_DN:-${USER_DN}}))" 1.1 \
-	| sed -e '/^dn:/!d' -e 'q'
+		-- "(&(objectClass=organizationalRole)(ou:dn:=${SERVICE})(roleOccupant=${PRIMARY_USER_DN:-${USER_DN}}))" 1.1
 	)}
 case ${SERVICE_USER_DN_SPEC} in
 'dn:: '* ) SERVICE_USER_DN=$( echo "${SERVICE_USER_DN_SPEC#"dn:: "}" | base64 -d ) ;;
