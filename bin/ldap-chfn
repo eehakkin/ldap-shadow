@@ -43,7 +43,7 @@ Options:
  -u, --help[=FORMAT]        Show this help message and exit.
  -h, --home-phone HOME      Change the home phone number of the account.
  -m, --mobile-phone MOBILE  Change the mobile phone number of the account.
- -r, --room-number ROOM     Change the room number of the account.
+ -r, --room ROOM_NUMBER     Change the room number of the account.
  -R, --root CHROOT_DIR      (ignored)
  -s, --service SERVICE      Modify an account for the SERVICE service.
  -V, --version              Show version information and exit.
@@ -94,8 +94,8 @@ export LOGNAME USER USER_DN USER_DN_SPEC USER_SERVICE
 LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 USER_LDIF=
 unset BINDDN_ROLE
-unset USER_COMMENT
-unset USER_HOME_PHONE USER_MOBILE_PHONE USER_ROOM_NUMBER USER_WORK_PHONE
+unset USER_COMMENT USER_ROOM_NUMBER
+unset USER_HOME_PHONE USER_MOBILE_PHONE USER_WORK_PHONE
 
 ###########################################################################
 #
@@ -112,7 +112,7 @@ do
 	--full-name         | \
 	--home-phone        | \
 	--mobile-phone      | \
-	--room-number       | \
+	--room              | \
 	--root              | \
 	--service           | \
 	--work-phone        )
@@ -156,7 +156,7 @@ ${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
 	--home-phone=        | -h* ) USER_HOME_PHONE=${OPTARG} ;;
 	--mobile-phone=      | -m* ) USER_MOBILE_PHONE=${OPTARG} ;;
-	--room-number=       | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
+	--room=              | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
 	--root=              | -R* ) ;;
 	--service=           | -s* ) USER_SERVICE=${OPTARG} ;;
 	--version            | -V* ) exec "${0}" --version 3>&- 4>&- ;;

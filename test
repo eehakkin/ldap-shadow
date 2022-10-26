@@ -80,7 +80,7 @@ for opts in \
 	-{-help,u}						\
 	-{-home-phone{=,' '},h{,' '}}optarg			\
 	-{-mobile-phone{=,' '},m{,' '}}optarg			\
-	-{-room-number{=,' '},r{,' '}}optarg			\
+	-{-room{=,' '},r{,' '}}optarg				\
 	-{-root{=,' '},R{,' '}}optarg				\
 	-{-service{=,' '},s{,' '}}"${SERVICE:-SKIP}"		\
 	-{-version,V}						\
