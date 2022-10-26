@@ -45,6 +45,7 @@ Options:
  -h, --home-phone HOME       Change the home phone number of the account.
      --mail MAIL             Change the mail address of the account.
      --mobile-phone MOBILE   Change the mobile phone number of the account.
+ -o, --other OTHER_INFO      Change the other GECOS information of the account.
  -r, --room ROOM_NUMBER      Change the room number of the account.
  -R, --root CHROOT_DIR       (ignored)
  -s, --service SERVICE       Modify an account for the SERVICE service.
@@ -98,7 +99,7 @@ LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
 USER_LDIF=
 unset BINDDN_ROLE
 unset EXTENSIBLE NORMAL POSIX
-unset USER_COMMENT USER_ROOM_NUMBER
+unset USER_COMMENT USER_GECOS USER_GECOS_OTHER USER_ROOM_NUMBER
 unset USER_HOME_PHONE USER_MOBILE_PHONE USER_WORK_PHONE
 unset USER_HOME_POSTAL_ADDRESS_B64 USER_WORK_POSTAL_ADDRESS_B64
 unset USER_MAIL
@@ -108,7 +109,7 @@ unset USER_MAIL
 # Options.
 #
 ###########################################################################
-while getopts A:b:D:M:f:h:R:r:s:uVw:-: OPT "${@}"
+while getopts A:b:D:M:f:h:o:R:r:s:uVw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--add-attribute       | \
@@ -122,6 +123,7 @@ do
 	--mail                | \
 	--mobile              | \
 	--mobile-phone        | \
+	--other               | \
 	--room                | \
 	--root                | \
 	--service             | \
@@ -177,6 +179,7 @@ ${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 	--mail=                    ) USER_MAIL=${OPTARG} ;;
 	--mobile=                  | \
 	--mobile-phone=            ) USER_MOBILE_PHONE=${OPTARG} ;;
+	--other=*            | -o* ) USER_GECOS_OTHER=${OPTARG} ;;
 	--room=              | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
 	--root=              | -R* ) ;;
 	--service=           | -s* ) USER_SERVICE=${OPTARG} ;;
@@ -199,7 +202,7 @@ USER=${1-${LOGNAME}}
 USER_DN_SPEC=$( exec "${wrapper}" --mode=user-dn-spec )
 USER_DN=$( exec "${wrapper}" --mode=user-dn )
 
-unset USER_COMMENT_OLD USER_ROOM_NUMBER_OLD
+unset USER_COMMENT_OLD USER_GECOS_OLD USER_GECOS_OTHER_OLD USER_ROOM_NUMBER_OLD
 unset USER_HOME_PHONE_OLD USER_WORK_PHONE_OLD
 unset USER_MAIL_OLD
 USER_LDIF_OLD=$(
@@ -207,7 +210,7 @@ USER_LDIF_OLD=$(
 		-b "${USER_DN}" \
 		-o ldif-wrap=no \
 		-s base
-		-- '(objectClass=*)' cn homePhone objectClass mail mobilePhone roomNumber telephoneNumber
+		-- '(objectClass=*)' cn gecos homePhone objectClass mail mobilePhone roomNumber telephoneNumber
 	)
 while IFS=':' read attribute value
 do
@@ -217,6 +220,26 @@ do
 	esac
 	case ${attribute} in
 	cn              ) USER_COMMENT_OLD=${value} ;;
+	gecos           ) USER_GECOS_OLD=${value} USER_GECOS_OTHER_OLD=$(
+		# Ignore up to six plain fields:
+		#  * full name (standard)
+		#  * room number (standard)
+		#  * work phone (standard)
+		#  * home phone (standard)
+		#  * mobile phone (custom)
+		#  * mail (custom)
+		# Keep the remaining plain fields and all key-value fields.
+		printf '%s' ",${value}," \
+		| exec sed \
+			-e 's/,[^=,]*,/,/' \
+			-e 's/,[^=,]*,/,/' \
+			-e 's/,[^=,]*,/,/' \
+			-e 's/,[^=,]*,/,/' \
+			-e 's/,[^=,]*,/,/' \
+			-e 's/,[^=,]*,/,/' \
+			-e 's/^,//' \
+			-e 's/,$//'
+		) ;;
 	homePhone       ) USER_HOME_PHONE_OLD=${value} ;;
 	mail            ) USER_MAIL_OLD=${value} ;;
 	mobilePhone     ) USER_MOBILE_PHONE_OLD=${value} ;;
@@ -239,8 +262,8 @@ __LDIF__
 # Values.
 #
 ###########################################################################
-# USER_COMMENT, USER_HOME_PHONE, USER_HOME_POSTAL_ADDRESS_B64, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_WORK_POSTAL_ADDRESS_B64, USER_LDIF.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_HOME_POSTAL_ADDRESS_B64++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_WORK_POSTAL_ADDRESS_B64++}${USER_LDIF:++} in
+# USER_COMMENT, USER_GECOS_OTHER, USER_HOME_PHONE, USER_HOME_POSTAL_ADDRESS_B64, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_WORK_POSTAL_ADDRESS_B64, USER_LDIF.
+case ${USER_COMMENT++}${USER_GECOS_OTHER++}${USER_HOME_PHONE++}${USER_HOME_POSTAL_ADDRESS_B64++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_WORK_POSTAL_ADDRESS_B64++}${USER_LDIF:++} in
 '' )
 	gettext_fallback() { # -d <DEFAULT-DOMAIN> [OPTION]... <MSGID>
 		eval "msgid=\${${#}}"
@@ -296,12 +319,46 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_HOME_POSTAL_ADDRESS_B64++}${USE
 		HOME_PHONE	:${NORMAL:++}	Home Phone
 		MOBILE_PHONE	:${NORMAL:++}	Mobile Phone
 		MAIL		:${NORMAL:++}	Email Address
+		GECOS_OTHER	:${POSIX:++}	Other
 __INFO__
 	;;
 esac
 # USER_COMMENT
 case ${USER_COMMENT++} in
 + ) USER_COMMENT=${USER_COMMENT:-${USER}} ;;
+esac
+# USER_GECOS
+case ${USER_GECOS_OLD++}${USER_GECOS_OTHER:++} in
++* )
+	USER_GECOS_OTHER=${USER_GECOS_OTHER-${USER_GECOS_OTHER_OLD-}}
+	USER_GECOS="\
+${USER_COMMENT-${USER_COMMENT_OLD-${USER}}},\
+${USER_ROOM_NUMBER-${USER_ROOM_NUMBER_OLD-}},\
+${USER_WORK_PHONE-${USER_WORK_PHONE_OLD-}},\
+${USER_HOME_PHONE-${USER_HOME_PHONE_OLD-}},\
+${USER_MOBILE_PHONE-${USER_MOBILE_PHONE_OLD-}},\
+${USER_MAIL-${USER_MAIL_OLD-}}"
+	# Drop empty plain fields from the end,
+	# if there are no other fields or
+	# if the first other field is a key-value field.
+	case ${USER_GECOS_OTHER:++},${USER_GECOS_OTHER%%,*} in
+	,* | +,*=* )
+		while :
+		do
+			case ${USER_GECOS} in
+			*, ) USER_GECOS=${USER_GECOS%,} ;;
+			*  ) break ;;
+			esac
+		done
+		;;
+	esac
+	# Append the other fields.
+	USER_GECOS=${USER_GECOS}${USER_GECOS_OTHER:+,${USER_GECOS_OTHER}}
+	# Ignore if there are no changes.
+	case ${USER_GECOS_OLD-} in
+	"${USER_GECOS}" ) unset USER_GECOS ;;
+	esac
+	;;
 esac
 
 ###########################################################################
@@ -325,8 +382,8 @@ esac
 printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
 echo >&4
 
-# USER_COMMENT, USER_HOME_PHONE, USER_HOME_POSTAL_ADDRESS_B64, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_WORK_POSTAL_ADDRESS_B64, USER_LDIF.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_HOME_POSTAL_ADDRESS_B64++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_WORK_POSTAL_ADDRESS_B64++}${USER_LDIF:++} in
+# USER_COMMENT, USER_GECOS, USER_HOME_PHONE, USER_HOME_POSTAL_ADDRESS_B64, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_WORK_POSTAL_ADDRESS_B64, USER_LDIF.
+case ${USER_COMMENT++}${USER_GECOS++}${USER_HOME_PHONE++}${USER_HOME_POSTAL_ADDRESS_B64++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_WORK_POSTAL_ADDRESS_B64++}${USER_LDIF:++} in
 +* ) cat << __LDIF__ >&3 ;;
 ${USER_DN_SPEC}
 changetype: modify${USER_COMMENT+
@@ -338,6 +395,9 @@ givenName: ${USER_COMMENT%%[[:space:]]*}
 -
 replace: sn
 sn: ${USER_COMMENT#*[[:space:]]}}
+-}${USER_GECOS+
+replace: gecos${USER_GECOS:+
+gecos: ${USER_GECOS}}
 -}${USER_HOME_PHONE+
 replace: homePhone${USER_HOME_PHONE:+
 homePhone: ${USER_HOME_PHONE}}
