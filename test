@@ -75,6 +75,7 @@ for opts in \
 	-{-replace-attribute{=,' '},M{,' '}}ATTR{,=VALUE}	\
 	-{-full-name{=,' '},f{,' '}}optarg			\
 	-{-help,u}						\
+	--home-{,postal-}address{=,' '}optarg			\
 	-{-home-phone{=,' '},h{,' '}}optarg			\
 	--mail{=,' '}optarg					\
 	--mobile-phone{=,' '}optarg				\
@@ -82,6 +83,7 @@ for opts in \
 	-{-root{=,' '},R{,' '}}optarg				\
 	-{-service{=,' '},s{,' '}}"${SERVICE:-SKIP}"		\
 	-{-version,V}						\
+	--work-{,postal-}address{=,' '}optarg			\
 	-{-work-phone{=,' '},w{,' '}}optarg
 do
 	case ${opts} in *SKIP ) continue ;; esac

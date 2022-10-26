@@ -36,20 +36,22 @@ server being used.
 
 Options:
  -A, --add-attribute ATTR=VALUE        Add an LDAP attribute.
- -b, --binddn=ROLE          Bind using ROLE role.
+ -b, --binddn=ROLE           Bind using ROLE role.
  -D, --delete-attribute ATTR[=VALUE]   Delete an LDAP attribute.
  -M, --replace-attribute ATTR[=VALUE]  Replace an LDAP attribute.
- -f, --full-name COMMENT    Change the full name of the account.
- -u, --help[=FORMAT]        Show this help message and exit.
- -h, --home-phone HOME      Change the home phone number of the account.
-     --mail MAIL            Change the mail address of the account.
-     --mobile-phone MOBILE  Change the mobile phone number of the account.
- -r, --room ROOM_NUMBER     Change the room number of the account.
- -R, --root CHROOT_DIR      (ignored)
- -s, --service SERVICE      Modify an account for the SERVICE service.
- -V, --version              Show version information and exit.
- -w, --work-phone WORK      Change the work phone number of the account.
-     --dry-run              Dump LDIF and exit.
+ -f, --full-name COMMENT     Change the full name of the account.
+ -u, --help[=FORMAT]         Show this help message and exit.
+     --home-address ADDRESS  Change the home postal address of the account.
+ -h, --home-phone HOME       Change the home phone number of the account.
+     --mail MAIL             Change the mail address of the account.
+     --mobile-phone MOBILE   Change the mobile phone number of the account.
+ -r, --room ROOM_NUMBER      Change the room number of the account.
+ -R, --root CHROOT_DIR       (ignored)
+ -s, --service SERVICE       Modify an account for the SERVICE service.
+ -V, --version               Show version information and exit.
+     --work-address ADDRESS  Change the work postal address of the account.
+ -w, --work-phone WORK       Change the work phone number of the account.
+     --dry-run               Dump LDIF and exit.
 
 Operands:
  USER              The username (the user identifier defined by the uid
@@ -98,6 +100,7 @@ unset BINDDN_ROLE
 unset EXTENSIBLE NORMAL POSIX
 unset USER_COMMENT USER_ROOM_NUMBER
 unset USER_HOME_PHONE USER_MOBILE_PHONE USER_WORK_PHONE
+unset USER_HOME_POSTAL_ADDRESS_B64 USER_WORK_POSTAL_ADDRESS_B64
 unset USER_MAIL
 
 ###########################################################################
@@ -108,19 +111,23 @@ unset USER_MAIL
 while getopts A:b:D:M:f:h:R:r:s:uVw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
-	--add-attribute     | \
-	--binddn            | \
-	--delete-attribute  | \
-	--replace-attribute | \
-	--full-name         | \
-	--home-phone        | \
-	--mail              | \
-	--mobile            | \
-	--mobile-phone      | \
-	--room              | \
-	--root              | \
-	--service           | \
-	--work-phone        )
+	--add-attribute       | \
+	--binddn              | \
+	--delete-attribute    | \
+	--replace-attribute   | \
+	--full-name           | \
+	--home-address        | \
+	--home-phone          | \
+	--home-postal-address | \
+	--mail                | \
+	--mobile              | \
+	--mobile-phone        | \
+	--room                | \
+	--root                | \
+	--service             | \
+	--work-address        | \
+	--work-phone          | \
+	--work-postal-address )
 		OPT=${OPT}${OPTARG}
 		eval 'OPTARG=${'"${OPTIND}"'?}'
 		OPTIND=$(( ${OPTIND} + 1 ))
@@ -159,6 +166,13 @@ ${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 	--full-name=         | -f* ) USER_COMMENT=${OPTARG} ;;
 	--help               | -u* | \
 	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
+	--home-address=            | \
+	--home-postal-address=     ) USER_HOME_POSTAL_ADDRESS_B64=${OPTARG:+$(
+		printf '%s' "${OPTARG}" \
+		| exec sed -e '1!b' -e '$!b' -e 's/[[:space:]]*,[[:space:]]*/\
+/g' \
+		| base64 -w 0
+		)}; : "${OPTARG:+${USER_HOME_POSTAL_ADDRESS_B64:?}}" ;;
 	--home-phone=        | -h* ) USER_HOME_PHONE=${OPTARG} ;;
 	--mail=                    ) USER_MAIL=${OPTARG} ;;
 	--mobile=                  | \
@@ -167,6 +181,13 @@ ${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 	--root=              | -R* ) ;;
 	--service=           | -s* ) USER_SERVICE=${OPTARG} ;;
 	--version            | -V* ) exec "${0}" --version 3>&- 4>&- ;;
+	--work-address=            | \
+	--work-postal-address=     ) USER_WORK_POSTAL_ADDRESS_B64=${OPTARG:+$(
+		exec sed -e '1!b' -e '$!b' -e 's/[[:space:]]*,[[:space:]]*/\
+/g' << __EOT__ | base64 -w 0
+${OPTARG}
+__EOT__
+		)}; : "${OPTARG:+${USER_WORK_POSTAL_ADDRESS_B64:?}}" ;;
 	--work-phone=        | -w* ) USER_WORK_PHONE=${OPTARG} ;;
 	--dry-run            ) exec 3>&1 4>&1 ;;
 	--*                  ) OPTIND=1; getopts '' OPT "-${OPT}"; exit 1 ;;
@@ -218,8 +239,8 @@ __LDIF__
 # Values.
 #
 ###########################################################################
-# USER_COMMENT, USER_HOME_PHONE, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
+# USER_COMMENT, USER_HOME_PHONE, USER_HOME_POSTAL_ADDRESS_B64, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_WORK_POSTAL_ADDRESS_B64, USER_LDIF.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_HOME_POSTAL_ADDRESS_B64++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_WORK_POSTAL_ADDRESS_B64++}${USER_LDIF:++} in
 '' )
 	gettext_fallback() { # -d <DEFAULT-DOMAIN> [OPTION]... <MSGID>
 		eval "msgid=\${${#}}"
@@ -304,8 +325,8 @@ esac
 printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
 echo >&4
 
-# USER_COMMENT, USER_HOME_PHONE, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
+# USER_COMMENT, USER_HOME_PHONE, USER_HOME_POSTAL_ADDRESS_B64, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_WORK_POSTAL_ADDRESS_B64, USER_LDIF.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_HOME_POSTAL_ADDRESS_B64++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_WORK_POSTAL_ADDRESS_B64++}${USER_LDIF:++} in
 +* ) cat << __LDIF__ >&3 ;;
 ${USER_DN_SPEC}
 changetype: modify${USER_COMMENT+
@@ -320,6 +341,9 @@ sn: ${USER_COMMENT#*[[:space:]]}}
 -}${USER_HOME_PHONE+
 replace: homePhone${USER_HOME_PHONE:+
 homePhone: ${USER_HOME_PHONE}}
+-}${USER_HOME_POSTAL_ADDRESS_B64+
+replace: homePostalAddress${USER_HOME_POSTAL_ADDRESS_B64:+
+homePostalAddress:: ${USER_HOME_POSTAL_ADDRESS_B64}}
 -}${USER_MAIL+
 replace: mail${USER_MAIL:+
 mail: ${USER_MAIL}}
@@ -332,6 +356,9 @@ roomNumber: ${USER_ROOM_NUMBER}}
 -}${USER_WORK_PHONE+
 replace: telephoneNumber${USER_WORK_PHONE:+
 telephoneNumber: ${USER_WORK_PHONE}}
+-}${USER_WORK_POSTAL_ADDRESS_B64+
+replace: postalAddress${USER_WORK_POSTAL_ADDRESS_B64:+
+postalAddress:: ${USER_WORK_POSTAL_ADDRESS_B64}}
 -}${USER_LDIF}
 
 __LDIF__
