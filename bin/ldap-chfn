@@ -42,7 +42,7 @@ Options:
  -f, --full-name COMMENT    Change the full name of the account.
  -u, --help[=FORMAT]        Show this help message and exit.
  -h, --home-phone HOME      Change the home phone number of the account.
- -m, --mobile-phone MOBILE  Change the mobile phone number of the account.
+     --mobile-phone MOBILE  Change the mobile phone number of the account.
  -r, --room ROOM_NUMBER     Change the room number of the account.
  -R, --root CHROOT_DIR      (ignored)
  -s, --service SERVICE      Modify an account for the SERVICE service.
@@ -102,7 +102,7 @@ unset USER_HOME_PHONE USER_MOBILE_PHONE USER_WORK_PHONE
 # Options.
 #
 ###########################################################################
-while getopts A:b:D:M:f:h:m:R:r:s:uVw:-: OPT "${@}"
+while getopts A:b:D:M:f:h:R:r:s:uVw:-: OPT "${@}"
 do
 	case -${OPT}${OPTARG-} in
 	--add-attribute     | \
@@ -111,6 +111,7 @@ do
 	--replace-attribute | \
 	--full-name         | \
 	--home-phone        | \
+	--mobile            | \
 	--mobile-phone      | \
 	--room              | \
 	--root              | \
@@ -155,7 +156,8 @@ ${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 	--help               | -u* | \
 	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
 	--home-phone=        | -h* ) USER_HOME_PHONE=${OPTARG} ;;
-	--mobile-phone=      | -m* ) USER_MOBILE_PHONE=${OPTARG} ;;
+	--mobile=                  | \
+	--mobile-phone=            ) USER_MOBILE_PHONE=${OPTARG} ;;
 	--room=              | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
 	--root=              | -R* ) ;;
 	--service=           | -s* ) USER_SERVICE=${OPTARG} ;;

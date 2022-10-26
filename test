@@ -79,7 +79,7 @@ for opts in \
 	-{-full-name{=,' '},f{,' '}}optarg			\
 	-{-help,u}						\
 	-{-home-phone{=,' '},h{,' '}}optarg			\
-	-{-mobile-phone{=,' '},m{,' '}}optarg			\
+	--mobile-phone{=,' '}optarg				\
 	-{-room{=,' '},r{,' '}}optarg				\
 	-{-root{=,' '},R{,' '}}optarg				\
 	-{-service{=,' '},s{,' '}}"${SERVICE:-SKIP}"		\
