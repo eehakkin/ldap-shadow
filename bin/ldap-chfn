@@ -42,6 +42,7 @@ Options:
  -f, --full-name COMMENT    Change the full name of the account.
  -u, --help[=FORMAT]        Show this help message and exit.
  -h, --home-phone HOME      Change the home phone number of the account.
+     --mail MAIL            Change the mail address of the account.
      --mobile-phone MOBILE  Change the mobile phone number of the account.
  -r, --room ROOM_NUMBER     Change the room number of the account.
  -R, --root CHROOT_DIR      (ignored)
@@ -97,6 +98,7 @@ unset BINDDN_ROLE
 unset EXTENSIBLE NORMAL POSIX
 unset USER_COMMENT USER_ROOM_NUMBER
 unset USER_HOME_PHONE USER_MOBILE_PHONE USER_WORK_PHONE
+unset USER_MAIL
 
 ###########################################################################
 #
@@ -112,6 +114,7 @@ do
 	--replace-attribute | \
 	--full-name         | \
 	--home-phone        | \
+	--mail              | \
 	--mobile            | \
 	--mobile-phone      | \
 	--room              | \
@@ -157,6 +160,7 @@ ${ATTRIBUTE_NAME}: ${ATTRIBUTE_VALUE}}
 	--help               | -u* | \
 	--help=              ) exec "${0}" --help"${OPTARG+=${OPTARG}}" 3>&- 4>&- ;;
 	--home-phone=        | -h* ) USER_HOME_PHONE=${OPTARG} ;;
+	--mail=                    ) USER_MAIL=${OPTARG} ;;
 	--mobile=                  | \
 	--mobile-phone=            ) USER_MOBILE_PHONE=${OPTARG} ;;
 	--room=              | -r* ) USER_ROOM_NUMBER=${OPTARG} ;;
@@ -176,12 +180,13 @@ USER_DN=$( exec "${wrapper}" --mode=user-dn )
 
 unset USER_COMMENT_OLD USER_ROOM_NUMBER_OLD
 unset USER_HOME_PHONE_OLD USER_WORK_PHONE_OLD
+unset USER_MAIL_OLD
 USER_LDIF_OLD=$(
 	exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
 		-b "${USER_DN}" \
 		-o ldif-wrap=no \
 		-s base
-		-- '(objectClass=*)' cn homePhone objectClass mobilePhone roomNumber telephoneNumber
+		-- '(objectClass=*)' cn homePhone objectClass mail mobilePhone roomNumber telephoneNumber
 	)
 while IFS=':' read attribute value
 do
@@ -192,6 +197,7 @@ do
 	case ${attribute} in
 	cn              ) USER_COMMENT_OLD=${value} ;;
 	homePhone       ) USER_HOME_PHONE_OLD=${value} ;;
+	mail            ) USER_MAIL_OLD=${value} ;;
 	mobilePhone     ) USER_MOBILE_PHONE_OLD=${value} ;;
 	objectClass     )
 		case ${value} in
@@ -212,8 +218,8 @@ __LDIF__
 # Values.
 #
 ###########################################################################
-# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
+# USER_COMMENT, USER_HOME_PHONE, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
 '' )
 	gettext_fallback() { # -d <DEFAULT-DOMAIN> [OPTION]... <MSGID>
 		eval "msgid=\${${#}}"
@@ -268,6 +274,7 @@ case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMB
 		WORK_PHONE	:+		Work Phone
 		HOME_PHONE	:${NORMAL:++}	Home Phone
 		MOBILE_PHONE	:${NORMAL:++}	Mobile Phone
+		MAIL		:${NORMAL:++}	Email Address
 __INFO__
 	;;
 esac
@@ -297,8 +304,8 @@ esac
 printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
 echo >&4
 
-# USER_COMMENT, USER_HOME_PHONE, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
-case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
+# USER_COMMENT, USER_HOME_PHONE, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_LDIF.
+case ${USER_COMMENT++}${USER_HOME_PHONE++}${USER_MAIL++}${USER_MOBILE_PHONE++}${USER_ROOM_NUMBER++}${USER_WORK_PHONE++}${USER_LDIF:++} in
 +* ) cat << __LDIF__ >&3 ;;
 ${USER_DN_SPEC}
 changetype: modify${USER_COMMENT+
@@ -313,6 +320,9 @@ sn: ${USER_COMMENT#*[[:space:]]}}
 -}${USER_HOME_PHONE+
 replace: homePhone${USER_HOME_PHONE:+
 homePhone: ${USER_HOME_PHONE}}
+-}${USER_MAIL+
+replace: mail${USER_MAIL:+
+mail: ${USER_MAIL}}
 -}${USER_MOBILE_PHONE+
 replace: mobile${USER_MOBILE_PHONE:+
 mobile: ${USER_MOBILE_PHONE}}

@@ -76,6 +76,7 @@ for opts in \
 	-{-full-name{=,' '},f{,' '}}optarg			\
 	-{-help,u}						\
 	-{-home-phone{=,' '},h{,' '}}optarg			\
+	--mail{=,' '}optarg					\
 	--mobile-phone{=,' '}optarg				\
 	-{-room{=,' '},r{,' '}}optarg				\
 	-{-root{=,' '},R{,' '}}optarg				\
