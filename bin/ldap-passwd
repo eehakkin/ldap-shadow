@@ -159,63 +159,6 @@ __USAGE__
 	fi
 	exit "${error}"
 	;;
---mode=binddn-admin )
-	# Search options.
-	export LDAPDEFAULT_OPTS LDAPSEARCH_OPTS
-	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-${LDAPDEFAULT_OPTS=$(
-		exec "${wrapper}" --mode=opts
-		)}}
-	export LOGNAME
-	LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
-	DN_SPEC=$(
-		printf '%s\n' \
-			"&(uid=${SUDO_USER-${LOGNAME}})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))(!(dc:dn:=${SUDO_USER-${LOGNAME}}))" \
-			"&(uid=${SUDO_USER-${LOGNAME}})(|(ou:dn:=Admin)(ou:dn:=Administrator)(ou:dn:=Administrators)(ou:dn:=Admins))" \
-			'cn=admin' \
-			"uid=${SUDO_USER-${LOGNAME}}" \
-		| exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
-			-a always \
-			-f - \
-			-o ldif-wrap=no \
-			-z 1 \
-			-- '(&(|(objectClass=posixAccount)(objectClass=simpleSecurityObject))(%s))' 1.1 \
-			2> /dev/null \
-		| exec sed -e '/^dn:/!d' -e 'q'
-		)
-	case ${DN_SPEC} in
-	'dn:: '* ) echo "${DN_SPEC#"dn:: "}" | base64 -d && echo ;;
-	'dn: '*  ) printf '%s\n' "${DN_SPEC#"dn: "}" ;;
-	*        ) printf '%s\n' "${USER_DN:?}" ;;
-	esac
-	exit
-	;;
---mode=binddn-primary )
-	# Search options.
-	export LDAPDEFAULT_OPTS LDAPSEARCH_OPTS
-	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-${LDAPDEFAULT_OPTS=$(
-		exec "${wrapper}" --mode=opts
-		)}}
-	export LOGNAME
-	LOGNAME=${LOGNAME-${USER-$( exec id -un )}}
-	USER_DN=${USER_DN-$(
-		unset USER_SERVICE &&
-		exec "${wrapper}" --mode=user-dn
-		)}
-	case ${USER_DN} in
-	*,uid="${LOGNAME}",* )
-		# Primary user DN.
-		printf '%s\n' "uid=${LOGNAME},${USER_DN#*,uid="${LOGNAME}",}"
-		;;
-	* )
-		# Administrator user DN.
-		exec "${wrapper}" --mode=binddn-admin
-		;;
-	esac
-	exit
-	;;
---mode=binddn-user )
-	exec "${wrapper}" --mode=user-dn
-	;;
 --mode=default-admin-dn        | \
 --mode=default-primary-dn      | \
 --mode=default-primary-user-dn | \
@@ -469,6 +412,66 @@ __EOT__
 		exit
 		;;
 	esac
+	;;
+--mode=default-auto-dn | \
+--mode=real-auto-dn    )
+	MODE=${1#--mode=}
+	# LOGNAME.
+	export LOGNAME
+	LOGNAME=${LOGNAME-${USER-$( id -un )}}
+	case ${MODE%-dn*} in
+	default-* ) LOGNAME=${LOGNAME:?} ;;
+	real-*    ) LOGNAME=${SUDO_USER-${LOGNAME:?}} ;;
+	esac
+	# Search options.
+	export LDAPDEFAULT_OPTS LDAPSEARCH_OPTS
+	LDAPSEARCH_OPTS=${LDAPSEARCH_OPTS-${LDAPDEFAULT_OPTS=$(
+		exec "${wrapper}" --mode=opts
+		)}}
+	USER_DN=${USER_DN-$(
+		exec "${wrapper}" --mode=user-dn
+		)}
+	# Try to use the default/real primary user DN.
+	case ${MODE} in
+	default-* ) dn_var=DEFAULT_PRIMARY_USER_DN ;;
+	real-*    ) dn_var=REAL_PRIMARY_USER_DN ;;
+	esac
+	eval 'has_dn=${'"${dn_var}"'++}'
+	case ${has_dn} in
+	+ )
+		eval 'PRIMARY_DN=${'"${dn_var}"'}'
+		;;
+	* )
+		eval "${dn_var}_SPEC"'=${'"${dn_var}_SPEC"'-$( exec "${wrapper}" --mode="${MODE%%-*}-primary-user-dn-spec" )}'
+		eval 'PRIMARY_DN_SPEC=${'"${dn_var}_SPEC"':?}'
+		case ${PRIMARY_DN_SPEC:++} in
+		+ ) PRIMARY_DN=$(
+			export "${dn_var}_SPEC"
+			exec "${wrapper}" --mode="${MODE%%-*}-primary-user-dn"
+			) ;;
+		* ) unset PRIMARY_DN ;;
+		esac
+	esac
+	case ${PRIMARY_DN++} in + )
+		case ${USER_DN} in "${PRIMARY_DN-}" | *,"${PRIMARY_DN-}" )
+			# The defaul/real primary user is user's primary user.
+			printf '%s\n' "${PRIMARY_DN}"
+			exit
+		esac
+		case $(
+			exec ldapsearch -LLLM ${LDAPSEARCH_OPTS} \
+				-b "${USER_DN}" \
+				-o ldif-wrap=no \
+				-s base \
+				-- "(manager=${PRIMARY_DN})" 1.1
+			) in ?* )
+			# The defaul/real primary user is user's manager.
+			printf '%s\n' "${PRIMARY_DN}"
+			exit
+		esac
+	esac
+	# Fallback to the defaul/real admin DN.
+	exec "${wrapper}" --mode="${MODE%%-*}-admin-dn"
 	;;
 --mode=frontend )
 	shift
@@ -935,7 +938,7 @@ case ${DELETE:++}${EXPIRE:++}${USER_INACTIVE++}${USER_MAX_DAYS++}${USER_MIN_DAYS
 	# LDAPBINDDN.
 	case ${LDAPBINDDN++} in '' )
 		LDAPBINDDN=$(
-			exec "${wrapper}" --mode="binddn-${BINDDN_ROLE-admin}"
+			exec "${wrapper}" --mode="${BINDDN_ROLE-real-admin}-dn"
 			)
 		export LDAPBINDDN
 		printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
@@ -992,10 +995,10 @@ __LDIF__
 	exec 3>&- 4>&-
 	# LDAPBINDDN.
 	case ${LDAPBINDDN++} in '' )
-		PRIMARY=${1+primary}
 		LDAPBINDDN=$(
+			REAL_AUTO=${1+real-auto}
 			exec "${wrapper}" \
-				--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
+				--mode="${BINDDN_ROLE-${REAL_AUTO:-user}}-dn"
 			)
 		export LDAPBINDDN
 		printf '# %s=%s\n' LDAPBINDDN "${LDAPBINDDN}" >&6

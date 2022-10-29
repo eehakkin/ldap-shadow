@@ -6,6 +6,7 @@ ldap-shadow (1.0.20221029) unstable; urgency=medium
   * Implemented address options in ldap-chfn.
   * Implemented the --other option in ldap-chfn.
   * Reimplemented DN wrapper modes.
+  * Removed separate bind DN wrapper modes.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sat, 29 Oct 2022 11:14:30 +0300
 

@@ -368,10 +368,10 @@ esac
 ###########################################################################
 # LDAPBINDDN.
 case ${LDAPBINDDN++} in '' )
-	PRIMARY=${1+primary}
 	LDAPBINDDN=$(
+		REAL_AUTO=${1+real-auto}
 		exec "${wrapper}" \
-			--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
+			--mode="${BINDDN_ROLE-${REAL_AUTO:-user}}-dn"
 		)
 	export LDAPBINDDN
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
