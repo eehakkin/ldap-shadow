@@ -106,6 +106,7 @@ done
 shift $(( $OPTIND - 1 ))
 GROUP=${1-}
 GROUP_DN_SPEC=$( exec "${wrapper}" --mode=group-dn-spec )
+: "${GROUP_DN_SPEC:?}"
 
 ###########################################################################
 #

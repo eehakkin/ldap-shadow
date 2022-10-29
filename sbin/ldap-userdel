@@ -107,6 +107,7 @@ done
 shift $(( $OPTIND - 1 ))
 USER=${1-}
 USER_DN_SPEC=$( exec "${wrapper}" --mode=user-dn-spec )
+: "${USER_DN_SPEC:?}"
 
 ###########################################################################
 #

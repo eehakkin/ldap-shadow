@@ -1,12 +1,13 @@
-ldap-shadow (1.0.20221026) unstable; urgency=medium
+ldap-shadow (1.0.20221029) unstable; urgency=medium
 
   * Changed chfn --room option to match the shadow package.
   * Dropped the non-standard -m option from ldap-chfn.
   * Implemented the --mail option in ldap-chfn.
   * Implemented address options in ldap-chfn.
   * Implemented the --other option in ldap-chfn.
+  * Reimplemented DN wrapper modes.
 
- -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Wed, 26 Oct 2022 20:55:56 +0300
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sat, 29 Oct 2022 11:14:30 +0300
 
 ldap-shadow (1.0.20220306) unstable; urgency=low
 

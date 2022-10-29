@@ -199,7 +199,7 @@ __EOT__
 done
 shift $(( $OPTIND - 1 ))
 USER=${1-${LOGNAME}}
-USER_DN_SPEC=$( exec "${wrapper}" --mode=user-dn-spec )
+USER_DN_SPEC=$( exec "${wrapper}" --mode="${USER_SERVICE+service-}user-dn-spec" )
 USER_DN=$( exec "${wrapper}" --mode=user-dn )
 
 unset USER_COMMENT_OLD USER_GECOS_OLD USER_GECOS_OTHER_OLD USER_ROOM_NUMBER_OLD
@@ -374,12 +374,9 @@ case ${LDAPBINDDN++} in '' )
 			--mode="binddn-${BINDDN_ROLE-${PRIMARY:-user}}"
 		)
 	export LDAPBINDDN
-	printf '# ,,,[%s],,,\n' \
-		"LDAPBINDDN=${LDAPBINDDN}" \
-		${USER_SERVICE+ "USER_SERVICE=${USER_SERVICE}" } \
-		>&4
+	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
 esac
-printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
+printf '# ,,,[%s],,,\n' "USER=${USER}" "USER_DN=${USER_DN}" >&4
 echo >&4
 
 # USER_COMMENT, USER_GECOS, USER_HOME_PHONE, USER_HOME_POSTAL_ADDRESS_B64, USER_MAIL, USER_MOBILE_PHONE, USER_ROOM_NUMBER, USER_WORK_PHONE, USER_WORK_POSTAL_ADDRESS_B64, USER_LDIF.

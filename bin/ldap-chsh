@@ -164,7 +164,7 @@ case ${LDAPBINDDN++} in '' )
 	export LDAPBINDDN
 	printf '# ,,,[%s],,,\n' "LDAPBINDDN=${LDAPBINDDN}" >&4
 esac
-printf '# ,,,[%s],,,\n' "USER_DN=${USER_DN}" >&4
+printf '# ,,,[%s],,,\n' "USER=${USER}" "USER_DN=${USER_DN}" >&4
 echo >&4
 
 # USER_SHELL.
