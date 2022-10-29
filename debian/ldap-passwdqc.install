@@ -1,2 +1,2 @@
-bin/ldap-??q*		usr/bin/
-man/man1/ldap-??q*	usr/share/man/man1
+debian/tmp/usr/bin/ldap-pw*
+debian/tmp/usr/share/man/man1/ldap-pw*

@@ -1,5 +1,5 @@
-bin/ldap-??[!q]*	usr/bin/
-etc/ldap-*		etc/
-man/man1/ldap-??[!q]*	usr/share/man/man1/
-man/man8		usr/share/man/
-sbin/ldap-*		usr/sbin/
+debian/tmp/etc/ldap-[!pw]*
+debian/tmp/usr/*bin/ldap-[!pw]*
+debian/tmp/usr/*bin/ldap-p[!w]*
+debian/tmp/usr/share/man/man*/ldap-[!pw]*
+debian/tmp/usr/share/man/man*/ldap-p[!w]*

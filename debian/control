@@ -29,6 +29,7 @@ Description: change and administer password and group data for LDAP accounts
 Package: ldap-passwdqc
 Architecture: all
 Depends:
+	ldap-passwd,
 	passwdqc,
 	${misc:Depends}
 Description: password strength checking and policy enforcement toolset
