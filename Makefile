@@ -20,8 +20,8 @@ all: FORCE
 		$(LS) -d -- *bin/ldap-*[!~] \
 		| $(SED) \
 			-n \
-			-e 's|^bin/\(ldap-\([^-]*\)\)$$|man/man1/\1.1|p' \
-			-e 's|^sbin/\(ldap-\([^-]*\)\)$$|man/man8/\1.8|p' \
+			-e 's|^bin/\(ldap-\([^-]*\)\)$$|bin/ldap-web-app-\2 man/man1/\1.1 man/man1/ldap-web-app-\2.1|p' \
+			-e 's|^sbin/\(ldap-\([^-]*\)\)$$|sbin/ldap-web-app-\2 man/man8/\1.8 man/man8/ldap-web-app-\2.8|p' \
 		| $(XARGS) \
 		)"
 all-targets: FORCE $(TARGETS) ;
@@ -39,20 +39,24 @@ install: FORCE
 	$(INSTALL_INSTALL) -- man/man8/*[!~] '$(DESTDIR)$(MAN_DIR)/man8/'
 	$(INSTALL_INSTALL) -- sbin/*[!~] '$(DESTDIR)$(SBIN_DIR)/'
 
-man/man1/%.1: bin/%
+bin/ldap-web-app-% sbin/ldap-web-app-%:
+	# $@
+	$(LN_S) -- 'ldap-$*' '$@'
+
+man/man1/%.1: bin/% bin/ldap-web-app-passwd
 	# $@
 	install -d -- man/man1
 	'$<' --help=troff > '$@.tmp'
 	$(MV) -- '$@.tmp' '$@'
 
-man/man8/%.8: sbin/%
+man/man8/%.8: sbin/% bin/ldap-web-app-passwd
 	# $@
 	install -d -- man/man8
 	'$<' --help=troff > '$@.tmp'
 	$(MV) -- '$@.tmp' '$@'
 
 clean: FORCE
-	$(RM_R) -- man
+	$(RM_R) -- *bin/ldap-web-app-* man
 
 FORCE: FORCE/FORCE
 FORCE/FORCE:

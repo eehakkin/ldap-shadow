@@ -1,0 +1,5 @@
+debian/tmp/etc/ldap-web-app-[!pw]*
+debian/tmp/usr/*bin/ldap-web-app-[!pw]*
+debian/tmp/usr/*bin/ldap-web-app-p[!w]*
+debian/tmp/usr/share/man/man*/ldap-web-app-[!pw]*
+debian/tmp/usr/share/man/man*/ldap-web-app-p[!w]*

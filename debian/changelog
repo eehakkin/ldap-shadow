@@ -9,6 +9,7 @@ ldap-shadow (1.0.20221029) unstable; urgency=medium
   * Removed separate bind DN wrapper modes.
   * Relaxed new group and user DN spec encoding rules.
   * Improved packaging.
+  * Added web app packages.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Sat, 29 Oct 2022 11:14:30 +0300
 
