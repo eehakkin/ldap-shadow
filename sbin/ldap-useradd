@@ -362,7 +362,7 @@ __EOT__
 		*,+,+      | \
 		uid=*-*,,+ )
 			case ${DN} in
-			*[![:alnum:]_\\@=.,-]* ) DN_SPEC="dn:: $(
+			*[![:alnum:]_\\@=.,\ -]* ) DN_SPEC="dn:: $(
 				printf '%s' "${DN}" \
 				| exec base64 -w 0
 				)" ;;
@@ -399,7 +399,7 @@ __LDIF__
 	;;
 esac
 case ${USER_DN} in
-*[![:alnum:]_\\@=.,-]* ) USER_DN_SPEC="dn:: $(
+*[![:alnum:]\_\\@=.,\ -]* ) USER_DN_SPEC="dn:: $(
 	printf '%s' "${USER_DN}" \
 	| exec base64 -w 0
 	)" ;;

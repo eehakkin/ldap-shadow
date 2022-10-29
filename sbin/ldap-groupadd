@@ -276,7 +276,7 @@ __EOT__
 		*,+,+     | \
 		cn=*-*,,+ )
 			case ${DN} in
-			*[![:alnum:]_\\@=.,-]* ) DN_SPEC="dn:: $(
+			*[![:alnum:]_\\@=.,\ -]* ) DN_SPEC="dn:: $(
 				printf '%s' "${DN}" \
 				| exec base64 -w 0
 				)" ;;
@@ -313,7 +313,7 @@ __LDIF__
 	;;
 esac
 case ${GROUP_DN} in
-*[![:alnum:]_\\@=.,-]* ) GROUP_DN_SPEC="dn:: $(
+*[![:alnum:]_\\@=.,\ -]* ) GROUP_DN_SPEC="dn:: $(
 	printf '%s' "${GROUP_DN}" \
 	| exec base64 -w 0
 	)" ;;
