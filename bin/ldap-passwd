@@ -162,12 +162,14 @@ __USAGE__
 --mode=default-admin-dn        | \
 --mode=default-primary-dn      | \
 --mode=default-primary-user-dn | \
+--mode=default-service-user-dn | \
 --mode=default-user-dn         | \
 --mode=group-dn                | \
 --mode=primary-user-dn         | \
 --mode=real-admin-dn           | \
 --mode=real-primary-dn         | \
 --mode=real-primary-user-dn    | \
+--mode=real-service-user-dn    | \
 --mode=real-user-dn            | \
 --mode=service-user-dn         | \
 --mode=user-dn                 )
@@ -188,11 +190,13 @@ __USAGE__
 	case ${MODE%-dn*} in
 	default-admin        ) dn_var=DEFAULT_ADMIN_DN ;;
 	default-primary-user ) dn_var=DEFAULT_PRIMARY_USER_DN ;;
+	default-service-user ) dn_var=DEFAULT_SERVICE_USER_DN ;;
 	default-user         ) dn_var=DEFAULT_USER_DN ;;
 	group                ) dn_var=GROUP_DN ;;
 	primary-user         ) dn_var=PRIMARY_USER_DN ;;
 	real-admin           ) dn_var=REAL_ADMIN_DN ;;
 	real-primary-user    ) dn_var=REAL_PRIMARY_USER_DN ;;
+	real-service-user    ) dn_var=REAL_SERVICE_USER_DN ;;
 	real-user            ) dn_var=REAL_USER_DN ;;
 	service-user         ) dn_var=SERVICE_USER_DN ;;
 	user                 ) dn_var=USER_DN ;;
@@ -219,11 +223,13 @@ __EOT__
 	;;
 --mode=default-admin-dn-spec        | \
 --mode=default-primary-user-dn-spec | \
+--mode=default-service-user-dn-spec | \
 --mode=default-user-dn-spec         | \
 --mode=group-dn-spec                | \
 --mode=primary-user-dn-spec         | \
 --mode=real-admin-dn-spec           | \
 --mode=real-primary-user-dn-spec    | \
+--mode=real-service-user-dn-spec    | \
 --mode=real-user-dn-spec            | \
 --mode=service-user-dn-spec         | \
 --mode=user-dn-spec                 )
@@ -355,8 +361,12 @@ __EOT__
 			-- "(&(objectClass=posixGroup)(cn=${GROUP}))" 1.1 ;;
 		esac
 		;;
-	service-user )
-		USER=${USER-${LOGNAME:?}}
+	default-service-user | real-service-user | service-user )
+		case ${MODE%-dn*} in
+		default-* ) USER=${LOGNAME:?} ;;
+		real-*    ) USER=${SUDO_USER-${LOGNAME:?}} ;;
+		user      ) USER=${USER-${LOGNAME:?}} ;;
+		esac
 		case ${USER_SERVICE} in
 		*=* )
 			PRIMARY_USER_DN_SPEC=${PRIMARY_USER_DN_SPEC-$(

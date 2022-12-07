@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20221207) unstable; urgency=low
+
+  * Added default and real service user DN wrapper modes.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Wed, 07 Dec 2022 19:07:36 +0200
+
 ldap-shadow (1.0.20221029) unstable; urgency=medium
 
   * Changed chfn --room option to match the shadow package.
