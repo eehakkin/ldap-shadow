@@ -676,9 +676,10 @@ __PASS__
 	case ${x+-x} in
 	'' ) exit 0 ;; # No simple authentication.
 	esac
-	case ${y+-${y}} in
-	-y/dev/fd/* ) exec cat -- "${y}" ;; # Password file descriptor.
-	-y* ) exit 0 ;; # Reusable password file.
+	case ${y+-y${y}} in
+	-y/dev/fd/*  ) exec cat -- "${y}" ;; # Password file descriptor.
+	-y/dev/stdin ) exec cat ;;
+	-y*          ) exit 0 ;; # Reusable password file.
 	esac
 	case ${W+-W},${OPTS++} in
 	,+ ) exit ;; # No password options in non-default options.
