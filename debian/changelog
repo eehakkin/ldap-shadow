@@ -1,3 +1,9 @@
+ldap-shadow (1.0.20230102) unstable; urgency=low
+
+  * Fixed auto DN wrapper modes.
+
+ -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Mon, 02 Jan 2023 22:09:02 +0200
+
 ldap-shadow (1.0.20221207) unstable; urgency=low
 
   * Added default and real service user DN wrapper modes.

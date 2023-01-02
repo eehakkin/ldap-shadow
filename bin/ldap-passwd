@@ -453,13 +453,13 @@ __EOT__
 		;;
 	* )
 		eval "${dn_var}_SPEC"'=${'"${dn_var}_SPEC"'-$( exec "${wrapper}" --mode="${MODE%%-*}-primary-user-dn-spec" )}'
-		eval 'PRIMARY_DN_SPEC=${'"${dn_var}_SPEC"':?}'
+		eval 'PRIMARY_DN_SPEC=${'"${dn_var}_SPEC"'}'
 		case ${PRIMARY_DN_SPEC:++} in
 		+ ) PRIMARY_DN=$(
 			export "${dn_var}_SPEC"
 			exec "${wrapper}" --mode="${MODE%%-*}-primary-user-dn"
 			) ;;
-		* ) unset PRIMARY_DN ;;
+		* ) unset PRIMARY_DN PRIMARY_DN_SPEC ;;
 		esac
 	esac
 	case ${PRIMARY_DN++} in + )
