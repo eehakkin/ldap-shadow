@@ -114,26 +114,26 @@ __USAGE__
 		LOGNAME=${LOGNAME-${USER-$( id -un )}}
 		RDN=${LDAPBINDDN%%,*}
 		USER=${USER-${LOGNAME}}
+		case ,${LDAPBINDDN} in
+		*,uid="${USER}",*                 ) attrs= ;;
+		*,uid="${LOGNAME}",*              ) attrs='Default ' ;;
+		*,uid="${SUDO_USER-${LOGNAME}}",* ) attrs='Real ' ;;
+		*                                 ) attrs= ;;
+		esac
 		case ${LDAPBINDDN} in
 		*,ou=Admin,*                    | \
 		*,ou=Administrator,*            | \
 		*,ou=Administrators,*           | \
 		*,ou=Admins,*                   | \
 		cn=admin,*                      ) set -- \
-			'Enter LDAP Administrator Password: ' ;;
+			"Enter ${attrs}LDAP Administrator Password: " ;;
 		dc=*,uid=*,*                    | \
 		ou=*,uid=*,*                    ) set -- \
-			"Enter LDAP ${RDN#*=} User Password: " ;;
+			"Enter ${attrs}LDAP ${RDN#*=} User Password: " ;;
 		uid=*,uid=*,*                   ) set -- \
-			"Enter LDAP Service User Password: " ;;
-		uid="${USER}",*                 ) set -- \
-			'Enter LDAP Primary User Password: ' ;;
-		uid="${LOGNAME}",*              ) set -- \
-			'Enter LDAP Default Primary User Password: ' ;;
-		uid="${SUDO_USER-${LOGNAME}}",* ) set -- \
-			'Enter LDAP Real Primary User Password: ' ;;
+			"Enter ${attrs}LDAP Service User Password: " ;;
 		uid=*,*                         ) set -- \
-			'Enter LDAP Primary User Password: ' ;;
+			"Enter ${attrs}LDAP Primary User Password: " ;;
 		*                               ) set -- \
 			'Enter LDAP Password: ' ;;
 		esac

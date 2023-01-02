@@ -1,6 +1,7 @@
 ldap-shadow (1.0.20230102) unstable; urgency=low
 
   * Fixed auto DN wrapper modes.
+  * Changed password prompts to be more informative.
 
  -- Eero Häkkinen <Eero+ldap-shadow@xn--Hkkinen-5wa.fi>  Mon, 02 Jan 2023 22:09:02 +0200
 
